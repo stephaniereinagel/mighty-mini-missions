@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1020" />
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <title>Mighty Mini Missions</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img class="logo" src="./logo.png" alt="" aria-hidden="true" />
+        <div class="titles">
+          <div class="title">Mighty Mini Missions</div>
+          <div class="subtitle" id="headerSubtitle">Tap → choose → go play</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="profile-indicator" id="profileIndicator" type="button" aria-label="Switch profile" title="Switch profile">
+          <span class="profile-avatar" id="profileAvatar">🚀</span>
+          <span class="profile-name" id="profileName">Max</span>
+        </button>
+        <a class="link-button" href="#print" id="printLink" title="Printable mission deck">Print</a>
+        <button class="icon-button" id="settingsButton" type="button" title="Settings" aria-label="Settings">
+          ⚙
+        </button>
+      </div>
+    </header>
+
+    <main class="app">
+      <section class="panel" id="profilePickerPanel" aria-label="Choose who's playing">
+        <div class="profile-picker">
+          <h2>Who's playing?</h2>
+          <div class="profile-cards" id="profileCards"></div>
+          <div class="profile-picker-footer">
+            <button class="secondary" id="viewBadgesButton" type="button">View badges</button>
+            <button class="ghost" id="manageProfilesButton" type="button">Manage profiles</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hidden" id="mainPanel" aria-live="polite">
+        <div class="welcome" id="welcome">
+          <h1>Pick a mission.</h1>
+          <p class="lede">
+            This is a <strong>screen-to-world launcher</strong>: we want <strong>30 seconds</strong> on screen, then
+            <strong>10–30 minutes</strong> of real play.
+          </p>
+          <div class="cta-row">
+            <button class="primary" id="twoChoicesButton" type="button">Give me 2 choices</button>
+            <button class="secondary" id="missionNowButton" type="button">Mission now</button>
+          </div>
+          <div class="cta-row">
+            <a class="secondary" href="#print">Print mission cards (no device needed)</a>
+          </div>
+          <div class="quick-picks" aria-label="Quick picks">
+            <button class="chip" data-quick-category="build">🔧 Build</button>
+            <button class="chip" data-quick-category="phonics">📖 Phonics</button>
+            <button class="chip" data-quick-category="math">🔢 Movement Math</button>
+            <button class="chip" data-quick-category="nature">🌿 Nature</button>
+            <button class="chip" data-quick-category="social">🤝 Co-op</button>
+          </div>
+        </div>
+
+        <div class="choices hidden" id="choices">
+          <div class="choices-header">
+            <h2>Choose one</h2>
+            <div class="choices-meta">
+              <span class="pill" id="choicesDifficultyPill"></span>
+              <span class="pill" id="choicesCategoryPill"></span>
+            </div>
+          </div>
+          <div class="choice-grid">
+            <button class="choice-card" id="choiceA" type="button"></button>
+            <button class="choice-card" id="choiceB" type="button"></button>
+          </div>
+          <div class="choices-actions">
+            <button class="secondary" id="shuffleChoicesButton" type="button">Shuffle</button>
+            <button class="ghost" id="backToHomeFromChoices" type="button">Back</button>
+          </div>
+        </div>
+
+        <article class="mission hidden" id="mission">
+          <div class="hand-back-cue">Got your mission? Hand device back to Mom.</div>
+          <div class="mission-top">
+            <div class="mission-badges">
+              <span class="badge" id="missionCategory"></span>
+              <span class="badge subtle" id="missionDifficulty"></span>
+              <span class="badge subtle" id="missionMinutes"></span>
+            </div>
+            <div class="mission-actions">
+              <button class="icon-button" id="whyButton" type="button" title="Why this mission?" aria-label="Why this mission?">
+                ?
+              </button>
+              <button class="icon-button" id="imageButton" type="button" title="Illustrate" aria-label="Illustrate">
+                🖼️
+              </button>
+              <button class="icon-button" id="speakButton" type="button" title="Read aloud" aria-label="Read aloud">
+                🔊
+              </button>
+              <button class="icon-button" id="favoriteButton" type="button" title="Save as favorite" aria-label="Save as favorite">
+                ☆
+              </button>
+            </div>
+          </div>
+
+          <h2 class="mission-title" id="missionTitle"></h2>
+          <p class="mission-prompt" id="missionPrompt"></p>
+          <div class="mission-image hidden" id="missionImageWrap" aria-label="Mission illustration">
+            <img id="missionImage" alt="Mission illustration" loading="lazy" />
+            <div class="muted small" id="missionImageHint"></div>
+          </div>
+
+          <div class="mission-sections">
+            <section class="mission-section">
+              <h3>Materials</h3>
+              <ul id="missionMaterials"></ul>
+            </section>
+            <section class="mission-section">
+              <h3>Steps (keep it moving)</h3>
+              <ol id="missionSteps"></ol>
+            </section>
+            <section class="mission-section">
+              <h3>Little kids station (optional)</h3>
+              <p id="missionSiblingStation" class="muted"></p>
+            </section>
+          </div>
+
+          <div class="mission-twists hidden" id="missionTwists">
+            <h3>Want to try it differently?</h3>
+            <div class="twists-list" id="twistsList"></div>
+          </div>
+
+          <div class="mission-bottom">
+            <div class="mission-try">
+              <div class="try-title">If frustration hits…</div>
+              <div class="try-actions">
+                <button class="secondary" id="tryAgainEasierButton" type="button">Try #2 (easier)</button>
+                <button class="ghost" id="swapMissionButton" type="button">Swap mission</button>
+              </div>
+              <div class="muted small" id="stopRuleHint">Stop early is a win. “Done for now” counts.</div>
+            </div>
+            <div class="mission-nav">
+              <button class="primary success" id="missionCompleteButton" type="button">Mission Complete!</button>
+              <button class="primary" id="newMissionButton" type="button">New mission</button>
+              <button class="ghost" id="doneForNowButton" type="button">Done for now</button>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel hidden" id="settingsPanel" aria-label="Settings">
+        <div class="panel-header">
+          <h2>Settings</h2>
+          <button class="icon-button" id="closeSettingsButton" type="button" aria-label="Close settings">✕</button>
+        </div>
+
+        <div class="settings-grid">
+          <div class="setting">
+            <div class="setting-label">Difficulty</div>
+            <div class="segmented" role="group" aria-label="Difficulty">
+              <button class="seg" data-difficulty="easy" type="button">Easy</button>
+              <button class="seg" data-difficulty="medium" type="button">Medium</button>
+              <button class="seg" data-difficulty="hard" type="button">Hard</button>
+              <button class="seg" data-difficulty="any" type="button">Any</button>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-label">Category</div>
+            <div class="segmented" role="group" aria-label="Category">
+              <button class="seg" data-category="any" type="button">Any</button>
+              <button class="seg" data-category="build" type="button">Build</button>
+              <button class="seg" data-category="phonics" type="button">Phonics</button>
+              <button class="seg" data-category="math" type="button">Movement Math</button>
+              <button class="seg" data-category="nature" type="button">Nature</button>
+              <button class="seg" data-category="social" type="button">Co-op</button>
+              <button class="seg" data-category="responsibility" type="button">Responsibility</button>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-label">Audio prompts</div>
+            <label class="toggle">
+              <input id="audioToggle" type="checkbox" />
+              <span>Read missions aloud (🔊)</span>
+            </label>
+            <div class="muted small">
+              Works best after you tap a button first (browser permission). If it’s annoying, turn it off.
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-label">Mission Log</div>
+            <button class="secondary" id="missionLogButton" type="button">View mission log</button>
+            <div class="muted small">See completed missions, ratings, and notes per profile.</div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-label">Profiles</div>
+            <button class="secondary" id="manageProfilesSettingsButton" type="button">Manage profiles</button>
+            <div class="muted small">Add, edit, or remove kid profiles. Each profile has its own favorites and mission log.</div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-label">Favorites</div>
+            <div class="row">
+              <button class="secondary" id="showFavoritesButton" type="button">Show favorites</button>
+              <button class="ghost" id="clearFavoritesButton" type="button">Clear favorites</button>
+            </div>
+            <div class="muted small">Favorites are stored locally on this device (no account).</div>
+          </div>
+        </div>
+
+        <div class="panel-footer">
+          <div class="muted small">
+            Tip: Keep this app on the Home Screen (iPad/iPhone “Add to Home Screen”) so it feels like a tool, not a browser.
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hidden" id="badgesPanel" aria-label="Badge collection">
+        <div class="panel-header">
+          <h2>Badge Collection</h2>
+          <button class="icon-button" id="closeBadgesButton" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="badges-profile-tabs" id="badgesProfileTabs"></div>
+        <div class="badges-grid" id="badgesGrid"></div>
+      </section>
+
+      <section class="panel hidden" id="missionLogPanel" aria-label="Mission log">
+        <div class="panel-header">
+          <h2>Mission Log</h2>
+          <button class="icon-button" id="closeMissionLogButton" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="mission-log-profile-tabs" id="missionLogProfileTabs"></div>
+        <div class="mission-log-list" id="missionLogList"></div>
+      </section>
+
+      <section class="panel hidden" id="manageProfilesPanel" aria-label="Manage profiles">
+        <div class="panel-header">
+          <h2>Manage Profiles</h2>
+          <button class="icon-button" id="closeManageProfilesButton" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="manage-profiles-list" id="manageProfilesList"></div>
+        <div class="panel-footer">
+          <button class="secondary" id="addProfileButton" type="button">Add profile</button>
+        </div>
+      </section>
+
+      <section class="panel hidden" id="printPanel" aria-label="Print deck">
+        <div class="panel-header">
+          <h2>Printable Mission Deck</h2>
+          <div class="row">
+            <button class="secondary" id="printButton" type="button">Print</button>
+            <button class="ghost" id="backFromPrint" type="button">Back</button>
+          </div>
+        </div>
+        <div class="muted small">
+          This is the “no-device backup.” Print and cut into cards. (You can also just use the app.)
+        </div>
+        <div id="printDeck" class="print-deck" aria-label="Mission cards"></div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop hidden" id="completionModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Mission Complete!</h3>
+          <button class="icon-button" id="closeCompletionModal" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="completion-question">How was it?</p>
+          <div class="completion-ratings" id="completionRatings">
+            <button class="completion-rating" data-rating="too-easy" type="button">
+              <span class="rating-emoji">😴</span>
+              <span>Too Easy</span>
+            </button>
+            <button class="completion-rating" data-rating="just-right" type="button">
+              <span class="rating-emoji">💪</span>
+              <span>Just Right</span>
+            </button>
+            <button class="completion-rating" data-rating="too-hard" type="button">
+              <span class="rating-emoji">😅</span>
+              <span>Too Hard</span>
+            </button>
+          </div>
+          <div class="completion-notes">
+            <label for="completionNoteInput">Notes (optional)</label>
+            <input type="text" id="completionNoteInput" placeholder="e.g. Loved it, built 3 versions" />
+          </div>
+          <button class="primary" id="completionDoneButton" type="button" disabled>Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="reward-overlay hidden" id="rewardOverlay">
+      <div class="reward-content">
+        <div class="reward-present" id="rewardPresent">
+          <div class="present-box">🎁</div>
+          <p class="reward-tap-hint">Tap to open!</p>
+        </div>
+        <div class="reward-badge hidden" id="rewardBadge">
+          <div class="badge-circle" id="badgeCircle"></div>
+          <p class="badge-earned">Badge earned!</p>
+          <p class="badge-title" id="badgeTitle"></p>
+          <p class="reward-streak hidden" id="rewardStreak"></p>
+          <div class="confetti" id="confetti"></div>
+          <button class="primary" id="collectBadgeButton" type="button">Collect</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="skillsModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Why this mission?</h3>
+          <button class="icon-button" id="closeSkillsModal" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="skills-for-max" id="skillsForMax"></div>
+          <div class="skills-for-parent" id="skillsForParent"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="muted small" id="statusText"></span>
+      </div>
+      <div class="footer-right">
+        <button class="ghost small" id="resetFiltersButton" type="button">Reset filters</button>
+      </div>
+    </footer>
+
+    <script src="./missions-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

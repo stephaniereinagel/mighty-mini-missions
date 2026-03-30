@@ -1,0 +1,10 @@
+[build]
+  publish = "."
+
+# Keep this as a static deploy. The local `/server` folder is for optional
+# localhost image generation and is not required on Netlify.
+
+[[headers]]
+  for = "/missions.json"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
