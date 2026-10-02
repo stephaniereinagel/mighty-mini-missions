@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "wm-v7";
+const VERSION = "wm-v8";
 const CORE = [
   "./",
   "index.html",
@@ -10,7 +10,8 @@ const CORE = [
   "fx.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
-  "icons/icon-512.png"
+  "icons/icon-512.png",
+  "audio/bouncy-monster-loop.m4a"
 ];
 
 self.addEventListener("install", (event) => {
@@ -36,8 +37,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy));
+          // Audio is fetched in partial (206) chunks, which the cache can't store.
+          if (res.status === 200) {
+            const copy = res.clone();
+            caches.open(VERSION).then((c) => c.put(req, copy));
+          }
           return res;
         })
         .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match("index.html")))

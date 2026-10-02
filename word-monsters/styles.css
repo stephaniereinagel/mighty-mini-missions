@@ -460,6 +460,7 @@ button:disabled { cursor: default; }
 
 /* ---------- animations ---------- */
 @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8%); } }
+@keyframes bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
 @keyframes hopIn { from { transform: translateY(40%) scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes dodge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-22%) rotate(-10deg); } 60% { transform: translateX(16%) rotate(8deg); } }
 @keyframes shrink { 0% { transform: scale(1); } 40% { transform: scale(1.1) rotate(-6deg); } 100% { transform: scale(0) rotate(30deg); opacity: 0; } }
@@ -477,6 +478,14 @@ button:disabled { cursor: default; }
 #screen-end > :not(.floaties),
 #screen-dex > :not(.floaties) { position: relative; z-index: 1; }
 .back-link { z-index: 2; }
+#screen-home > .music-btn {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: 14px;
+  z-index: 2;
+  animation: bob 1.4s ease-in-out infinite;
+}
+.music-btn.off { opacity: .6; animation: none; }
 
 .floaties { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .floaty {

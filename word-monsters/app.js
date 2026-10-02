@@ -47,7 +47,7 @@
   function withDefaults(s) {
     return {
       words: s.words || {},
-      settings: Object.assign({ rate: 0.8, voice: "", unlockAll: false, sfx: true }, s.settings || {}),
+      settings: Object.assign({ rate: 0.8, voice: "", unlockAll: false, sfx: true, music: true }, s.settings || {}),
       region: s.region || REGIONS[0].id,
       trips: s.trips || 0
     };
@@ -152,7 +152,36 @@
     }
   };
 
+  const Music = {
+    el: null,
+    volume: 0.35,
+    duckTimer: null,
+    init() {
+      this.el = new Audio("audio/bouncy-monster-loop.m4a");
+      this.el.loop = true;
+      this.el.preload = "auto";
+      this.el.volume = this.volume;
+    },
+    start() {
+      if (!state.settings.music || !this.el || document.hidden) return;
+      this.el.play().catch(() => {});
+    },
+    stop() { if (this.el) this.el.pause(); },
+    toggle() {
+      state.settings.music = !state.settings.music;
+      save();
+      if (state.settings.music) this.start(); else this.stop();
+    },
+    duck(ms = 1600) {
+      if (!this.el) return;
+      this.el.volume = 0.07;
+      clearTimeout(this.duckTimer);
+      this.duckTimer = setTimeout(() => { this.el.volume = this.volume; }, ms);
+    }
+  };
+
   const sayWord = (w) => {
+    Music.duck();
     if (Clips.has(w)) {
       if (window.speechSynthesis) speechSynthesis.cancel();
       Clips.play(w);
@@ -172,6 +201,7 @@
         alert("The microphone isn't available. Allow microphone access for this site and try again.");
         return;
       }
+      Music.stop();
       const chunks = [];
       const mr = new MediaRecorder(stream);
       mr.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
@@ -183,6 +213,7 @@
           await Clips.save(w, new Blob(chunks, { type: mr.mimeType || "audio/webm" }));
           Clips.play(w);
         }
+        Music.start();
         onDone();
       };
       mr.start();
@@ -768,6 +799,7 @@
       <h3>Settings</h3>
       <label><input id="p-unlock" type="checkbox" ${state.settings.unlockAll ? "checked" : ""}/> Open all regions</label>
       <label><input id="p-sfx" type="checkbox" ${state.settings.sfx ? "checked" : ""}/> Sound effects</label>
+      <label><input id="p-music" type="checkbox" ${state.settings.music ? "checked" : ""}/> Background music</label>
 
       ${REGIONS.map((r) => `<h3>${r.emoji} ${esc(r.name)}</h3>
         <table><tr><th>Word</th><th>Status</th><th>Pts</th><th>1st-try</th><th>Helps</th><th>Mode</th><th>My voice</th></tr>${rows(r)}</table>`).join("")}
@@ -798,6 +830,10 @@
     };
     $("p-unlock").addEventListener("change", (ev) => { state.settings.unlockAll = ev.target.checked; save(); });
     $("p-sfx").addEventListener("change", (ev) => { state.settings.sfx = ev.target.checked; save(); });
+    $("p-music").addEventListener("change", (ev) => {
+      if (ev.target.checked !== state.settings.music) Music.toggle();
+      paintMusicBtn();
+    });
     $("p-reset").addEventListener("click", () => {
       if (!confirm("Erase all monsters and progress on this device?")) return;
       state = withDefaults({ settings: state.settings });
@@ -810,6 +846,24 @@
 
   Speech.init();
   Clips.init();
+  Music.init();
+
+  const musicBtn = $("btn-music");
+  const paintMusicBtn = () => {
+    musicBtn.textContent = state.settings.music ? "\u{1F3B5}" : "\u{1F507}";
+    musicBtn.classList.toggle("off", !state.settings.music);
+  };
+  paintMusicBtn();
+  musicBtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    Music.toggle();
+    paintMusicBtn();
+  });
+  // Browsers only allow audio after the first tap.
+  document.addEventListener("pointerdown", () => Music.start(), { once: true });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) Music.stop(); else Music.start();
+  });
   FX.bouncyTitle($("title"));
   FX.floaties($("screen-home"), 18);
   FX.floaties($("screen-end"), 12);
@@ -820,5 +874,5 @@
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 
-  window.WordMonsters = { monsterSVG, state: () => state };
+  window.WordMonsters = { monsterSVG, state: () => state, music: Music };
 })();
