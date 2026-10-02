@@ -603,5 +603,68 @@
     </svg>`;
   }
 
-  window.WM_MAP = { mapSVG };
+  // Interactive overlay for the hand-painted treasure map. Region text and
+  // progress stay as SVG so they remain crisp, readable, and update live.
+  function illustratedMapSVG({ regions, current, buddy }) {
+    const region = (id) => regions.find((r) => r.id === id) || { caught: 0, total: 0 };
+    const info = {
+      meadow: ["Giggle Meadow", "Colors & Shapes", "#2e8b22"],
+      woods: ["Wobble Woods", "Numbers 1–10", "#1e7232"],
+      cave: ["Sparkle Cave", "Letters A–Z", "#613bbd"],
+      reef: ["Rainbow Reef", "More Colors", "#0d8a84"],
+      castle: ["Shape Castle", "Tricky Shapes", "#c2410c"],
+      garden: ["Giant's Garden", "Big & Small", "#b45309"],
+      lagoon: ["Echo Lagoon", "Letter Sounds", "#0369a1"]
+    };
+    const zones = [
+      ["meadow", "M35 98 L505 90 L500 225 L350 278 L48 254 Z", 305, 158],
+      ["woods", "M10 230 L275 210 L270 495 L18 474 Z", 135, 292],
+      ["cave", "M245 226 L505 215 L515 520 L245 520 Z", 378, 341],
+      ["reef", "M505 138 L960 118 L962 288 L515 300 Z", 744, 224],
+      ["castle", "M555 18 L840 18 L850 145 L548 150 Z", 690, 112],
+      ["garden", "M468 280 L785 266 L817 548 L475 552 Z", 626, 347],
+      ["lagoon", "M770 270 L1018 248 L1018 545 L760 552 Z", 885, 352]
+    ];
+    const buddyPos = {
+      meadow: [430, 210],
+      woods: [220, 355],
+      cave: [470, 420],
+      reef: [920, 205],
+      castle: [830, 102],
+      garden: [760, 455],
+      lagoon: [970, 440]
+    };
+
+    const label = (id, x, y) => {
+      const r = region(id);
+      const [title, subtitle, color] = info[id];
+      return `<g class="map-sign illustrated-sign" transform="translate(${x} ${y})" pointer-events="none">
+        <rect class="sign-board-bg" x="-86" y="-29" width="172" height="58" rx="15" fill="#fffdf6" stroke="${color}" stroke-width="4"/>
+        <text y="-7" text-anchor="middle" font-size="17" font-weight="900" fill="${color}">${title}</text>
+        <text y="10" text-anchor="middle" font-size="10.5" font-weight="700" fill="#665b78">${subtitle}</text>
+        <g transform="translate(0 24)">
+          <rect x="-35" y="-9" width="70" height="18" rx="9" fill="#ffd23f" stroke="#2b2440" stroke-width="1.5"/>
+          <polygon points="-23,-4 -21,-1 -17,-1 -20,1 -19,5 -23,3 -27,5 -26,1 -29,-1 -25,-1" fill="#2b2440"/>
+          <text x="7" y="4" text-anchor="middle" font-size="10.5" font-weight="900" fill="#2b2440">${r.caught} / ${r.total}</text>
+        </g>
+      </g>`;
+    };
+
+    const zoneMarkup = zones.map(([id, path, x, y]) => {
+      const [title, subtitle] = info[id];
+      return `<g class="zone open illustrated-zone ${current === id ? "current" : ""}" data-region="${id}" role="button" tabindex="0" aria-label="${title}: ${subtitle}">
+        <path class="zone-hit" d="${path}" fill="#ffffff" fill-opacity=".001"/>
+        ${label(id, x, y)}
+      </g>`;
+    }).join("");
+
+    const [bx, by] = buddyPos[current] || buddyPos.meadow;
+    return `<svg class="illustrated-map" viewBox="0 0 1024 576" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
+      <image href="images/monster-hunt-treasure-map.jpg" x="0" y="0" width="1024" height="576" preserveAspectRatio="xMidYMid slice" pointer-events="none"/>
+      ${zoneMarkup}
+      <g class="map-buddy">${nested(buddy, 2, bx, by, 68, "buddy")}</g>
+    </svg>`;
+  }
+
+  window.WM_MAP = { mapSVG: illustratedMapSVG };
 })();

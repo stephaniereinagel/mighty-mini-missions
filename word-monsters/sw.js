@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "wm-v15";
+const VERSION = "wm-v16";
 const CORE = [
   "./",
   "index.html",
@@ -10,6 +10,7 @@ const CORE = [
   "map.js",
   "fx.js",
   "manifest.webmanifest",
+  "images/monster-hunt-treasure-map.jpg",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "audio/bouncy-monster-loop.m4a"
