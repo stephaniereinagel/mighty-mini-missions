@@ -2,24 +2,24 @@
   "use strict";
 
   const REGIONS = window.WM_REGIONS;
-  const STORE_KEY = "wordMonsters.v1";
-  const TRIP_LEN = 8;
+  const STORE_KEY = "wordMonsters.v2"; // updated for toddler & preschool edition
+  const TRIP_LEN = 6;                  // 6 encounters per trip — fast-paced & joyful for ages 2–3
   const MAX_REQUEUE = 2;
-  const STAGE_AT = [1, 6, 12]; // points needed for caught / evolved / mega
-  const READ_MODE_AT = 3;      // points before a sight word switches from "hear & find" to "read & pick"
-  const LEARNING_SLOTS = 3;    // how many not-yet-solid sight words can be in play at once
-  const UNLOCK_CAUGHT = 12;    // monsters caught in a region to open the next one
-  const EASY_SHARE = 0.3;
-  const AWARD = { hear: [1, 0], read: [2, 1] }; // [first try, second try]
+  const STAGE_AT = [1, 3, 6];          // Caught at 1, Evolved at 3, Mega at 6
 
   const ALL = [];
   const SAY = {};
+  const SUCCESS_SAY = {};
+
   REGIONS.forEach((r, ri) => r.words.forEach((e) => {
     e.region = r.id;
     e.regionIndex = ri;
     ALL.push(e);
     if (e.say) SAY[e.w] = e.say;
+    if (e.successSay) SUCCESS_SAY[e.w] = e.successSay;
   }));
+
+  const getItem = (w) => ALL.find((e) => e.w === w) || { w, label: w };
 
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -32,6 +32,104 @@
     return a;
   };
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------------------------------------------------------------- visual helpers
+
+  function renderShapeSVG(shape, color = "#ff3b5c", size = 76) {
+    let inner = "";
+    if (shape === "circle") {
+      inner = `<circle cx="50" cy="50" r="40" fill="${color}" stroke="#2b2440" stroke-width="5"/>
+        <circle cx="38" cy="44" r="5" fill="#2b2440"/><circle cx="62" cy="44" r="5" fill="#2b2440"/>
+        <circle cx="40" cy="42" r="1.5" fill="#fff"/><circle cx="64" cy="42" r="1.5" fill="#fff"/>
+        <path d="M40 56 Q50 66 60 56" stroke="#2b2440" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="32" cy="52" rx="4" ry="2" fill="#ff7aa8" opacity=".7"/>
+        <ellipse cx="68" cy="52" rx="4" ry="2" fill="#ff7aa8" opacity=".7"/>`;
+    } else if (shape === "square") {
+      inner = `<rect x="12" y="12" width="76" height="76" rx="16" fill="${color}" stroke="#2b2440" stroke-width="5"/>
+        <circle cx="38" cy="44" r="5" fill="#2b2440"/><circle cx="62" cy="44" r="5" fill="#2b2440"/>
+        <circle cx="40" cy="42" r="1.5" fill="#fff"/><circle cx="64" cy="42" r="1.5" fill="#fff"/>
+        <path d="M40 56 Q50 66 60 56" stroke="#2b2440" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="32" cy="52" rx="4" ry="2" fill="#ff7aa8" opacity=".7"/>
+        <ellipse cx="68" cy="52" rx="4" ry="2" fill="#ff7aa8" opacity=".7"/>`;
+    } else if (shape === "triangle") {
+      inner = `<polygon points="50,12 88,86 12,86" fill="${color}" stroke="#2b2440" stroke-width="5" stroke-linejoin="round"/>
+        <circle cx="42" cy="54" r="4.5" fill="#2b2440"/><circle cx="58" cy="54" r="4.5" fill="#2b2440"/>
+        <circle cx="43" cy="53" r="1.5" fill="#fff"/><circle cx="59" cy="53" r="1.5" fill="#fff"/>
+        <path d="M44 64 Q50 70 56 64" stroke="#2b2440" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    } else if (shape === "star") {
+      inner = `<polygon points="50,6 63,33 94,36 71,56 78,87 50,71 22,87 29,56 6,36 37,33" fill="${color}" stroke="#2b2440" stroke-width="4.5" stroke-linejoin="round"/>
+        <circle cx="42" cy="46" r="4.5" fill="#2b2440"/><circle cx="58" cy="46" r="4.5" fill="#2b2440"/>
+        <circle cx="43" cy="44" r="1.5" fill="#fff"/><circle cx="59" cy="44" r="1.5" fill="#fff"/>
+        <path d="M44 55 Q50 62 56 55" stroke="#2b2440" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    } else if (shape === "heart") {
+      inner = `<path d="M50 26 C36 -6 2 24 50 82 C98 24 64 -6 50 26 Z" fill="${color}" stroke="#2b2440" stroke-width="5" stroke-linejoin="round"/>
+        <circle cx="40" cy="42" r="4.5" fill="#2b2440"/><circle cx="60" cy="42" r="4.5" fill="#2b2440"/>
+        <circle cx="41" cy="40" r="1.5" fill="#fff"/><circle cx="61" cy="40" r="1.5" fill="#fff"/>
+        <path d="M43 52 Q50 58 57 52" stroke="#2b2440" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    } else if (shape === "diamond") {
+      inner = `<polygon points="50,10 88,50 50,90 12,50" fill="${color}" stroke="#2b2440" stroke-width="5" stroke-linejoin="round"/>
+        <circle cx="42" cy="46" r="4.5" fill="#2b2440"/><circle cx="58" cy="46" r="4.5" fill="#2b2440"/>
+        <circle cx="43" cy="44" r="1.5" fill="#fff"/><circle cx="59" cy="44" r="1.5" fill="#fff"/>
+        <path d="M44 56 Q50 62 56 56" stroke="#2b2440" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    } else if (shape === "oval") {
+      inner = `<ellipse cx="50" cy="50" rx="44" ry="32" fill="${color}" stroke="#2b2440" stroke-width="5"/>
+        <circle cx="38" cy="44" r="4.5" fill="#2b2440"/><circle cx="62" cy="44" r="4.5" fill="#2b2440"/>
+        <circle cx="40" cy="42" r="1.5" fill="#fff"/><circle cx="64" cy="42" r="1.5" fill="#fff"/>
+        <path d="M42 54 Q50 62 58 54" stroke="#2b2440" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    }
+    return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+  }
+
+  function renderColorBlob(color = "#ff3b5c", size = 76) {
+    return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="40" fill="${color}" stroke="#2b2440" stroke-width="5"/>
+      <ellipse cx="36" cy="30" rx="14" ry="7" transform="rotate(-30 36 30)" fill="#ffffff" opacity=".55"/>
+      <circle cx="38" cy="48" r="5" fill="#2b2440"/><circle cx="62" cy="48" r="5" fill="#2b2440"/>
+      <circle cx="40" cy="46" r="1.5" fill="#fff"/><circle cx="64" cy="46" r="1.5" fill="#fff"/>
+      <path d="M40 58 Q50 68 60 58" stroke="#2b2440" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="32" cy="56" rx="4" ry="2" fill="#ff7aa8" opacity=".7"/>
+      <ellipse cx="68" cy="56" rx="4" ry="2" fill="#ff7aa8" opacity=".7"/>
+    </svg>`;
+  }
+
+  function renderCardContent(item) {
+    if (!item) return "";
+    if (item.type === "color") {
+      return `<div class="card-visual">${renderColorBlob(item.color, 76)}</div>
+              <div class="card-label" style="color:${item.color}">${esc(item.label)}</div>`;
+    }
+    if (item.type === "shape") {
+      return `<div class="card-visual">${renderShapeSVG(item.shape, item.color, 76)}</div>
+              <div class="card-label">${esc(item.label)}</div>`;
+    }
+    if (item.type === "number") {
+      const stars = Array.from({ length: item.count }, () => `<span class="c-star">⭐️</span>`).join("");
+      return `<div class="card-num-val" style="color:${item.color}">${esc(item.label)}</div>
+              <div class="card-stars-row count-${item.count}">${stars}</div>`;
+    }
+    if (item.type === "letter") {
+      return `<div class="card-letter-val" style="color:${item.color}">${esc(item.label)}</div>
+              <div class="card-letter-hint"><span class="c-icon">${item.icon || "✨"}</span> <span class="c-word">${esc(item.anchor || "")}</span></div>`;
+    }
+    return `<div class="card-label">${esc(item.label || item.w)}</div>`;
+  }
+
+  function caughtBadgeHTML(e) {
+    if (e.type === "color") {
+      return `<div class="catch-badge color-badge">${renderColorBlob(e.color, 90)}<div class="badge-title" style="color:${e.color}">${esc(e.label)}</div></div>`;
+    }
+    if (e.type === "shape") {
+      return `<div class="catch-badge shape-badge">${renderShapeSVG(e.shape, e.color, 90)}<div class="badge-title" style="color:${e.color}">${esc(e.label)}</div></div>`;
+    }
+    if (e.type === "number") {
+      const stars = "⭐️".repeat(e.count);
+      return `<div class="catch-badge number-badge"><div class="badge-num" style="color:${e.color}">${esc(e.label)}</div><div class="badge-stars">${stars}</div></div>`;
+    }
+    if (e.type === "letter") {
+      return `<div class="catch-badge letter-badge"><div class="badge-letter" style="color:${e.color}">${esc(e.label)}</div><div class="badge-hint">${e.icon || "✨"} ${esc(e.anchor || "")}</div></div>`;
+    }
+    return `<div class="badge-title">${esc(e.label || e.w)}</div>`;
+  }
 
   // ---------------------------------------------------------------- state
 
@@ -47,7 +145,7 @@
   function withDefaults(s) {
     return {
       words: s.words || {},
-      settings: Object.assign({ rate: 0.8, voice: "", unlockAll: false, sfx: true, music: true }, s.settings || {}),
+      settings: Object.assign({ rate: 0.82, voice: "", unlockAll: true, sfx: true, music: true }, s.settings || {}),
       region: s.region || REGIONS[0].id,
       trips: s.trips || 0
     };
@@ -59,15 +157,11 @@
   function isCaught(w) { return pts(w) >= STAGE_AT[0]; }
   function caughtIn(region) { return region.words.filter((e) => isCaught(e.w)).length; }
   function totalCaught() { return ALL.filter((e) => isCaught(e.w)).length; }
-  function isUnlocked(ri) {
-    if (ri === 0 || state.settings.unlockAll) return true;
-    return caughtIn(REGIONS[ri - 1]) >= UNLOCK_CAUGHT;
-  }
+  function isUnlocked(ri) { return true; } // All 3 regions open for Connor, Kyler, and Ethan!
   function currentRegion() {
-    const ri = REGIONS.findIndex((r) => r.id === state.region);
-    return ri >= 0 && isUnlocked(ri) ? REGIONS[ri] : REGIONS[0];
+    const r = REGIONS.find((x) => x.id === state.region);
+    return r || REGIONS[0];
   }
-  function modeFor(e) { return e.easy || pts(e.w) >= READ_MODE_AT ? "read" : "hear"; }
 
   // ---------------------------------------------------------------- speech
 
@@ -95,12 +189,11 @@
       const v = this.pickVoice();
       if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = "en-US"; }
       u.rate = state.settings.rate;
-      u.pitch = 1.05;
-      // Chrome on Android sometimes drops an utterance queued right after cancel().
+      u.pitch = 1.1; // slightly higher, friendlier tone for toddlers
       setTimeout(() => speechSynthesis.speak(u), 60);
     }
   };
-  // Grown-up voice recordings, stored per device in IndexedDB. A recording always wins over text-to-speech.
+
   const Clips = {
     db: null,
     urls: new Map(),
@@ -109,7 +202,7 @@
       if (!window.indexedDB) return;
       try {
         this.db = await new Promise((res, rej) => {
-          const r = indexedDB.open("wordMonsters", 1);
+          const r = indexedDB.open("wordMonstersToddler", 1);
           r.onupgradeneeded = () => r.result.createObjectStore("clips");
           r.onsuccess = () => res(r.result);
           r.onerror = () => rej(r.error);
@@ -118,35 +211,44 @@
           const req = this.db.transaction("clips").objectStore("clips").openCursor();
           req.onsuccess = () => {
             const c = req.result;
-            if (!c) { res(); return; }
-            this.urls.set(c.key, URL.createObjectURL(c.value));
-            c.continue();
+            if (c) {
+              this.urls.set(c.key, URL.createObjectURL(c.value));
+              c.continue();
+            } else res();
           };
           req.onerror = () => res();
         });
-      } catch (e) { this.db = null; }
+      } catch (e) {}
     },
     has(w) { return this.urls.has(w); },
     play(w) {
-      if (this.current) this.current.pause();
-      this.current = new Audio(this.urls.get(w));
-      this.current.play().catch(() => {});
+      if (this.current) { this.current.pause(); this.current = null; }
+      const url = this.urls.get(w);
+      if (!url) return false;
+      const a = new Audio(url);
+      this.current = a;
+      a.play().catch(() => {});
+      return true;
     },
-    write(w, blob) {
-      if (!this.db) return Promise.resolve();
-      return new Promise((res) => {
+    async put(w, blob) {
+      if (!this.db) return;
+      await new Promise((res, rej) => {
         const tx = this.db.transaction("clips", "readwrite");
-        if (blob) tx.objectStore("clips").put(blob, w); else tx.objectStore("clips").delete(w);
-        tx.oncomplete = tx.onerror = () => res();
+        tx.objectStore("clips").put(blob, w);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
       });
-    },
-    async save(w, blob) {
-      await this.write(w, blob);
       if (this.urls.has(w)) URL.revokeObjectURL(this.urls.get(w));
       this.urls.set(w, URL.createObjectURL(blob));
     },
     async remove(w) {
-      await this.write(w, null);
+      if (!this.db) return;
+      await new Promise((res, rej) => {
+        const tx = this.db.transaction("clips", "readwrite");
+        tx.objectStore("clips").delete(w);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+      });
       if (this.urls.has(w)) URL.revokeObjectURL(this.urls.get(w));
       this.urls.delete(w);
     }
@@ -154,7 +256,7 @@
 
   const Music = {
     el: null,
-    volume: 0.35,
+    volume: 0.32,
     duckTimer: null,
     init() {
       this.el = new Audio("audio/bouncy-monster-loop.m4a");
@@ -172,7 +274,7 @@
       save();
       if (state.settings.music) this.start(); else this.stop();
     },
-    duck(ms = 1600) {
+    duck(ms = 1800) {
       if (!this.el) return;
       this.el.volume = 0.07;
       clearTimeout(this.duckTimer);
@@ -180,105 +282,78 @@
     }
   };
 
-  const sayWord = (w) => {
-    Music.duck();
-    if (Clips.has(w)) {
+  const sayItemPrompt = (e) => {
+    Music.duck(2200);
+    if (Clips.has(e.w)) {
       if (window.speechSynthesis) speechSynthesis.cancel();
-      Clips.play(w);
+      Clips.play(e.w);
     } else {
-      Speech.say(SAY[w] || w);
+      Speech.say(e.say || e.label || e.w);
     }
   };
 
-  const Recorder = {
-    active: null,
-    async start(w, onDone) {
-      if (this.active) { this.stop(); return; }
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (e) {
-        alert("The microphone isn't available. Allow microphone access for this site and try again.");
-        return;
-      }
-      Music.stop();
-      const chunks = [];
-      const mr = new MediaRecorder(stream);
-      mr.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
-      mr.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        clearTimeout(this.active && this.active.timer);
-        this.active = null;
-        if (chunks.length) {
-          await Clips.save(w, new Blob(chunks, { type: mr.mimeType || "audio/webm" }));
-          Clips.play(w);
-        }
-        Music.start();
-        onDone();
-      };
-      mr.start();
-      this.active = { mr, timer: setTimeout(() => this.stop(), 3000) };
-    },
-    stop() { if (this.active && this.active.mr.state !== "inactive") this.active.mr.stop(); }
+  const sayItemSuccess = (e) => {
+    Music.duck(2200);
+    Speech.say(e.successSay || e.label || e.w);
   };
 
-  // ---------------------------------------------------------------- sound effects
+  const sayWord = (w) => {
+    const item = getItem(w);
+    sayItemPrompt(item);
+  };
+
+  // ---------------------------------------------------------------- sfx
 
   const Sfx = {
     ctx: null,
     ensure() {
-      if (!this.ctx) {
-        const C = window.AudioContext || window.webkitAudioContext;
-        if (C) this.ctx = new C();
+      if (!this.ctx && "AudioContext" in window) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       }
       if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
-      return this.ctx;
     },
-    tone(freq, start, dur, type = "sine", vol = 0.15, slideTo) {
+    tone(freq, delay, dur, type = "sine", gain = 0.25, endFreq = null) {
       if (!state.settings.sfx) return;
-      const c = this.ensure();
-      if (!c) return;
-      const t = c.currentTime + start;
-      const o = c.createOscillator();
-      const g = c.createGain();
-      o.type = type;
-      o.frequency.setValueAtTime(freq, t);
-      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+      this.ensure();
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime + delay;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), t + dur);
+      g.gain.setValueAtTime(gain, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g).connect(c.destination);
-      o.start(t);
-      o.stop(t + dur + 0.05);
+      osc.connect(g);
+      g.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + dur + 0.05);
     },
-    pop() { this.tone(700, 0, 0.09, "triangle", 0.12); },
-    catch() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * 0.08, 0.2, "triangle")); },
-    evolve() { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, i * 0.1, 0.3, "triangle", 0.18)); },
-    boing() { this.tone(320, 0, 0.35, "sine", 0.22, 110); },
-    escape() { this.tone(500, 0, 0.12, "square", 0.05); this.tone(900, 0.1, 0.5, "sine", 0.12, 200); },
-    fanfare() { [523, 523, 784, 659, 1047].forEach((f, i) => this.tone(f, i * 0.14, 0.28, "triangle", 0.16)); },
+    pop() { this.tone(440, 0, 0.08, "triangle", 0.25, 880); },
+    catch() {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.tone(f, i * 0.06, 0.18, "sine", 0.2));
+    },
+    evolve() {
+      const notes = [392, 523.25, 659.25, 783.99, 1046.5, 1318.5];
+      notes.forEach((f, i) => this.tone(f, i * 0.08, 0.28, "triangle", 0.25));
+    },
+    boing() { this.tone(280, 0, 0.24, "sine", 0.28, 120); },
+    escape() {
+      this.tone(360, 0, 0.12, "sine", 0.2, 280);
+      this.tone(260, 0.1, 0.18, "sine", 0.2, 160);
+    },
+    fanfare() {
+      const c = [523.25, 659.25, 783.99, 1046.5];
+      c.forEach((f, i) => this.tone(f, i * 0.1, 0.25, "triangle", 0.2));
+      setTimeout(() => c.forEach((f) => this.tone(f * 1.25, 0, 0.5, "sine", 0.15)), 460);
+    },
     appear() { this.tone(260, 0, 0.18, "sine", 0.16, 720); this.tone(900, 0.16, 0.08, "triangle", 0.08); },
     squeak() { this.tone(900, 0, 0.12, "sine", 0.14, 1500); this.tone(1400, 0.1, 0.12, "sine", 0.1, 800); },
     sparkle() { [1568, 2093, 2637, 3136].forEach((f, i) => this.tone(f, 0.15 + i * 0.05, 0.12, "sine", 0.05)); }
   };
 
   const FX = window.WM_FX;
-
-  // ---------------------------------------------------------------- monster art
-
   const { monsterSVG } = window.WM_ART;
-
-  function trickyHTML(e) {
-    const src = e.tricky || e.w;
-    const parts = [];
-    const re = /\[([^\]]+)\]|([^\[]+)/g;
-    let m;
-    while ((m = re.exec(src))) {
-      if (m[1]) parts.push(`<span class="seg tricky">${esc(m[1])}<i class="heart">\u2764\uFE0F</i></span>`);
-      else parts.push(`<span class="seg">${esc(m[2])}</span>`);
-    }
-    return `<span class="word">${parts.join("")}</span>`;
-  }
 
   // ---------------------------------------------------------------- screens
 
@@ -289,24 +364,19 @@
   }
 
   function renderHome() {
-    const caught = ALL.filter((e) => isCaught(e.w));
     const regions = REGIONS.map((r, ri) => {
-      const mons = shuffle(r.words.filter((e) => isCaught(e.w)))
-        .sort((a, b) => pts(b.w) - pts(a.w))
-        .map((e) => ({ w: e.w, stage: stageOf(pts(e.w)) }));
+      const caughtCount = caughtIn(r);
       return {
         id: r.id,
         name: r.name,
         color: r.labelColor,
-        open: isUnlocked(ri),
-        caught: caughtIn(r),
-        total: r.words.length,
-        need: ri > 0 ? Math.max(0, UNLOCK_CAUGHT - caughtIn(REGIONS[ri - 1])) : 0,
-        mons
+        open: true,
+        caught: caughtCount,
+        total: r.words.length
       };
     });
-    $("map").innerHTML = window.WM_MAP.mapSVG({ regions, current: currentRegion().id, buddy: "Max" });
-    $("dex-count").textContent = caught.length;
+    $("map").innerHTML = window.WM_MAP.mapSVG({ regions, current: currentRegion().id, buddy: "Connor" });
+    $("dex-count").textContent = totalCaught();
   }
 
   let mapBusy = false;
@@ -318,22 +388,14 @@
       mon.classList.remove("boop");
       void mon.getBoundingClientRect();
       mon.classList.add("boop");
-      FX.burstAt(mon, 12, { symbols: ["\u2764\uFE0F", "\u2728", "\u2B50"], power: 160 });
-      if (mon.classList.contains("map-mon")) sayWord(mon.dataset.w);
+      FX.burstAt(mon, 12, { symbols: ["⭐️", "✨", "❤️"], power: 160 });
       return;
     }
     const zone = ev.target.closest(".zone");
     if (!zone) return;
     const ri = REGIONS.findIndex((r) => r.id === zone.dataset.region);
-    if (!isUnlocked(ri)) {
-      Sfx.boing();
-      zone.classList.remove("wiggle");
-      void zone.getBoundingClientRect();
-      zone.classList.add("wiggle");
-      const need = UNLOCK_CAUGHT - caughtIn(REGIONS[ri - 1]);
-      Speech.say(`Catch ${need} more monsters in ${REGIONS[ri - 1].name} to open ${REGIONS[ri].name}!`);
-      return;
-    }
+    if (ri < 0) return;
+
     mapBusy = true;
     Sfx.pop();
     state.region = REGIONS[ri].id;
@@ -342,68 +404,37 @@
     const picked = $("map").querySelector(`.zone[data-region="${REGIONS[ri].id}"]`);
     if (picked) {
       picked.classList.add("chosen");
-      FX.burstAt(picked.querySelector(".zone-art"), 30, { symbols: ["\u2B50", "\u2728", "\u{1F31F}"], power: 240 });
+      FX.burstAt(picked, 30, { symbols: ["⭐️", "✨", "🌟"], power: 240 });
     }
     setTimeout(() => { mapBusy = false; startTrip(); }, 650);
   });
 
   // ---------------------------------------------------------------- trip planning
 
-  function weightedPick(list, prev, counts) {
-    const ok = list.filter((x) => x.e !== prev && (counts[x.e.w] || 0) < (x.e.easy ? 1 : 3));
-    const total = ok.reduce((sum, x) => sum + x.wt, 0);
-    if (!total) return null;
-    let r = Math.random() * total;
-    for (const x of ok) {
-      r -= x.wt;
-      if (r <= 0) return x.e;
-    }
-    return ok[ok.length - 1].e;
-  }
-
   function buildTrip(region) {
-    const ri = REGIONS.indexOf(region);
-    const sight = region.words.filter((e) => !e.easy);
-    const easy = region.words.filter((e) => e.easy);
-
-    const learning = sight.filter((e) => rec(e.w).seen && pts(e.w) < STAGE_AT[1]);
-    for (const e of sight) {
-      if (learning.length >= LEARNING_SLOTS) break;
-      if (!rec(e.w).seen && !learning.includes(e)) learning.push(e);
-    }
-
-    const sightPool = [];
-    sight.forEach((e) => {
-      if (learning.includes(e)) sightPool.push({ e, wt: 5 });
-      else if (rec(e.w).seen) sightPool.push({ e, wt: pts(e.w) >= STAGE_AT[2] ? 1 : 2 });
-    });
-    REGIONS.slice(0, ri).forEach((r) => r.words.forEach((e) => {
-      if (!e.easy && isCaught(e.w)) sightPool.push({ e, wt: 0.5 });
-    }));
-    const easyPool = easy.map((e) => {
-      const base = !isCaught(e.w) ? 3 : pts(e.w) >= STAGE_AT[2] ? 1 : 2;
-      return { e, wt: rec(e.w).lastTrip === state.trips ? base * 0.25 : base };
-    });
+    const pool = region.words.slice();
+    // Prioritize uncaught or unmastered items
+    const uncaught = pool.filter((e) => pts(e.w) < STAGE_AT[0]);
+    const learning = pool.filter((e) => pts(e.w) >= STAGE_AT[0] && pts(e.w) < STAGE_AT[2]);
+    const mastered = pool.filter((e) => pts(e.w) >= STAGE_AT[2]);
 
     const trip = [];
-    const counts = {};
-    for (let i = 0; i < TRIP_LEN; i++) {
-      const prev = trip[trip.length - 1];
-      const wantEasy = i === 0 || Math.random() < EASY_SHARE;
-      const e = weightedPick(wantEasy ? easyPool : sightPool, prev, counts) ||
-        weightedPick(wantEasy ? sightPool : easyPool, prev, counts);
-      if (!e) break;
-      trip.push(e);
-      counts[e.w] = (counts[e.w] || 0) + 1;
-    }
+    const used = new Set();
 
-    learning.forEach((e) => {
-      if (trip.includes(e)) return;
-      const slots = trip.map((x, i) => i).filter((i) => i > 0 && !learning.includes(trip[i]) &&
-        trip[i - 1] !== e && trip[i + 1] !== e);
-      if (slots.length) trip[slots[Math.floor(Math.random() * slots.length)]] = e;
+    // 1. Pick uncaught items first
+    shuffle(uncaught).forEach((e) => {
+      if (trip.length < TRIP_LEN && !used.has(e.w)) { trip.push(e); used.add(e.w); }
     });
-    return trip;
+    // 2. Add evolving items
+    shuffle(learning).forEach((e) => {
+      if (trip.length < TRIP_LEN && !used.has(e.w)) { trip.push(e); used.add(e.w); }
+    });
+    // 3. Fill with mastered items or rest of pool
+    shuffle(mastered.concat(pool)).forEach((e) => {
+      if (trip.length < TRIP_LEN && !used.has(e.w)) { trip.push(e); used.add(e.w); }
+    });
+
+    return shuffle(trip).slice(0, TRIP_LEN);
   }
 
   // ---------------------------------------------------------------- play
@@ -429,7 +460,7 @@
   function renderDots() {
     $("trip-dots").innerHTML = trip.queue.map((e, i) => {
       const r = trip.results[i];
-      const icon = r ? (r.escaped ? "\u{1F4A8}" : "\u2B50") : "";
+      const icon = r ? (r.escaped ? "💨" : "⭐️") : "";
       return `<span class="dot ${i === trip.i ? "now" : ""} ${r ? "filled" : ""}">${icon}</span>`;
     }).join("");
   }
@@ -440,79 +471,81 @@
     rec(e.w).seen = true;
     rec(e.w).lastTrip = state.trips;
     save();
-    enc = { e, mode: modeFor(e), wrong: 0, selected: null, done: false };
+    enc = { e, wrong: 0, done: false };
     busy = false;
     renderDots();
     renderEncounter();
   }
 
   function renderEncounter() {
-    const { e, mode } = enc;
+    const { e } = enc;
     const mon = $("monster");
     mon.className = "monster";
     mon.innerHTML = monsterSVG(e.w, Math.max(1, stageOf(pts(e.w))));
     void mon.offsetWidth;
     mon.classList.add("enter");
     Sfx.appear();
+
     setTimeout(() => {
       if (!enc || enc.e !== e || enc.done) return;
       mon.className = "monster idle";
-      FX.say(mode === "hear" ? "hear" : "hello", mon);
+      FX.say("hear", mon);
     }, 650);
 
     const sign = $("sign");
-    const choices = shuffle([e.w, ...shuffle(e.alts).slice(0, 2)]);
-    const opts = $("options");
-    const catchBtn = $("btn-catch");
+    sign.className = "sign mystery";
+    sign.innerHTML = `<span class="sign-icon">✨</span>`;
 
-    if (mode === "hear") {
-      sign.className = "sign mystery";
-      sign.textContent = "?";
-      opts.innerHTML = choices.map((w) => `<button class="opt" data-w="${esc(w)}">${esc(w)}</button>`).join("");
-      catchBtn.classList.add("hidden");
-      $("btn-hear").classList.remove("hidden");
-      $("btn-help").classList.add("hidden");
-      setTimeout(() => { if (enc && enc.e === e && !enc.done) sayWord(e.w); }, 700);
-    } else {
-      sign.className = "sign";
-      sign.textContent = e.w;
-      opts.innerHTML = choices.map((w) => `<button class="opt sound" data-w="${esc(w)}" aria-label="Listen">\u{1F50A}</button>`).join("");
-      catchBtn.classList.remove("hidden");
-      catchBtn.disabled = true;
-      $("btn-hear").classList.add("hidden");
-      $("btn-help").classList.remove("hidden");
+    // Pick 2 decoys from the same region
+    const regionWords = trip.region.words.filter((x) => x.w !== e.w);
+    let decoys = [];
+    if (e.alts && e.alts.length) {
+      decoys = e.alts.map(getItem).filter((x) => x && x.w !== e.w).slice(0, 2);
     }
+    if (decoys.length < 2) {
+      const sameType = regionWords.filter((x) => x.type === e.type && x.w !== e.w);
+      const pool = sameType.length >= 2 ? sameType : regionWords;
+      decoys = shuffle(pool).slice(0, 2);
+    }
+
+    const choices = shuffle([e, ...decoys]);
+    const opts = $("options");
+    opts.innerHTML = choices.map((item) => `
+      <button class="opt rich-card" data-w="${esc(item.w)}" aria-label="${esc(item.label || item.w)}">
+        ${renderCardContent(item)}
+      </button>
+    `).join("");
+
+    $("btn-catch").classList.add("hidden");
+    $("btn-hear").classList.remove("hidden");
+    $("btn-help").classList.add("hidden");
+
+    setTimeout(() => {
+      if (enc && enc.e === e && !enc.done) sayItemPrompt(e);
+    }, 700);
   }
 
+  // Toddler single-tap direct catch!
   $("options").addEventListener("click", (ev) => {
     const btn = ev.target.closest(".opt");
     if (!btn || !enc || enc.done || busy) return;
     const w = btn.dataset.w;
-    if (enc.mode === "hear") {
-      if (w === enc.e.w) doCatch(btn); else doWrong(btn);
+    if (w === enc.e.w) {
+      doCatch(btn);
     } else {
-      document.querySelectorAll(".opt.sound").forEach((b) => b.classList.toggle("selected", b === btn));
-      enc.selected = btn;
-      sayWord(w);
-      $("btn-catch").disabled = false;
+      doWrong(btn);
     }
   });
 
-  $("btn-catch").addEventListener("click", () => {
-    if (!enc || enc.done || busy || !enc.selected) return;
-    const btn = enc.selected;
-    if (btn.dataset.w === enc.e.w) doCatch(btn); else doWrong(btn);
+  $("monster").addEventListener("click", () => {
+    if (enc && !enc.done) {
+      Sfx.squeak();
+      sayItemPrompt(enc.e);
+    }
   });
 
   $("btn-hear").addEventListener("click", () => {
-    if (enc && !enc.done) sayWord(enc.e.w);
-  });
-
-  $("btn-help").addEventListener("click", () => {
-    if (!enc || enc.done || busy) return;
-    rec(enc.e.w).helps++;
-    save();
-    escapeAndReturn();
+    if (enc && !enc.done) sayItemPrompt(enc.e);
   });
 
   $("btn-quit").addEventListener("click", () => {
@@ -526,10 +559,7 @@
   async function doWrong(btn) {
     busy = true;
     enc.wrong++;
-    btn.classList.add("gone");
-    btn.classList.remove("selected");
-    enc.selected = null;
-    $("btn-catch").disabled = true;
+    btn.classList.add("wrong-card");
     Sfx.boing();
     const mon = $("monster");
     mon.className = "monster";
@@ -537,23 +567,30 @@
     mon.classList.add("dodge");
     FX.say("miss", mon);
     FX.shake($("stage"));
+
     const t = trip;
     await sleep(700);
     if (trip !== t) return;
     mon.className = "monster idle";
     busy = false;
-    if (enc.wrong >= 2) { escapeAndReturn(); return; }
-    if (enc.mode === "hear") sayWord(enc.e.w);
+
+    // Toddler-friendly: if they missed twice, gently highlight the correct one with a glowing pulse!
+    if (enc.wrong >= 2) {
+      const correctBtn = $("options").querySelector(`.opt[data-w="${enc.e.w}"]`);
+      if (correctBtn) correctBtn.classList.add("hint-pulse");
+    }
+    // Repeat the prompt encouragingly
+    sayItemPrompt(enc.e);
   }
 
   async function doCatch(btn) {
     enc.done = true;
     busy = true;
     const t = trip;
-    const { e, mode, wrong } = enc;
+    const { e, wrong } = enc;
     const r = rec(e.w);
     const before = stageOf(r.pts);
-    const award = AWARD[mode][Math.min(wrong, 1)];
+    const award = wrong === 0 ? 1 : 1; // Always reward toddlers on catch!
     r.pts += award;
     r.tries++;
     if (wrong === 0) r.firstTry++;
@@ -566,24 +603,26 @@
     net.className = "net";
     void net.offsetWidth;
     net.classList.add("drop");
-    await sleep(500);
+    await sleep(450);
+
     const mon = $("monster");
-    FX.burstAt(mon, 28, { symbols: ["\u2B50", "\u2728", "\u{1F31F}"], power: 220 });
+    FX.burstAt(mon, 28, { symbols: ["⭐️", "✨", "🌟"], power: 220 });
     mon.className = "monster caught";
-    await sleep(500);
+    await sleep(450);
     net.className = "net";
 
     const evolved = after > before && before >= 1;
     const fresh = after >= 1 && before === 0;
-    const title = evolved ? (after === 3 ? "MEGA monster!" : "It evolved!") : fresh ? "Caught!" : "Got it!";
+    const title = evolved ? (after === 3 ? "MEGA Monster!" : "It Evolved!") : fresh ? "Caught!" : "Yay!";
     if (evolved) Sfx.evolve(); else Sfx.catch();
 
     const card = $("catch-card");
     card.innerHTML = `<div class="rays ${evolved ? "rainbow" : ""}"></div>
       <div class="card ${evolved ? "evolved" : ""}">
-      <h3>${title}</h3>
-      <div class="mon dance">${monsterSVG(e.w, Math.max(1, after))}</div>
-      ${trickyHTML(e)}</div>`;
+        <h3>${title}</h3>
+        <div class="mon dance">${monsterSVG(e.w, Math.max(1, after))}</div>
+        ${caughtBadgeHTML(e)}
+      </div>`;
     card.classList.remove("hidden");
     const cardEl = card.querySelector(".card");
     if (evolved) {
@@ -594,45 +633,10 @@
       FX.burstAt(cardEl, 36);
     }
     Sfx.sparkle();
-    setTimeout(() => sayWord(e.w), evolved ? 650 : 420);
+    setTimeout(() => sayItemSuccess(e), evolved ? 650 : 380);
 
-    await waitForTapOrTimeout(card, 2800);
+    await waitForTapOrTimeout(card, 2600);
     card.classList.add("hidden");
-    if (trip !== t) return;
-    trip.i++;
-    nextEncounter();
-  }
-
-  async function escapeAndReturn() {
-    enc.done = true;
-    busy = true;
-    const t = trip;
-    const { e } = enc;
-    const sign = $("sign");
-    sign.className = "sign";
-    sign.innerHTML = trickyHTML(e);
-    document.querySelectorAll(".opt").forEach((b) => {
-      if (b.dataset.w === e.w) b.classList.add("right");
-    });
-    sayWord(e.w);
-    await sleep(1700);
-    if (trip !== t) return;
-
-    Sfx.escape();
-    const mon = $("monster");
-    mon.className = "monster";
-    void mon.offsetWidth;
-    mon.classList.add("escape");
-    FX.say("bye", mon);
-    trip.results[trip.i] = { e, escaped: true };
-    if (trip.requeues < MAX_REQUEUE) {
-      trip.queue.splice(trip.i + 3, 0, e);
-      trip.requeues++;
-      toast("It ran off! It'll be back!");
-    } else {
-      toast("It ran off!");
-    }
-    await sleep(1500);
     if (trip !== t) return;
     trip.i++;
     nextEncounter();
@@ -647,18 +651,9 @@
         el.removeEventListener("pointerdown", finish);
         resolve();
       };
-      setTimeout(() => el.addEventListener("pointerdown", finish), 700);
+      setTimeout(() => el.addEventListener("pointerdown", finish), 600);
       setTimeout(finish, ms);
     });
-  }
-
-  let toastTimer = null;
-  function toast(text) {
-    const t = $("toast");
-    t.textContent = text;
-    t.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 1300);
   }
 
   // ---------------------------------------------------------------- end of trip
@@ -668,39 +663,26 @@
     trip.results.forEach((r) => {
       if (!r) return;
       const prev = seen.get(r.e.w);
-      if (!prev || (!r.escaped && (prev.escaped || r.after >= prev.after))) {
-        seen.set(r.e.w, Object.assign({}, r, { before: prev && !prev.escaped ? Math.min(prev.before, r.before) : r.before }));
+      if (!prev || r.after >= prev.after) {
+        seen.set(r.e.w, r);
       }
     });
     const list = [...seen.values()];
-    const caughtCount = list.filter((r) => !r.escaped && r.after >= 1).length;
+    const caughtCount = list.filter((r) => r.after >= 1).length;
 
     $("end-title").textContent = caughtCount
       ? `You caught ${caughtCount} monster${caughtCount === 1 ? "" : "s"}!`
       : "Great exploring!";
     $("end-grid").innerHTML = list.map((r, i) => {
       const stage = stageOf(pts(r.e.w));
-      if (stage === 0) {
-        return `<div class="mon-tile unknown pop-in" style="--i:${i}"><div class="mon">${monsterSVG(r.e.w, 1, true)}</div><div class="label">?</div></div>`;
-      }
       let badge = "";
-      if (!r.escaped && r.before === 0 && r.after >= 1) badge = `<span class="badge new">NEW!</span>`;
-      else if (!r.escaped && r.after > r.before) badge = `<span class="badge">EVOLVED!</span>`;
+      if (r.before === 0 && r.after >= 1) badge = `<span class="badge new">NEW!</span>`;
+      else if (r.after > r.before) badge = `<span class="badge">EVOLVED!</span>`;
       return `<div class="mon-tile pop-in stage-${stage}" style="--i:${i}" data-w="${esc(r.e.w)}">${badge}<div class="mon">${monsterSVG(r.e.w, stage)}</div>
-        <div class="label">${esc(r.e.w)}</div><div class="stars">${"\u2B50".repeat(stage)}</div></div>`;
+        <div class="label">${esc(r.e.label || r.e.w)}</div><div class="stars">${"⭐️".repeat(stage)}</div></div>`;
     }).join("");
 
-    const ri = REGIONS.indexOf(trip.region);
-    const nextR = REGIONS[ri + 1];
-    let note = "";
-    if (nextR && !isUnlocked(ri + 1)) {
-      const need = UNLOCK_CAUGHT - caughtIn(trip.region);
-      note = `${need} more monster${need === 1 ? "" : "s"} to open ${nextR.emoji} ${nextR.name}!`;
-    } else if (nextR && isUnlocked(ri + 1) && caughtIn(trip.region) >= UNLOCK_CAUGHT &&
-      list.some((r) => !r.escaped && r.before === 0 && r.after >= 1)) {
-      note = `${nextR.emoji} ${nextR.name} is open!`;
-    }
-    $("end-next").textContent = note;
+    $("end-next").textContent = "Tap Go again to catch more!";
     trip = null;
     enc = null;
     show("end");
@@ -718,18 +700,17 @@
   // ---------------------------------------------------------------- dex
 
   function renderDex() {
-    $("dex-body").innerHTML = REGIONS.map((r, ri) => {
-      const open = isUnlocked(ri);
+    $("dex-body").innerHTML = REGIONS.map((r) => {
       const tiles = r.words.map((e) => {
         const stage = stageOf(pts(e.w));
         if (!stage) {
           return `<div class="mon-tile unknown"><div class="mon">${monsterSVG(e.w, 1, true)}</div><div class="label">?</div><div class="stars"></div></div>`;
         }
         return `<button class="mon-tile stage-${stage}" data-w="${esc(e.w)}"><div class="mon">${monsterSVG(e.w, stage)}</div>
-          <div class="label">${esc(e.w)}</div><div class="stars">${"\u2B50".repeat(stage)}</div></button>`;
+          <div class="label">${esc(e.label || e.w)}</div><div class="stars">${"⭐️".repeat(stage)}</div></button>`;
       }).join("");
-      return `<section class="dex-region ${open ? "" : "locked"}">
-        <h3>${r.emoji} ${esc(r.name)} ${open ? `\u2014 ${caughtIn(r)} / ${r.words.length}` : "\u{1F512}"}</h3>
+      return `<section class="dex-region">
+        <h3>${esc(r.name)} <span class="dex-sub">(${esc(r.subtitle)})</span> &mdash; ${caughtIn(r)} / ${r.words.length}</h3>
         <div class="mon-grid">${tiles}</div></section>`;
     }).join("");
   }
@@ -744,6 +725,7 @@
   });
   $("btn-dex").addEventListener("click", () => { Sfx.pop(); show("dex"); });
   $("btn-dex-home").addEventListener("click", () => show("home"));
+
   // ---------------------------------------------------------------- grown-up corner (long-press the title)
 
   (function setupLongPress() {
@@ -770,46 +752,42 @@
       const x = state.words[e.w];
       const p = pts(e.w);
       const status = !x || !x.seen ? `<span class="muted">not met yet</span>` : stageName[stageOf(p)];
-      const mode = e.easy ? "read & pick" : p >= READ_MODE_AT ? "read & pick" : "hear & find";
       const first = x && x.tries ? `${x.firstTry}/${x.tries}` : "-";
       const voice = Clips.has(e.w)
-        ? `<button class="clip-btn" data-play="${esc(e.w)}" title="Play">\u25B6\uFE0F</button><button class="clip-btn" data-rec="${esc(e.w)}" title="Re-record">\u{1F399}\uFE0F</button><button class="clip-btn" data-del="${esc(e.w)}" title="Delete recording">\u{1F5D1}\uFE0F</button>`
-        : `<button class="clip-btn" data-rec="${esc(e.w)}" title="Record">\u{1F399}\uFE0F</button>`;
-      return `<tr><td><b>${esc(e.w)}</b>${e.easy ? ` <span class="muted">(decodable)</span>` : ""}</td>
-        <td>${status}</td><td>${p}</td><td>${first}</td><td>${x ? x.helps : 0}</td><td class="muted">${mode}</td><td class="voice">${voice}</td></tr>`;
+        ? `<button class="clip-btn" data-play="${esc(e.w)}" title="Play">▶️</button><button class="clip-btn" data-rec="${esc(e.w)}" title="Re-record">🎙️</button><button class="clip-btn" data-del="${esc(e.w)}" title="Delete recording">🗑️</button>`
+        : `<button class="clip-btn" data-rec="${esc(e.w)}" title="Record">🎙️</button>`;
+      return `<tr><td><b>${esc(e.label || e.w)}</b></td>
+        <td>${status}</td><td>${p}</td><td>${first}</td><td class="voice">${voice}</td></tr>`;
     }).join("");
 
     const voices = Speech.voices;
     const current = Speech.pickVoice();
     const voiceOpts = voices.map((v) => `<option value="${esc(v.name)}" ${current && current.name === v.name ? "selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("");
 
-    const struggling = ALL.filter((e) => {
-      const x = state.words[e.w];
-      return !e.easy && x && x.tries + x.helps >= 3 && (x.helps >= 2 || x.firstTry / Math.max(1, x.tries) < 0.5);
-    }).map((e) => e.w);
-
     $("parent-body").innerHTML = `
       <p>Expeditions played: <b>${state.trips}</b> &middot; Monsters caught: <b>${totalCaught()}</b> / ${ALL.length}</p>
-      <p>Sticky words: ${struggling.length ? `<b>${struggling.map(esc).join(", ")}</b>` : `<span class="muted">none yet</span>`}</p>
-      <p class="muted">Sight words start in "hear &amp; find" (he hears it, finds it). At ${READ_MODE_AT} points they switch to
-        "read &amp; pick" (he sees it and picks the matching sound), which is the real reading step.
-        Caught = ${STAGE_AT[0]} pt, evolved = ${STAGE_AT[1]}, mega = ${STAGE_AT[2]}. Help or 2 misses = 0 pts, and the monster comes back later.</p>
+      <p class="muted">Toddler &amp; Preschool Edition for Connor (3), Kyler (almost 3), and Ethan (2).
+        Single-tap matching with colors, shapes, counting numbers 1–10, and preschool letters A–Z.
+        Caught = ${STAGE_AT[0]} catch, evolved = ${STAGE_AT[1]}, mega = ${STAGE_AT[2]}.</p>
 
       <h3>Voice</h3>
       <label>Voice: <select id="p-voice"><option value="">Auto</option>${voiceOpts}</select></label>
       <label>Speed: <input id="p-rate" type="range" min="0.5" max="1.2" step="0.05" value="${state.settings.rate}" />
         <span id="p-rate-val">${state.settings.rate}</span></label>
-      <div class="row-btns"><button id="p-test">\u{1F50A} Test: "said"</button><button id="p-test-a">\u{1F50A} Test: "a"</button><button id="p-test-the">\u{1F50A} Test: "the"</button></div>
-      <p class="muted">If the robot voice says a word wrong (like "a" or "the"), tap \u{1F399}\uFE0F next to that word below and say it
-        yourself. Recording stops after 3 seconds or when you tap \u23F9\uFE0F. Your voice is used from then on, on this tablet only.</p>
+      <div class="row-btns">
+        <button id="p-test-red">🔊 Test: "Red"</button>
+        <button id="p-test-star">🔊 Test: "Star"</button>
+        <button id="p-test-num">🔊 Test: "Number 3"</button>
+        <button id="p-test-b">🔊 Test: "Letter B"</button>
+      </div>
+      <p class="muted">Tap 🎙️ next to any color, shape, number, or letter to record Mom or Dad's voice! Your recording will always play instead of the robot voice.</p>
 
       <h3>Settings</h3>
-      <label><input id="p-unlock" type="checkbox" ${state.settings.unlockAll ? "checked" : ""}/> Open all regions</label>
       <label><input id="p-sfx" type="checkbox" ${state.settings.sfx ? "checked" : ""}/> Sound effects</label>
       <label><input id="p-music" type="checkbox" ${state.settings.music ? "checked" : ""}/> Background music</label>
 
-      ${REGIONS.map((r) => `<h3>${r.emoji} ${esc(r.name)}</h3>
-        <table><tr><th>Word</th><th>Status</th><th>Pts</th><th>1st-try</th><th>Helps</th><th>Mode</th><th>My voice</th></tr>${rows(r)}</table>`).join("")}
+      ${REGIONS.map((r) => `<h3>${esc(r.name)} &mdash; ${esc(r.subtitle)}</h3>
+        <table><tr><th>Item</th><th>Status</th><th>Pts</th><th>1st-try</th><th>My voice</th></tr>${rows(r)}</table>`).join("")}
 
       <h3>Danger zone</h3>
       <div class="row-btns"><button id="p-reset" class="danger">Reset all progress</button></div>`;
@@ -820,9 +798,10 @@
       $("p-rate-val").textContent = state.settings.rate;
       save();
     });
-    $("p-test").addEventListener("click", () => sayWord("said"));
-    $("p-test-a").addEventListener("click", () => sayWord("a"));
-    $("p-test-the").addEventListener("click", () => sayWord("the"));
+    $("p-test-red").addEventListener("click", () => sayWord("red"));
+    $("p-test-star").addEventListener("click", () => sayWord("star"));
+    $("p-test-num").addEventListener("click", () => sayWord("3"));
+    $("p-test-b").addEventListener("click", () => sayWord("B"));
     $("parent-body").onclick = (ev) => {
       const b = ev.target.closest(".clip-btn");
       if (!b) return;
@@ -830,12 +809,11 @@
       if (b.dataset.del) Clips.remove(b.dataset.del).then(renderParent);
       if (b.dataset.rec) {
         if (Recorder.active) { Recorder.stop(); return; }
-        b.textContent = "\u23F9\uFE0F";
+        b.textContent = "⏹️";
         b.classList.add("recording");
         Recorder.start(b.dataset.rec, renderParent);
       }
     };
-    $("p-unlock").addEventListener("change", (ev) => { state.settings.unlockAll = ev.target.checked; save(); });
     $("p-sfx").addEventListener("change", (ev) => { state.settings.sfx = ev.target.checked; save(); });
     $("p-music").addEventListener("change", (ev) => {
       if (ev.target.checked !== state.settings.music) Music.toggle();
@@ -849,37 +827,83 @@
     });
   }
 
-  // ---------------------------------------------------------------- boot
+  const Recorder = {
+    stream: null,
+    rec: null,
+    chunks: [],
+    word: null,
+    timer: null,
+    active: false,
+    async start(w, onDone) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Audio recording isn't supported on this browser.");
+        return;
+      }
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        alert("Microphone permission was denied.");
+        return;
+      }
+      this.word = w;
+      this.chunks = [];
+      this.active = true;
+      const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((m) => MediaRecorder.isTypeSupported(m)) || "";
+      this.rec = mime ? new MediaRecorder(this.stream, { mimeType: mime }) : new MediaRecorder(this.stream);
+      this.rec.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) this.chunks.push(ev.data); };
+      this.rec.onstop = async () => {
+        const type = this.rec.mimeType || "audio/webm";
+        const blob = new Blob(this.chunks, { type });
+        if (blob.size > 500) await Clips.put(this.word, blob);
+        this.cleanup();
+        if (onDone) onDone();
+      };
+      this.rec.start();
+      this.timer = setTimeout(() => this.stop(), 3500);
+    },
+    stop() {
+      clearTimeout(this.timer);
+      if (this.rec && this.rec.state === "recording") this.rec.stop();
+    },
+    cleanup() {
+      this.active = false;
+      this.word = null;
+      if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; }
+    }
+  };
+
+  function paintMusicBtn() {
+    const btn = $("btn-music");
+    if (!btn) return;
+    btn.textContent = state.settings.music ? "🎵" : "🔇";
+    btn.setAttribute("aria-label", state.settings.music ? "Music on (tap to mute)" : "Music muted (tap to play)");
+  }
+
+  // ---------------------------------------------------------------- init
 
   Speech.init();
   Clips.init();
   Music.init();
 
-  const musicBtn = $("btn-music");
-  const paintMusicBtn = () => {
-    musicBtn.textContent = state.settings.music ? "\u{1F3B5}" : "\u{1F507}";
-    musicBtn.classList.toggle("off", !state.settings.music);
+  const startMusicOnFirstTouch = () => {
+    Music.start();
+    window.removeEventListener("pointerdown", startMusicOnFirstTouch);
+    window.removeEventListener("keydown", startMusicOnFirstTouch);
   };
-  paintMusicBtn();
-  musicBtn.addEventListener("click", (ev) => {
-    ev.stopPropagation();
+  window.addEventListener("pointerdown", startMusicOnFirstTouch, { once: true });
+  window.addEventListener("keydown", startMusicOnFirstTouch, { once: true });
+
+  $("btn-music").addEventListener("click", () => {
     Music.toggle();
     paintMusicBtn();
   });
-  // Browsers only allow audio after the first tap.
-  document.addEventListener("pointerdown", () => Music.start(), { once: true });
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) Music.stop(); else Music.start();
-  });
-  FX.bouncyTitle($("title"));
-  FX.floaties($("screen-home"), 18);
-  FX.floaties($("screen-end"), 12);
-  FX.floaties($("screen-dex"), 10);
-  show("home");
+  paintMusicBtn();
 
-  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 
-  window.WordMonsters = { monsterSVG, state: () => state, music: Music };
+  FX.floaties($("screen-home"));
+  FX.bouncyTitle($("title"));
+  show("home");
 })();

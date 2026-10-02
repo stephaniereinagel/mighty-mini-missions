@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "wm-v9";
+const VERSION = "wm-v10";
 const CORE = [
   "./",
   "index.html",

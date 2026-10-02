@@ -1,98 +1,93 @@
-// Word data for Word Monsters.
+// Learning Content for Connor (3), Kyler (almost 3), and Ethan (2).
 //
-// w:      the word as shown
-// tricky: the word with its "sneaky" letters in [brackets] (shown with a heart after a catch)
-// alts:   look-alike / sound-alike decoys. Must be real words with distinct sounds
-//         (no homophones like some/sum, would/wood) because they are also spoken aloud.
-// say:    optional override for how text-to-speech should pronounce it
-// easy:   true for decodable words he can already sound out (mixed in so sight words
-//         never look "special")
+// 1. Giggle Meadow: Colors & Shapes (Ethan & Kyler friendly!)
+// 2. Wobble Woods:  Numbers 1 to 10 (Connor counting friendly!)
+// 3. Sparkle Cave:  Letters A to Z (Preschool letter readiness!)
 //
-// Sight words come from the Dolch pre-primer / primer lists and common Fry words.
+// All 3 regions are open from day 1 so toddlers can choose what they want.
 
 window.WM_REGIONS = [
   {
     id: "meadow",
     name: "Giggle Meadow",
-    labelColor: "#3f9d2c",
-    emoji: "\u{1F33C}",
+    subtitle: "Colors & Shapes",
+    labelColor: "#2e8b22",
     sky: ["#bdf2ff", "#e9fff0"],
     ground: "#8fdc7a",
     words: [
-      { w: "the", tricky: "th[e]", alts: ["then", "them", "he"] },
-      { w: "a", tricky: "[a]", alts: ["at", "an", "I"] },
-      { w: "I", tricky: "I", alts: ["in", "it", "is"], say: "eye" },
-      { w: "to", tricky: "t[o]", alts: ["top", "go", "so"] },
-      { w: "you", tricky: "y[ou]", alts: ["yes", "yum", "yak"] },
-      { w: "said", tricky: "s[ai]d", alts: ["sad", "sand", "sit"] },
-      { w: "of", tricky: "[o][f]", alts: ["off", "on", "if"] },
-      { w: "was", tricky: "w[a][s]", alts: ["wax", "saw", "wag"] },
-      { w: "is", tricky: "i[s]", alts: ["it", "in", "his"] },
-      { w: "he", tricky: "h[e]", alts: ["hen", "hat", "me"] },
-      { w: "we", tricky: "w[e]", alts: ["wet", "web", "me"] },
-      { w: "my", tricky: "m[y]", alts: ["map", "mud", "me"] },
-      { w: "cat", easy: true, alts: ["cot", "cut", "can"] },
-      { w: "sun", easy: true, alts: ["sit", "sand", "fun"] },
-      { w: "big", easy: true, alts: ["bag", "bug", "dig"] },
-      { w: "run", easy: true, alts: ["ran", "rug", "sun"] },
-      { w: "fish", easy: true, alts: ["dish", "fist", "wish"] },
-      { w: "jump", easy: true, alts: ["bump", "jam", "lump"] }
+      // Colors
+      { w: "red", type: "color", color: "#ff3b5c", label: "Red", say: "Find RED!", successSay: "Red!", alts: ["blue", "yellow", "green"] },
+      { w: "blue", type: "color", color: "#2f80ed", label: "Blue", say: "Find BLUE!", successSay: "Blue!", alts: ["red", "yellow", "green"] },
+      { w: "yellow", type: "color", color: "#ffbe0b", label: "Yellow", say: "Find YELLOW!", successSay: "Yellow!", alts: ["red", "blue", "purple"] },
+      { w: "green", type: "color", color: "#27ae60", label: "Green", say: "Find GREEN!", successSay: "Green!", alts: ["blue", "orange", "pink"] },
+      { w: "orange", type: "color", color: "#fb5607", label: "Orange", say: "Find ORANGE!", successSay: "Orange!", alts: ["red", "yellow", "purple"] },
+      { w: "purple", type: "color", color: "#8338ec", label: "Purple", say: "Find PURPLE!", successSay: "Purple!", alts: ["blue", "pink", "green"] },
+      { w: "pink", type: "color", color: "#ff70a6", label: "Pink", say: "Find PINK!", successSay: "Pink!", alts: ["red", "purple", "yellow"] },
+
+      // Shapes
+      { w: "circle", type: "shape", shape: "circle", color: "#ff3b5c", label: "Circle", say: "Find the round CIRCLE!", successSay: "Circle!", alts: ["square", "triangle", "star"] },
+      { w: "square", type: "shape", shape: "square", color: "#2f80ed", label: "Square", say: "Find the SQUARE!", successSay: "Square!", alts: ["circle", "triangle", "diamond"] },
+      { w: "triangle", type: "shape", shape: "triangle", color: "#27ae60", label: "Triangle", say: "Find the TRIANGLE!", successSay: "Triangle!", alts: ["circle", "square", "star"] },
+      { w: "star", type: "shape", shape: "star", color: "#ffbe0b", label: "Star", say: "Find the shiny STAR!", successSay: "Star!", alts: ["circle", "heart", "triangle"] },
+      { w: "heart", type: "shape", shape: "heart", color: "#ff70a6", label: "Heart", say: "Find the cute HEART!", successSay: "Heart!", alts: ["star", "circle", "square"] },
+      { w: "diamond", type: "shape", shape: "diamond", color: "#8338ec", label: "Diamond", say: "Find the DIAMOND!", successSay: "Diamond!", alts: ["triangle", "square", "oval"] },
+      { w: "oval", type: "shape", shape: "oval", color: "#fb5607", label: "Oval", say: "Find the OVAL!", successSay: "Oval!", alts: ["circle", "diamond", "square"] }
     ]
   },
   {
     id: "woods",
     name: "Wobble Woods",
-    labelColor: "#26773a",
-    emoji: "\u{1F332}",
+    subtitle: "Numbers 1 to 10",
+    labelColor: "#1e7232",
     sky: ["#c9f0d8", "#f3ffe9"],
     ground: "#5fb36a",
     words: [
-      { w: "she", tricky: "sh[e]", alts: ["shed", "ship", "he"] },
-      { w: "have", tricky: "hav[e]", alts: ["hat", "hand", "hive"] },
-      { w: "from", tricky: "fr[o]m", alts: ["frog", "fan", "frame"] },
-      { w: "are", tricky: "[are]", alts: ["arm", "art", "ran"] },
-      { w: "they", tricky: "th[ey]", alts: ["then", "the", "hey"] },
-      { w: "what", tricky: "wh[a]t", alts: ["hat", "wet", "wish"] },
-      { w: "do", tricky: "d[o]", alts: ["dog", "go", "dot"] },
-      { w: "one", tricky: "[one]", alts: ["on", "ten", "owl"] },
-      { w: "two", tricky: "t[wo]", alts: ["twin", "tub", "top"] },
-      { w: "come", tricky: "c[o]m[e]", alts: ["cone", "came", "cup"] },
-      { w: "here", tricky: "h[ere]", alts: ["her", "hen", "hat"] },
-      { w: "where", tricky: "wh[ere]", alts: ["when", "wet", "wire"] },
-      { w: "kite", easy: true, alts: ["kit", "bite", "cat"] },
-      { w: "frog", easy: true, alts: ["fog", "flag", "fig"] },
-      { w: "ship", easy: true, alts: ["shop", "sip", "chip"] },
-      { w: "ring", easy: true, alts: ["rug", "sing", "rang"] },
-      { w: "cake", easy: true, alts: ["cane", "lake", "cap"] },
-      { w: "bike", easy: true, alts: ["bake", "like", "bit"] }
+      { w: "1", type: "number", count: 1, color: "#ff3b5c", label: "1", say: "Find number 1!", successSay: "One!", alts: ["2", "3", "4"] },
+      { w: "2", type: "number", count: 2, color: "#fb5607", label: "2", say: "Find number 2!", successSay: "Two! One, two!", alts: ["1", "3", "5"] },
+      { w: "3", type: "number", count: 3, color: "#ffbe0b", label: "3", say: "Find number 3!", successSay: "Three! One, two, three!", alts: ["1", "2", "4"] },
+      { w: "4", type: "number", count: 4, color: "#27ae60", label: "4", say: "Find number 4!", successSay: "Four! One, two, three, four!", alts: ["3", "5", "6"] },
+      { w: "5", type: "number", count: 5, color: "#00b4d8", label: "5", say: "Find number 5!", successSay: "Five! High five!", alts: ["4", "6", "2"] },
+      { w: "6", type: "number", count: 6, color: "#3a86ff", label: "6", say: "Find number 6!", successSay: "Six!", alts: ["5", "7", "8"] },
+      { w: "7", type: "number", count: 7, color: "#7209b7", label: "7", say: "Find number 7!", successSay: "Seven! Lucky seven!", alts: ["6", "8", "9"] },
+      { w: "8", type: "number", count: 8, color: "#8338ec", label: "8", say: "Find number 8!", successSay: "Eight!", alts: ["7", "9", "10"] },
+      { w: "9", type: "number", count: 9, color: "#ff70a6", label: "9", say: "Find number 9!", successSay: "Nine!", alts: ["8", "10", "6"] },
+      { w: "10", type: "number", count: 10, color: "#e63946", label: "10", say: "Find big number 10!", successSay: "Ten! Double high five!", alts: ["9", "8", "5"] }
     ]
   },
   {
     id: "cave",
     name: "Sparkle Cave",
-    labelColor: "#6d4fc4",
-    emoji: "\u{1F48E}",
+    subtitle: "Letters A to Z",
+    labelColor: "#613bbd",
     sky: ["#d9ccff", "#f6efff"],
     ground: "#9b86d6",
     words: [
-      { w: "there", tricky: "th[ere]", alts: ["three", "then", "tree"] },
-      { w: "were", tricky: "w[ere]", alts: ["wet", "west", "wore"] },
-      { w: "some", tricky: "s[o]m[e]", alts: ["same", "sock", "sap"] },
-      { w: "want", tricky: "w[a]nt", alts: ["went", "wand", "ant"] },
-      { w: "put", tricky: "p[u]t", alts: ["pot", "pat", "pin"] },
-      { w: "could", tricky: "c[oul]d", alts: ["cold", "cloud", "cub"] },
-      { w: "would", tricky: "w[oul]d", alts: ["wild", "word", "wolf"] },
-      { w: "does", tricky: "d[oe][s]", alts: ["dogs", "dots", "dish"] },
-      { w: "any", tricky: "[a]ny", alts: ["and", "ant", "an"] },
-      { w: "many", tricky: "m[a]ny", alts: ["man", "mane", "map"] },
-      { w: "again", tricky: "ag[ai]n", alts: ["gain", "grin", "game"] },
-      { w: "says", tricky: "s[ay][s]", alts: ["sags", "set", "stays"] },
-      { w: "shell", easy: true, alts: ["shed", "sell", "bell"] },
-      { w: "king", easy: true, alts: ["kick", "sing", "wing"] },
-      { w: "rope", easy: true, alts: ["ripe", "rose", "rip"] },
-      { w: "lamp", easy: true, alts: ["limp", "lump", "camp"] },
-      { w: "swim", easy: true, alts: ["swam", "slim", "skim"] },
-      { w: "home", easy: true, alts: ["hose", "hum", "hop"] }
+      { w: "A", type: "letter", letter: "A", icon: "🍎", anchor: "apple", color: "#e63946", label: "Aa", say: "Find letter A! Ah-ah-Apple!", successSay: "Letter A! Ah-ah-Apple!", alts: ["B", "C", "M"] },
+      { w: "B", type: "letter", letter: "B", icon: "🐻", anchor: "bear", color: "#3a86ff", label: "Bb", say: "Find letter B! Buh-buh-Bear!", successSay: "Letter B! Buh-buh-Bear!", alts: ["A", "D", "P"] },
+      { w: "C", type: "letter", letter: "C", icon: "🐱", anchor: "cat", color: "#fb5607", label: "Cc", say: "Find letter C! Cuh-cuh-Cat!", successSay: "Letter C! Cuh-cuh-Cat!", alts: ["O", "G", "S"] },
+      { w: "D", type: "letter", letter: "D", icon: "🦆", anchor: "duck", color: "#27ae60", label: "Dd", say: "Find letter D! Duh-duh-Duck!", successSay: "Letter D! Duh-duh-Duck!", alts: ["B", "P", "T"] },
+      { w: "E", type: "letter", letter: "E", icon: "🐘", anchor: "elephant", color: "#8338ec", label: "Ee", say: "Find letter E! Eh-eh-Elephant!", successSay: "Letter E! Eh-eh-Elephant!", alts: ["F", "L", "H"] },
+      { w: "F", type: "letter", letter: "F", icon: "🐟", anchor: "fish", color: "#00b4d8", label: "Ff", say: "Find letter F! Fff-Fish!", successSay: "Letter F! Fff-Fish!", alts: ["E", "T", "P"] },
+      { w: "G", type: "letter", letter: "G", icon: "🍇", anchor: "grapes", color: "#7209b7", label: "Gg", say: "Find letter G! Guh-guh-Grapes!", successSay: "Letter G! Guh-guh-Grapes!", alts: ["C", "O", "Q"] },
+      { w: "H", type: "letter", letter: "H", icon: "🐴", anchor: "horse", color: "#ffbe0b", label: "Hh", say: "Find letter H! Huh-huh-Horse!", successSay: "Letter H! Huh-huh-Horse!", alts: ["N", "M", "E"] },
+      { w: "I", type: "letter", letter: "I", icon: "🍦", anchor: "ice cream", color: "#ff70a6", label: "Ii", say: "Find letter I! Eye-Ice Cream!", successSay: "Letter I! Eye-Ice Cream!", alts: ["L", "T", "J"] },
+      { w: "J", type: "letter", letter: "J", icon: "🦘", anchor: "jump", color: "#fb5607", label: "Jj", say: "Find letter J! Juh-juh-Jump!", successSay: "Letter J! Juh-juh-Jump!", alts: ["I", "L", "U"] },
+      { w: "K", type: "letter", letter: "K", icon: "🪁", anchor: "kite", color: "#3a86ff", label: "Kk", say: "Find letter K! Kuh-kuh-Kite!", successSay: "Letter K! Kuh-kuh-Kite!", alts: ["X", "H", "R"] },
+      { w: "L", type: "letter", letter: "L", icon: "🦁", anchor: "lion", color: "#ffbe0b", label: "Ll", say: "Find letter L! Lll-Lion!", successSay: "Letter L! Lll-Lion!", alts: ["I", "T", "J"] },
+      { w: "M", type: "letter", letter: "M", icon: "👾", anchor: "monster", color: "#8338ec", label: "Mm", say: "Find letter M! Mmm-Monster!", successSay: "Letter M! Mmm-Monster!", alts: ["N", "W", "H"] },
+      { w: "N", type: "letter", letter: "N", icon: "🐦", anchor: "nest", color: "#27ae60", label: "Nn", say: "Find letter N! Nnn-Nest!", successSay: "Letter N! Nnn-Nest!", alts: ["M", "H", "U"] },
+      { w: "O", type: "letter", letter: "O", icon: "🐙", anchor: "octopus", color: "#fb5607", label: "Oo", say: "Find letter O! Ah-ah-Octopus!", successSay: "Letter O! Ah-ah-Octopus!", alts: ["C", "Q", "G"] },
+      { w: "P", type: "letter", letter: "P", icon: "🐶", anchor: "puppy", color: "#ff70a6", label: "Pp", say: "Find letter P! Puh-puh-Puppy!", successSay: "Letter P! Puh-puh-Puppy!", alts: ["B", "D", "R"] },
+      { w: "Q", type: "letter", letter: "Q", icon: "👑", anchor: "queen", color: "#ffd166", label: "Qq", say: "Find letter Q! Qu-qu-Queen!", successSay: "Letter Q! Qu-qu-Queen!", alts: ["O", "G", "P"] },
+      { w: "R", type: "letter", letter: "R", icon: "🐰", anchor: "rabbit", color: "#ff3b5c", label: "Rr", say: "Find letter R! Rrr-Rabbit!", successSay: "Letter R! Rrr-Rabbit!", alts: ["P", "B", "K"] },
+      { w: "S", type: "letter", letter: "S", icon: "☀️", anchor: "sun", color: "#ffbe0b", label: "Ss", say: "Find letter S! Sss-Sun!", successSay: "Letter S! Sss-Sun!", alts: ["C", "Z", "O"] },
+      { w: "T", type: "letter", letter: "T", icon: "🐯", anchor: "tiger", color: "#fb5607", label: "Tt", say: "Find letter T! Tuh-tuh-Tiger!", successSay: "Letter T! Tuh-tuh-Tiger!", alts: ["I", "L", "F"] },
+      { w: "U", type: "letter", letter: "U", icon: "☂️", anchor: "umbrella", color: "#00b4d8", label: "Uu", say: "Find letter U! Uh-uh-Umbrella!", successSay: "Letter U! Uh-uh-Umbrella!", alts: ["V", "O", "W"] },
+      { w: "V", type: "letter", letter: "V", icon: "🚐", anchor: "van", color: "#8338ec", label: "Vv", say: "Find letter V! Vvv-Van!", successSay: "Letter V! Vvv-Van!", alts: ["U", "W", "Y"] },
+      { w: "W", type: "letter", letter: "W", icon: "🐳", anchor: "whale", color: "#3a86ff", label: "Ww", say: "Find letter W! Wuh-wuh-Whale!", successSay: "Letter W! Wuh-wuh-Whale!", alts: ["M", "V", "N"] },
+      { w: "X", type: "letter", letter: "X", icon: "🦊", anchor: "fox", color: "#e63946", label: "Xx", say: "Find letter X! Eks-eks-Fox!", successSay: "Letter X! Eks-eks-Fox!", alts: ["K", "Y", "Z"] },
+      { w: "Y", type: "letter", letter: "Y", icon: "🪀", anchor: "yo-yo", color: "#ff70a6", label: "Yy", say: "Find letter Y! Yuh-yuh-Yo-yo!", successSay: "Letter Y! Yuh-yuh-Yo-yo!", alts: ["V", "X", "U"] },
+      { w: "Z", type: "letter", letter: "Z", icon: "🦓", anchor: "zebra", color: "#27ae60", label: "Zz", say: "Find letter Z! Zzz-Zebra!", successSay: "Letter Z! Zzz-Zebra!", alts: ["S", "N", "X"] }
     ]
   }
 ];

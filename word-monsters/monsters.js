@@ -1,4 +1,4 @@
-// Procedural monster art. Every word always gets the same monster.
+// Procedural monster art. Every word, color, shape, number, or letter gets a cute unique monster.
 (() => {
   "use strict";
 
@@ -27,12 +27,25 @@
   ];
   const INK = "#2b2440";
 
+  const COLOR_HUES = {
+    red: 350,
+    orange: 25,
+    yellow: 48,
+    green: 140,
+    blue: 215,
+    purple: 275,
+    pink: 335
+  };
+
   function monsterSVG(word, stage, silhouette = false) {
-    const pick = (n, salt) => hash(word, salt) % n;
-    const hue = hash(word, 9) % 360;
-    const body = silhouette ? "#4a4868" : `hsl(${hue} 82% 64%)`;
-    const dark = silhouette ? "#3a3856" : `hsl(${hue} 62% 40%)`;
-    const light = silhouette ? "#4a4868" : `hsl(${(hue + 35) % 360} 95% 83%)`;
+    const key = String(word).toLowerCase();
+    const pick = (n, salt) => hash(key, salt) % n;
+
+    // Use specific hue if word is a color
+    const hue = COLOR_HUES[key] !== undefined ? COLOR_HUES[key] : (hash(key, 9) % 360);
+    const body = silhouette ? "#4a4868" : `hsl(${hue} 85% 62%)`;
+    const dark = silhouette ? "#3a3856" : `hsl(${hue} 65% 38%)`;
+    const light = silhouette ? "#4a4868" : `hsl(${(hue + 25) % 360} 95% 85%)`;
     const horn = silhouette ? body : "#fff3c4";
     const s = stage >= 3 ? 1 : stage === 2 ? 0.92 : 0.82;
     const shape = BODIES[pick(BODIES.length, 1)];
@@ -41,7 +54,7 @@
     const top = pick(4, 4);
     const spots = pick(2, 5) === 1;
     const extra = pick(6, 6);
-    const delay = -((hash(word, 7) % 4000) / 1000);
+    const delay = -((hash(key, 7) % 4000) / 1000);
 
     let back = "";
     if (stage >= 3) {
@@ -82,12 +95,35 @@
     } else {
       front += `<ellipse cx="70" cy="70" rx="15" ry="8" transform="rotate(-35 70 70)" fill="#fff" opacity=".45"/>
                 <circle cx="86" cy="60" r="3.5" fill="#fff" opacity=".55"/>`;
-      if (stage >= 2) front += `<ellipse cx="100" cy="150" rx="32" ry="21" fill="${light}" opacity=".9"/>`;
-      if (spots) {
+
+      // Belly Patch
+      front += `<ellipse cx="100" cy="150" rx="30" ry="20" fill="${light}" opacity=".92"/>`;
+
+      // Tummy Badge / Learning Icon
+      const isNum = /^[0-9]+$/.test(word);
+      const isLetter = /^[A-Za-z]$/.test(word);
+      if (isNum) {
+        front += `<text x="100" y="159" text-anchor="middle" font-size="28" font-weight="900" fill="${INK}">${word}</text>`;
+      } else if (isLetter) {
+        front += `<text x="100" y="159" text-anchor="middle" font-size="28" font-weight="900" fill="${INK}">${word.toUpperCase()}</text>`;
+      } else if (key === "heart") {
+        front += `<path d="M100 142 C92 130 80 144 100 160 C120 144 108 130 100 142 Z" fill="#ff70a6" stroke="${INK}" stroke-width="2"/>`;
+      } else if (key === "star") {
+        front += `<polygon points="100,136 103,145 112,145 105,150 108,159 100,154 92,159 95,150 88,145 97,145" fill="#ffd23f" stroke="${INK}" stroke-width="1.5"/>`;
+      } else if (key === "circle") {
+        front += `<circle cx="100" cy="150" r="11" fill="#ff3b5c" stroke="${INK}" stroke-width="2"/>`;
+      } else if (key === "square") {
+        front += `<rect x="90" y="140" width="20" height="20" rx="3" fill="#2f80ed" stroke="${INK}" stroke-width="2"/>`;
+      } else if (key === "triangle") {
+        front += `<polygon points="100,138 112,158 88,158" fill="#27ae60" stroke="${INK}" stroke-width="2"/>`;
+      } else if (key === "diamond") {
+        front += `<polygon points="100,138 112,150 100,162 88,150" fill="#8338ec" stroke="${INK}" stroke-width="2"/>`;
+      } else if (spots) {
         front += `<circle cx="58" cy="140" r="7" fill="${dark}" opacity=".25"/>
-                  <circle cx="146" cy="116" r="5" fill="${dark}" opacity=".25"/>
-                  <circle cx="138" cy="158" r="6" fill="${dark}" opacity=".25"/>`;
+                  <circle cx="146" cy="116" r="5" fill="${dark}" opacity=".25"/>`;
       }
+
+      // Friendly Big Eyes
       let eyeSvg = "";
       eyes.forEach(([x, y, r]) => {
         eyeSvg += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="${INK}" stroke-width="2.5"/>
@@ -96,8 +132,10 @@
           <circle cx="${x - r * 0.1}" cy="${y + r * 0.42}" r="${r * 0.1}" fill="#fff"/>`;
       });
       front += `<g class="m-eyes" style="animation-delay:${delay}s">${eyeSvg}</g>`;
-      front += `<ellipse cx="62" cy="126" rx="11" ry="7" fill="#ff7aa8" opacity=".6"/>
-                <ellipse cx="138" cy="126" rx="11" ry="7" fill="#ff7aa8" opacity=".6"/>`;
+      // Cheerful Blushing Cheeks
+      front += `<ellipse cx="62" cy="126" rx="11" ry="7" fill="#ff7aa8" opacity=".65"/>
+                <ellipse cx="138" cy="126" rx="11" ry="7" fill="#ff7aa8" opacity=".65"/>`;
+
       const mouths = [
         `<path d="M84 128 Q100 146 116 128" stroke="${INK}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`,
         `<path d="M84 126 Q100 154 116 126 Z" fill="${INK}"/><ellipse cx="100" cy="141" rx="8" ry="5" fill="#ff6f91"/>`,
@@ -125,10 +163,15 @@
         ];
         front += extras[extra];
       } else {
+        // Stage 3 Crown and Sparkles
         front += `<path d="M76 50 L80 26 L91 40 L100 20 L109 40 L120 26 L124 50Z" fill="#ffd23f" stroke="#d89c00" stroke-width="3" stroke-linejoin="round"/>
                   <circle cx="100" cy="40" r="4" fill="#ff5fa2"/>
-                  <text class="m-twinkle" x="166" y="40" font-size="26">\u2728</text>
-                  <text class="m-twinkle m-twinkle2" x="10" y="168" font-size="22">\u2728</text>`;
+                  <g class="m-twinkle" transform="translate(170 35)">
+                    <polygon points="0,-12 3,-3 12,0 3,3 0,12 -3,3 -12,0 -3,-3" fill="#ffd23f"/>
+                  </g>
+                  <g class="m-twinkle m-twinkle2" transform="translate(25 155)">
+                    <polygon points="0,-10 2,-2 10,0 2,2 0,10 -2,2 -10,0 -2,-2" fill="#ffd23f"/>
+                  </g>`;
       }
     }
 
