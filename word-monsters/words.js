@@ -19,7 +19,7 @@ window.WM_REGIONS = [
     ground: "#8fdc7a",
     words: [
       { w: "the", tricky: "th[e]", alts: ["then", "them", "he"] },
-      { w: "a", tricky: "[a]", alts: ["at", "an", "I"], say: "uh" },
+      { w: "a", tricky: "[a]", alts: ["at", "an", "I"] },
       { w: "I", tricky: "I", alts: ["in", "it", "is"], say: "eye" },
       { w: "to", tricky: "t[o]", alts: ["top", "go", "so"] },
       { w: "you", tricky: "y[ou]", alts: ["yes", "yum", "yak"] },
