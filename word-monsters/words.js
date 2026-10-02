@@ -85,7 +85,7 @@ window.WM_REGIONS = [
       { w: "U", type: "letter", letter: "U", icon: "☂️", anchor: "umbrella", color: "#00b4d8", label: "Uu", alts: ["V", "O", "W"] },
       { w: "V", type: "letter", letter: "V", icon: "🚐", anchor: "van", color: "#8338ec", label: "Vv", alts: ["U", "W", "Y"] },
       { w: "W", type: "letter", letter: "W", icon: "🐳", anchor: "whale", color: "#3a86ff", label: "Ww", alts: ["M", "V", "N"] },
-      { w: "X", type: "letter", letter: "X", icon: "🦊", anchor: "fox", color: "#e63946", label: "Xx", alts: ["K", "Y", "Z"] },
+      { w: "X", type: "letter", letter: "X", icon: "🩻", anchor: "x-ray", color: "#e63946", label: "Xx", alts: ["K", "Y", "Z"] },
       { w: "Y", type: "letter", letter: "Y", icon: "🪀", anchor: "yo-yo", color: "#ff70a6", label: "Yy", alts: ["V", "X", "U"] },
       { w: "Z", type: "letter", letter: "Z", icon: "🦓", anchor: "zebra", color: "#27ae60", label: "Zz", alts: ["S", "N", "X"] }
     ]
