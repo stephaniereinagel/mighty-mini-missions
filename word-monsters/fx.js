@@ -94,7 +94,11 @@
   const SCENERY = {
     meadow: { ground: ["\u{1F337}", "\u{1F33C}", "\u{1F338}", "\u{1F33B}", "\u{1F340}"], air: ["\u{1F98B}", "\u{1F41D}"] },
     woods: { ground: ["\u{1F333}", "\u{1F344}", "\u{1F332}", "\u{1F33F}", "\u{1F344}"], air: ["\u{1F426}", "\u{1F343}"] },
-    cave: { ground: ["\u{1F48E}", "\u{1F52E}", "\u{1FAA8}", "\u{1F48E}", "\u{1F344}"], air: ["\u{1F987}", "\u2728"] }
+    cave: { ground: ["\u{1F48E}", "\u{1F52E}", "\u{1FAA8}", "\u{1F48E}", "\u{1F344}"], air: ["\u{1F987}", "\u2728"] },
+    reef: { ground: ["\u{1F41A}", "\u{1FAB8}", "\u{1F980}", "\u{1F41A}", "\u{1FAB8}"], air: ["\u{1F420}", "\u{1FAE7}"] },
+    castle: { ground: ["\u{1F3F0}", "\u{1F6A9}", "\u{1F33A}", "\u{1F3F0}", "\u{1F6A9}"], air: ["\u{1F409}", "\u2B50"] },
+    garden: { ground: ["\u{1F33B}", "\u{1F955}", "\u{1F33B}", "\u{1F33D}", "\u{1F33B}"], air: ["\u{1F41D}", "\u{1F98B}"] },
+    lagoon: { ground: ["\u{1F334}", "\u{1F438}", "\u{1FAB7}", "\u{1F334}", "\u{1F438}"], air: ["\u{1F99C}", "\u{1F3B5}"] }
   };
 
   function scenery(stage, regionId) {
@@ -119,7 +123,7 @@
 
   const LINES = {
     hello: ["Catch me!", "Hee hee!", "Boop!", "Wanna play?", "I'm sneaky!", "Wiggle wiggle!", "Peekaboo!", "Bet you can't!", "Yoo-hoo!"],
-    hear: ["Find my word!", "Which one is me?", "Listen close!"],
+    hear: ["Find me!", "Which one is me?", "Listen close!"],
     miss: ["Missed me!", "Nope! Hee hee!", "Too ticklish!", "Wheee!", "Try again!"],
     bye: ["Bye bye!", "See ya!", "Zoom zoom!"]
   };

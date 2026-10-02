@@ -6,6 +6,7 @@
   const TRIP_LEN = 6;                  // 6 encounters per trip — fast-paced & joyful for ages 2–3
   const MAX_REQUEUE = 2;
   const STAGE_AT = [1, 3, 6];          // Caught at 1, Evolved at 3, Mega at 6
+  const HARD_FROM = 3;                 // regions from this index on hide the monster's answer clues until the catch
 
   const ALL = [];
   const SAY = {};
@@ -76,8 +77,84 @@
         <circle cx="38" cy="44" r="4.5" fill="#2b2440"/><circle cx="62" cy="44" r="4.5" fill="#2b2440"/>
         <circle cx="40" cy="42" r="1.5" fill="#fff"/><circle cx="64" cy="42" r="1.5" fill="#fff"/>
         <path d="M42 54 Q50 62 58 54" stroke="#2b2440" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    } else if (TRICKY_SHAPES[shape]) {
+      const [outline, fx, fy, fs] = TRICKY_SHAPES[shape];
+      inner = outline.replace("FILL", color) + shapeFace(fx, fy, fs);
     }
     return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+  }
+
+  function shapeFace(x, y, s = 1) {
+    const ink = "#2b2440";
+    return `<g transform="translate(${x} ${y}) scale(${s})">
+      <circle cx="-8" cy="-4" r="4.5" fill="${ink}"/><circle cx="8" cy="-4" r="4.5" fill="${ink}"/>
+      <circle cx="-7" cy="-5.5" r="1.5" fill="#fff"/><circle cx="9" cy="-5.5" r="1.5" fill="#fff"/>
+      <path d="M-6 5 Q0 11 6 5" stroke="${ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>`;
+  }
+
+  // [outline with FILL placeholder, face x, face y, face scale]
+  const TRICKY_SHAPES = (() => {
+    const poly = (pts) => `<polygon points="${pts}" fill="FILL" stroke="#2b2440" stroke-width="5" stroke-linejoin="round"/>`;
+    return {
+      rectangle: [`<rect x="4" y="24" width="92" height="52" rx="8" fill="FILL" stroke="#2b2440" stroke-width="5"/>`, 50, 50, 1],
+      pentagon: [poly("50,10 92,41 76,90 24,90 8,41"), 50, 58, 1],
+      hexagon: [poly("95,50 72,89 28,89 5,50 28,11 72,11"), 50, 50, 1],
+      octagon: [poly("91,67 67,91 33,91 9,67 9,33 33,9 67,9 91,33"), 50, 50, 1],
+      trapezoid: [poly("30,22 70,22 95,80 5,80"), 50, 54, 1],
+      parallelogram: [poly("30,24 97,24 70,78 3,78"), 50, 51, 1],
+      crescent: [`<path d="M66 12 A40 40 0 1 0 66 88 A58 58 0 0 1 66 12 Z" fill="FILL" stroke="#2b2440" stroke-width="5" stroke-linejoin="round"/>`, 32, 50, 0.8],
+      semicircle: [`<path d="M6 70 A44 44 0 0 1 94 70 Z" fill="FILL" stroke="#2b2440" stroke-width="5" stroke-linejoin="round"/>`, 50, 52, 1]
+    };
+  })();
+
+  // ---------------------------------------------------------------- comparison pictures (Giant's Garden)
+
+  const CMP_OBJS = ["🍎", "🐶", "⭐️", "🚗", "🐻", "🦆", "🍓", "🎈", "🐸", "🌻", "🐱", "🍪", "🐠", "🦄"];
+  const BLOCK_COLORS = ["#ff5fa2", "#ffd23f", "#19c3b3", "#7b5cff", "#ff8c42", "#3a86ff"];
+  const JUICE = ["#4dabf7", "#ff8c42", "#ff5fa2", "#8bd450"];
+  const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+
+  function sizePic(obj, scale) {
+    return `<div class="cmp-box"><span class="cmp-obj" style="font-size:${Math.round(scale * 96)}px">${obj}</span></div>`;
+  }
+  function towerPic(n) {
+    let blocks = "";
+    for (let i = 0; i < n; i++) {
+      const y = 124 - (i + 1) * 19;
+      blocks += `<rect x="10" y="${y}" width="40" height="18" rx="4" fill="${BLOCK_COLORS[i % BLOCK_COLORS.length]}" stroke="#2b2440" stroke-width="3"/>`;
+    }
+    const top = 124 - n * 19;
+    blocks += `<circle cx="24" cy="${top + 8}" r="2.5" fill="#2b2440"/><circle cx="36" cy="${top + 8}" r="2.5" fill="#2b2440"/>
+      <path d="M26 ${top + 12} Q30 ${top + 15} 34 ${top + 12}" stroke="#2b2440" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    return `<div class="cmp-box"><svg viewBox="0 0 60 128" height="118">${blocks}</svg></div>`;
+  }
+  function countPic(obj, n) {
+    return `<div class="cmp-box cmp-count">${Array.from({ length: n }, () => `<span>${obj}</span>`).join("")}</div>`;
+  }
+  function cupPic(full, juice) {
+    const liquid = full ? `<path d="M15 24 L65 24 L59 94 L21 94 Z" fill="${juice}"/><ellipse cx="40" cy="24" rx="25" ry="5" fill="#fff" opacity=".45"/>` : "";
+    return `<div class="cmp-box"><svg viewBox="0 0 80 104" height="112">
+      ${liquid}
+      <path d="M12 10 L68 10 L60 96 L20 96 Z" fill="${full ? "none" : "#f2f8ff"}" stroke="#2b2440" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M22 18 L26 86" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".7"/></svg></div>`;
+  }
+
+  // Returns the cards for a comparison encounter. "_mid" cards are the in-between ones (never a target).
+  function cmpCards(group) {
+    const obj = pickOne(CMP_OBJS);
+    switch (group) {
+      case "size": return [{ w: "big", html: sizePic(obj, 1) }, { w: "small", html: sizePic(obj, 0.4) }];
+      case "size3": return [{ w: "biggest", html: sizePic(obj, 1) }, { w: "_mid", html: sizePic(obj, 0.66) }, { w: "smallest", html: sizePic(obj, 0.36) }];
+      case "height": return [{ w: "tall", html: towerPic(rint(5, 6)) }, { w: "short", html: towerPic(rint(1, 2)) }];
+      case "height3": return [{ w: "tallest", html: towerPic(6) }, { w: "_mid", html: towerPic(4) }, { w: "shortest", html: towerPic(2) }];
+      case "count": return [{ w: "more", html: countPic(obj, rint(5, 8)) }, { w: "less", html: countPic(obj, rint(1, 2)) }];
+      case "fill": {
+        const juice = pickOne(JUICE);
+        return [{ w: "full", html: cupPic(true, juice) }, { w: "empty", html: cupPic(false, juice) }];
+      }
+      default: return [];
+    }
   }
 
   function renderColorBlob(color = "#ff3b5c", size = 76) {
@@ -96,7 +173,10 @@
     if (!item) return "";
     if (item.type === "color") {
       return `<div class="card-visual">${renderColorBlob(item.color, 76)}</div>
-              <div class="card-label" style="color:${item.color}">${esc(item.label)}</div>`;
+              <div class="card-label" style="color:${item.text || item.color}">${esc(item.label)}</div>`;
+    }
+    if (item.type === "sound") {
+      return `<div class="card-letter-val sound-letter" style="color:${item.color}">${esc(item.letter)}</div>`;
     }
     if (item.type === "shape") {
       return `<div class="card-visual">${renderShapeSVG(item.shape, item.color, 76)}</div>
@@ -114,9 +194,16 @@
     return `<div class="card-label">${esc(item.label || item.w)}</div>`;
   }
 
-  function caughtBadgeHTML(e) {
+  function caughtBadgeHTML(e, cardHTML) {
     if (e.type === "color") {
-      return `<div class="catch-badge color-badge">${renderColorBlob(e.color, 90)}<div class="badge-title" style="color:${e.color}">${esc(e.label)}</div></div>`;
+      return `<div class="catch-badge color-badge">${renderColorBlob(e.color, 90)}<div class="badge-title" style="color:${e.text || e.color}">${esc(e.label)}</div></div>`;
+    }
+    if (e.type === "sound") {
+      return `<div class="catch-badge letter-badge"><div class="badge-letter" style="color:${e.color}">${esc(e.letter.toUpperCase())}${esc(e.letter)}</div>
+        <div class="badge-hint">${e.icon} ${esc(e.letter)} says &ldquo;${esc(e.snd)}&rdquo;</div></div>`;
+    }
+    if (e.type === "cmp") {
+      return `<div class="catch-badge cmp-badge">${cardHTML || ""}<div class="badge-title">${esc(e.label)}</div></div>`;
     }
     if (e.type === "shape") {
       return `<div class="catch-badge shape-badge">${renderShapeSVG(e.shape, e.color, 90)}<div class="badge-title" style="color:${e.color}">${esc(e.label)}</div></div>`;
@@ -481,7 +568,7 @@
     const { e } = enc;
     const mon = $("monster");
     mon.className = "monster";
-    mon.innerHTML = monsterSVG(e.w, Math.max(1, stageOf(pts(e.w))));
+    mon.innerHTML = monsterSVG(e.w, Math.max(1, stageOf(pts(e.w))), false, e.regionIndex >= HARD_FROM);
     void mon.offsetWidth;
     mon.classList.add("enter");
     Sfx.appear();
@@ -493,26 +580,35 @@
     }, 650);
 
     const sign = $("sign");
-    sign.className = "sign mystery";
-    sign.innerHTML = `<span class="sign-icon">✨</span>`;
-
-    // Pick 2 decoys from the same region
-    const regionWords = trip.region.words.filter((x) => x.w !== e.w);
-    let decoys = [];
-    if (e.alts && e.alts.length) {
-      decoys = e.alts.map(getItem).filter((x) => x && x.w !== e.w).slice(0, 2);
-    }
-    if (decoys.length < 2) {
-      const sameType = regionWords.filter((x) => x.type === e.type && x.w !== e.w);
-      const pool = sameType.length >= 2 ? sameType : regionWords;
-      decoys = shuffle(pool).slice(0, 2);
+    if (e.type === "sound") {
+      sign.className = "sign pic-sign";
+      sign.innerHTML = `<span class="sign-pic">${e.icon}</span>`;
+    } else if (e.type === "cmp") {
+      sign.className = "sign word-sign";
+      sign.textContent = e.label;
+    } else {
+      sign.className = "sign mystery";
+      sign.innerHTML = `<span class="sign-icon">✨</span>`;
     }
 
-    const choices = shuffle([e, ...decoys]);
+    let cards;
+    if (e.type === "cmp") {
+      cards = shuffle(cmpCards(e.group));
+    } else {
+      // Pick 2 decoys: listed look-alikes first (may come from other regions), then same-type items here.
+      let decoys = shuffle((e.alts || []).filter((w) => w !== e.w && ALL.some((x) => x.w === w))).map(getItem).slice(0, 2);
+      if (decoys.length < 2) {
+        const sameType = trip.region.words.filter((x) => x.type === e.type && x.w !== e.w && !decoys.includes(x));
+        decoys = decoys.concat(shuffle(sameType).slice(0, 2 - decoys.length));
+      }
+      cards = shuffle([e, ...decoys]).map((item) => ({ w: item.w, label: item.label || item.w, html: renderCardContent(item) }));
+    }
+    enc.cards = cards;
+
     const opts = $("options");
-    opts.innerHTML = choices.map((item) => `
-      <button class="opt rich-card" data-w="${esc(item.w)}" aria-label="${esc(item.label || item.w)}">
-        ${renderCardContent(item)}
+    opts.innerHTML = cards.map((c) => `
+      <button class="opt rich-card ${e.type === "cmp" ? "cmp-card" : ""}" data-w="${esc(c.w)}" aria-label="${esc(c.label || "choice")}">
+        ${c.html}
       </button>
     `).join("");
 
@@ -587,7 +683,7 @@
     enc.done = true;
     busy = true;
     const t = trip;
-    const { e, wrong } = enc;
+    const { e, wrong, cards } = enc;
     const r = rec(e.w);
     const before = stageOf(r.pts);
     const award = wrong === 0 ? 1 : 1; // Always reward toddlers on catch!
@@ -610,6 +706,7 @@
     mon.className = "monster caught";
     await sleep(450);
     net.className = "net";
+    if (trip !== t) return;
 
     const evolved = after > before && before >= 1;
     const fresh = after >= 1 && before === 0;
@@ -621,7 +718,7 @@
       <div class="card ${evolved ? "evolved" : ""}">
         <h3>${title}</h3>
         <div class="mon dance">${monsterSVG(e.w, Math.max(1, after))}</div>
-        ${caughtBadgeHTML(e)}
+        ${caughtBadgeHTML(e, (cards.find((c) => c.w === e.w) || {}).html)}
       </div>`;
     card.classList.remove("hidden");
     const cardEl = card.querySelector(".card");
@@ -756,7 +853,7 @@
       const voice = Clips.has(e.w)
         ? `<button class="clip-btn" data-play="${esc(e.w)}" title="Play">▶️</button><button class="clip-btn" data-rec="${esc(e.w)}" title="Re-record">🎙️</button><button class="clip-btn" data-del="${esc(e.w)}" title="Delete recording">🗑️</button>`
         : `<button class="clip-btn" data-rec="${esc(e.w)}" title="Record">🎙️</button>`;
-      return `<tr><td><b>${esc(e.label || e.w)}</b></td>
+      return `<tr><td><b>${esc(e.label || e.w)}</b>${e.pic ? ` <span class="muted">(${esc(e.pic)})</span>` : ""}</td>
         <td>${status}</td><td>${p}</td><td>${first}</td><td class="voice">${voice}</td></tr>`;
     }).join("");
 
@@ -767,7 +864,10 @@
     $("parent-body").innerHTML = `
       <p>Expeditions played: <b>${state.trips}</b> &middot; Monsters caught: <b>${totalCaught()}</b> / ${ALL.length}</p>
       <p class="muted">Toddler &amp; Preschool Edition for Connor (3), Kyler (almost 3), and Ethan (2).
-        Single-tap matching with colors, shapes, counting numbers 1–10, and preschool letters A–Z.
+        Single-tap matching. The three lands on the big island are the starter level: colors, shapes, numbers 1–10, and letters A–Z.
+        The four small islands are the next level up: more colors, tricky shapes, big/small comparisons, and letter sounds
+        (he sees a picture, hears its first sound, and taps the letter). Look-alike letters like b/d/p are mixed in on purpose.
+        If the robot voice says a sound oddly, record your own for that row.
         Caught = ${STAGE_AT[0]} catch, evolved = ${STAGE_AT[1]}, mega = ${STAGE_AT[2]}.</p>
 
       <h3>Voice</h3>

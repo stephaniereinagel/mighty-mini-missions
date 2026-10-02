@@ -1,5 +1,5 @@
 // Hand-crafted Cartoon Storybook Island Map for Word Monsters.
-// 100% pure SVG vector illustration — NO emojis.
+// 100% pure SVG vector illustration  NO emojis.
 // Designed for Connor (3), Kyler (almost 3), and Ethan (2).
 
 (() => {
@@ -75,7 +75,7 @@
     // A wooden signpost for each zone with a crisp vector golden star
     sign(x, y, title, subtitle, caught, total, accentColor) {
       const w = 224;
-      return `<g class="map-sign" transform="translate(${x} ${y})">
+      return `<g class="map-sign" transform="translate(${x} ${y}) scale(1.15)">
         <!-- Wooden Post -->
         <rect x="-9" y="16" width="18" height="42" rx="4" fill="#9c6634" stroke="${INK}" stroke-width="3"/>
         <rect x="-6" y="20" width="4" height="34" fill="#b87b42"/>
@@ -103,20 +103,166 @@
     return `<g class="${cls}" data-w="${word}">${svg}</g>`;
   }
 
+  // ---------------------------------------------------------------- small islands (next level up)
+
+  function islet(cx, cy, rx, ry, grass) {
+    return `<ellipse cx="${cx}" cy="${cy + 8}" rx="${rx + 22}" ry="${ry + 18}" fill="#a6f1ff" opacity=".55"/>
+      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#sandGrad)" stroke="#d99f32" stroke-width="10"/>
+      ${grass ? `<ellipse cx="${cx}" cy="${cy - 8}" rx="${rx - 26}" ry="${ry - 24}" fill="${grass}" stroke="#3f8818" stroke-width="5"/>` : ""}`;
+  }
+
+  // Rope-and-plank bridges between the islands.
+  function bridges() {
+    const paths = [
+      "M845 250 Q900 215 950 190",
+      "M1150 282 Q1160 305 1150 330",
+      "M300 552 Q300 590 320 628",
+      "M612 750 Q645 740 680 748",
+      "M1150 562 Q1135 595 1110 624"
+    ];
+    return paths.map((d) => `<path d="${d}" fill="none" stroke="#8a5a2b" stroke-width="16" stroke-linecap="round"/>
+      <path d="${d}" fill="none" stroke="#d9a465" stroke-width="12" stroke-dasharray="7 5"/>`).join("");
+  }
+
+  function reefIslet(r) {
+    const paints = [["#9a5b2e", -48, -6], ["#2a2833", -26, -22], ["#ffffff", 0, -28], ["#9ea3ad", 26, -22], ["#17b3a9", 46, -4], ["#ffbf9e", 30, 16]];
+    const coral = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke="${c}" stroke-width="9" stroke-linecap="round">
+      <path d="M0 30 V0 M0 12 Q-14 4 -16 -12 M0 6 Q12 -2 14 -18 M-16 -12 V-20 M14 -18 Q20 -26 18 -32"/></g>`;
+    return `<g class="zone open" data-region="reef" role="button" tabindex="0" aria-label="Rainbow Reef: More Colors">
+      ${islet(1150, 160, 205, 118)}
+      <ellipse cx="1150" cy="168" rx="150" ry="70" fill="#7fe3f0" stroke="#37b5c9" stroke-width="4"/>
+      <ellipse cx="1120" cy="155" rx="60" ry="18" fill="#c6f7ff" opacity=".7"/>
+      <g pointer-events="none">
+        ${coral(1240, 150, "#c4a8ff")}${coral(1268, 162, "#8a1f3b", 0.8)}${coral(1218, 172, "#e9b824", 0.7)}
+        ${coral(1035, 168, "#a3d930", 0.75)}${coral(1060, 178, "#26388a", 0.6)}
+        <!-- Artist's paint palette -->
+        <g transform="translate(1138 140)">
+          <path d="M-70 4 C-74 -40 10 -56 60 -30 C88 -14 78 20 44 18 C26 16 24 34 4 40 C-36 50 -66 34 -70 4 Z" fill="#f3d7a8" stroke="${INK}" stroke-width="4"/>
+          <ellipse cx="-6" cy="18" rx="9" ry="7" fill="#7fe3f0" stroke="${INK}" stroke-width="3"/>
+          ${paints.map(([c, x, y]) => `<circle cx="${x}" cy="${y}" r="11" fill="${c}" stroke="${INK}" stroke-width="2.5"/>`).join("")}
+          <g transform="rotate(-35 70 -10)">
+            <rect x="60" y="-60" width="8" height="56" rx="3" fill="#9c6634" stroke="${INK}" stroke-width="2.5"/>
+            <path d="M58 -60 Q64 -80 70 -60 Z" fill="#8338ec" stroke="${INK}" stroke-width="2.5"/>
+          </g>
+        </g>
+        <!-- Shells -->
+        <path d="M985 200 a12 12 0 0 1 24 0 Z" fill="#ffbf9e" stroke="${INK}" stroke-width="2.5"/>
+        <path d="M1300 205 a10 10 0 0 1 20 0 Z" fill="#c4a8ff" stroke="${INK}" stroke-width="2.5"/>
+      </g>
+      ${ART.sign(1150, 238, "Rainbow Reef", "More Colors", r.caught, r.total, "#0d8a84")}
+    </g>`;
+  }
+
+  function castleIslet(r) {
+    return `<g class="zone open" data-region="castle" role="button" tabindex="0" aria-label="Shape Castle: Tricky Shapes">
+      ${islet(1150, 445, 205, 112, "#9fe05a")}
+      <g pointer-events="none">
+        <!-- Trapezoid hill under the castle -->
+        <polygon points="1070,452 1230,452 1250,478 1050,478" fill="#c9a46b" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+        <!-- Towers -->
+        <rect x="1048" y="372" width="48" height="82" rx="4" fill="#ffd9b0" stroke="${INK}" stroke-width="3.5"/>
+        <rect x="1204" y="372" width="48" height="82" rx="4" fill="#ffd9b0" stroke="${INK}" stroke-width="3.5"/>
+        <polygon points="1042,374 1072,330 1102,374" fill="#ff70a6" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+        <polygon points="1198,374 1228,330 1258,374" fill="#3a86ff" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+        <!-- Main wall with battlements -->
+        <path d="M1096 452 V388 h14 v-12 h14 v12 h14 v-12 h14 v12 h14 v-12 h14 v12 h14 V452 Z" fill="#ffe7c9" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+        <!-- Hexagon window, octagon shield, semicircle door, pentagon window -->
+        <polygon points="1162,410 1155,422 1141,422 1134,410 1141,398 1155,398" fill="#ffd23f" stroke="${INK}" stroke-width="3"/>
+        <polygon points="1066,404 1078,404 1086,412 1086,424 1078,432 1066,432 1058,424 1058,412" fill="#e63946" stroke="${INK}" stroke-width="3"/>
+        <polygon points="1228,398 1240,407 1235,421 1221,421 1216,407" fill="#8338ec" stroke="${INK}" stroke-width="3"/>
+        <path d="M1132 452 V440 A16 16 0 0 1 1164 440 V452 Z" fill="#9c6634" stroke="${INK}" stroke-width="3"/>
+        <!-- Flags: crescent and parallelogram -->
+        <line x1="1072" y1="332" x2="1072" y2="286" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+        <path d="M1092 288 A14 14 0 1 0 1092 312 A16 16 0 0 1 1092 288 Z" fill="#ffd23f" stroke="${INK}" stroke-width="2.5"/>
+        <line x1="1228" y1="332" x2="1228" y2="286" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+        <polygon points="1229,306 1257,306 1265,288 1237,288" fill="#19c3b3" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
+      </g>
+      ${ART.sign(1150, 505, "Shape Castle", "Tricky Shapes", r.caught, r.total, "#c2410c")}
+    </g>`;
+  }
+
+  function gardenIslet(r) {
+    const sunflower = (x, base, top, rad) => `<path d="M${x} ${base} V${top}" stroke="#3f8818" stroke-width="${Math.max(4, rad / 3)}" stroke-linecap="round"/>
+      <ellipse cx="${x - rad * 0.7}" cy="${(base + top) / 2}" rx="${rad * 0.5}" ry="${rad * 0.22}" fill="#5fb32e" stroke="${INK}" stroke-width="2"/>
+      <g transform="translate(${x} ${top})">
+        ${Array.from({ length: 10 }, (_, i) => `<ellipse cx="0" cy="${-rad * 0.95}" rx="${rad * 0.32}" ry="${rad * 0.55}" fill="#ffd23f" stroke="${INK}" stroke-width="2" transform="rotate(${i * 36})"/>`).join("")}
+        <circle r="${rad * 0.6}" fill="#8b5a2b" stroke="${INK}" stroke-width="2.5"/>
+        <circle cx="${-rad * 0.2}" cy="${-rad * 0.12}" r="${Math.max(1.5, rad * 0.09)}" fill="#fff"/><circle cx="${rad * 0.2}" cy="${-rad * 0.12}" r="${Math.max(1.5, rad * 0.09)}" fill="#fff"/>
+        <path d="M${-rad * 0.2} ${rad * 0.15} Q0 ${rad * 0.32} ${rad * 0.2} ${rad * 0.15}" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </g>`;
+    const pumpkin = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">
+      <path d="M0 -30 q4 -12 12 -14" stroke="#3f8818" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="-14" cy="0" rx="18" ry="28" fill="#ff8c1a" stroke="${INK}" stroke-width="3"/>
+      <ellipse cx="14" cy="0" rx="18" ry="28" fill="#ff8c1a" stroke="${INK}" stroke-width="3"/>
+      <ellipse cx="0" cy="0" rx="16" ry="30" fill="#ffa53d" stroke="${INK}" stroke-width="3"/></g>`;
+    return `<g class="zone open" data-region="garden" role="button" tabindex="0" aria-label="Giant's Garden: Big and Small">
+      ${islet(330, 748, 270, 118, "#8ee249")}
+      <g pointer-events="none">
+        <!-- Garden rows -->
+        <path d="M150 790 Q330 770 510 790" stroke="#a4703c" stroke-width="10" fill="none" stroke-linecap="round" opacity=".5"/>
+        ${sunflower(160, 790, 668, 30)}
+        ${sunflower(222, 790, 766, 11)}
+        ${pumpkin(420, 752, 1.25)}
+        ${pumpkin(492, 778, 0.45)}
+        <!-- Tall and short fence posts -->
+        <rect x="282" y="680" width="14" height="70" rx="4" fill="#d9a465" stroke="${INK}" stroke-width="3"/>
+        <rect x="304" y="724" width="14" height="26" rx="4" fill="#d9a465" stroke="${INK}" stroke-width="3"/>
+        <!-- Giant's boot print -->
+        <ellipse cx="350" cy="705" rx="22" ry="12" fill="#6b9e2f" opacity=".5"/>
+      </g>
+      ${ART.sign(330, 815, "Giant's Garden", "Big & Small", r.caught, r.total, "#b45309")}
+    </g>`;
+  }
+
+  function lagoonIslet(r) {
+    const bubble = (x, y, ch, c) => `<g class="map-shape-bounce" style="animation-delay:${-(x % 7) / 3}s"><circle cx="${x}" cy="${y}" r="17" fill="#ffffff" stroke="${INK}" stroke-width="3"/>
+      <text x="${x}" y="${y + 7}" text-anchor="middle" font-size="22" font-weight="900" fill="${c}">${ch}</text></g>`;
+    return `<g class="zone open" data-region="lagoon" role="button" tabindex="0" aria-label="Echo Lagoon: Letter Sounds">
+      ${islet(1010, 752, 320, 118, "#8ee249")}
+      <ellipse cx="1030" cy="735" rx="130" ry="52" fill="#38b6ff" stroke="${INK}" stroke-width="3.5"/>
+      <ellipse cx="1000" cy="725" rx="60" ry="16" fill="#9ee2ff" opacity=".7"/>
+      <g pointer-events="none">
+        <!-- Palm tree -->
+        <path d="M790 800 C788 760 796 720 812 690" stroke="#9c6634" stroke-width="14" fill="none" stroke-linecap="round"/>
+        <path d="M790 800 C788 760 796 720 812 690" stroke="#c48a48" stroke-width="6" stroke-dasharray="4 8" fill="none"/>
+        ${[-150, -100, -40, 20, 70].map((a) => `<path d="M812 690 q30 -18 58 6 q-30 -6 -58 -6 Z" fill="#2fbf5f" stroke="${INK}" stroke-width="2.5" transform="rotate(${a + 60} 812 690)"/>`).join("")}
+        <circle cx="806" cy="698" r="6" fill="#8b5a2b"/><circle cx="818" cy="700" r="6" fill="#8b5a2b"/>
+        <!-- Lily pads -->
+        <path d="M960 752 a14 9 0 1 0 1 -1 Z" fill="#27ae60" stroke="${INK}" stroke-width="2"/>
+        <path d="M1110 745 a12 8 0 1 0 1 -1 Z" fill="#27ae60" stroke="${INK}" stroke-width="2"/>
+        <!-- Echo conch shell with sound waves -->
+        <g transform="translate(1225 735)">
+          <path d="M-30 18 C-36 -10 -6 -30 22 -18 C34 -12 34 6 20 12 C8 18 -10 26 -30 18 Z" fill="#ffbf9e" stroke="${INK}" stroke-width="3.5"/>
+          <path d="M-18 10 C-14 -6 2 -14 16 -8" stroke="#e07a4f" stroke-width="3" fill="none"/>
+          <path d="M38 -22 q12 14 0 30 M50 -32 q20 24 0 50" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </g>
+        <!-- Floating letter bubbles -->
+        ${bubble(890, 690, "s", "#27ae60")}${bubble(1005, 662, "m", "#9a5b2e")}${bubble(1120, 680, "b", "#f4a100")}
+      </g>
+      ${ART.sign(1010, 812, "Echo Lagoon", "Letter Sounds", r.caught, r.total, "#0369a1")}
+    </g>`;
+  }
+
   function mapSVG({ regions, current, buddy }) {
     const rMeadow = regions.find((r) => r.id === "meadow") || { caught: 0, total: 14 };
     const rWoods = regions.find((r) => r.id === "woods") || { caught: 0, total: 10 };
     const rCave = regions.find((r) => r.id === "cave") || { caught: 0, total: 26 };
 
-    // Buddy position for each zone
+    const R = (id) => regions.find((r) => r.id === id) || { caught: 0, total: 0 };
+
+    // Buddy position for each zone (outer map coordinates)
     const BUDDY_POS = {
-      meadow: [320, 480],
-      woods: [510, 185],
-      cave: [685, 470]
+      meadow: [288, 442],
+      woods: [459, 176],
+      cave: [617, 433],
+      reef: [990, 205],
+      castle: [1290, 480],
+      garden: [565, 770],
+      lagoon: [1275, 800]
     };
     const bPos = BUDDY_POS[current] || BUDDY_POS.meadow;
 
-    return `<svg viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
+    return `<svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
       <defs>
         <!-- Ocean gradient -->
         <linearGradient id="oceanGrad" x1="0" y1="0" x2="0" y2="1">
@@ -152,9 +298,22 @@
         </linearGradient>
       </defs>
 
-      <!-- ==================== 1. TROPICAL SEA (NON-INTERACTIVE) ==================== -->
+      <!-- Open sea behind every island -->
       <g pointer-events="none">
-        <rect x="0" y="0" width="1000" height="640" rx="36" fill="url(#oceanGrad)"/>
+        <rect x="0" y="0" width="1400" height="900" rx="40" fill="url(#oceanGrad)"/>
+        <g stroke="#ffffff" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".7">
+          <path class="map-wave" d="M640 610 Q655 598 670 610 T700 610"/>
+          <path class="map-wave" style="animation-delay:-1s" d="M1320 300 Q1335 288 1350 300 T1380 300"/>
+          <path class="map-wave" style="animation-delay:-1.8s" d="M40 860 Q55 848 70 860 T100 860"/>
+          <path class="map-wave" style="animation-delay:-.5s" d="M1250 590 Q1265 578 1280 590 T1310 590"/>
+          <path class="map-wave" style="animation-delay:-1.4s" d="M900 28 Q915 16 930 28 T960 28"/>
+        </g>
+        ${bridges()}
+      </g>
+
+      <!-- ==================== THE BIG ISLAND (starter lands) ==================== -->
+      <g transform="translate(0 10) scale(0.9)">
+      <g pointer-events="none">
 
         <!-- Shallow Water Coral / Sandbar Glows -->
         <path d="M120 480 C60 380 90 260 210 220 C320 100 480 60 640 80 C800 50 960 120 950 300 C990 420 900 560 760 600 C580 660 260 630 120 480 Z"
@@ -430,6 +589,12 @@
         <!-- Illustrated Wooden Sign: Sparkle Cave -->
         ${ART.sign(795, 545, "Sparkle Cave", "Letters A to Z", rCave.caught, rCave.total, "#613bbd")}
       </g>
+      </g>
+
+      ${reefIslet(R("reef"))}
+      ${castleIslet(R("castle"))}
+      ${gardenIslet(R("garden"))}
+      ${lagoonIslet(R("lagoon"))}
 
       <!-- ==================== 7. THE BUDDY MONSTER ==================== -->
       <g class="map-buddy">

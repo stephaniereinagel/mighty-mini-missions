@@ -89,5 +89,117 @@ window.WM_REGIONS = [
       { w: "Y", type: "letter", letter: "Y", icon: "🪀", anchor: "yo-yo", color: "#ff70a6", label: "Yy", say: "Find letter Y! Yuh-yuh-Yo-yo!", successSay: "Letter Y! Yuh-yuh-Yo-yo!", alts: ["V", "X", "U"] },
       { w: "Z", type: "letter", letter: "Z", icon: "🦓", anchor: "zebra", color: "#27ae60", label: "Zz", say: "Find letter Z! Zzz-Zebra!", successSay: "Letter Z! Zzz-Zebra!", alts: ["S", "N", "X"] }
     ]
+  },
+  {
+    id: "reef",
+    name: "Rainbow Reef",
+    subtitle: "More Colors",
+    labelColor: "#0d8a84",
+    sky: ["#b8f3ff", "#e6fffb"],
+    ground: "#f6d98b",
+    words: [
+      // Decoys are close cousins on purpose (teal vs green vs blue) so the eye has to really look.
+      { w: "brown", type: "color", color: "#9a5b2e", label: "Brown", say: "Find BROWN!", successSay: "Brown! Like chocolate!", alts: ["orange", "black", "maroon"] },
+      { w: "black", type: "color", color: "#2a2833", label: "Black", say: "Find BLACK!", successSay: "Black! Like the night sky!", alts: ["gray", "navy", "brown"] },
+      { w: "white", type: "color", color: "#ffffff", text: "#8a87a0", label: "White", say: "Find WHITE!", successSay: "White! Like snow!", alts: ["gray", "peach", "black"] },
+      { w: "gray", type: "color", color: "#9ea3ad", label: "Gray", say: "Find GRAY!", successSay: "Gray! Like an elephant!", alts: ["white", "black", "lavender"] },
+      { w: "teal", type: "color", color: "#17b3a9", label: "Teal", say: "Find TEAL!", successSay: "Teal! Blue and green together!", alts: ["green", "blue", "lime"] },
+      { w: "peach", type: "color", color: "#ffbf9e", text: "#e07a4f", label: "Peach", say: "Find PEACH!", successSay: "Peach! Soft and fuzzy!", alts: ["pink", "orange", "white"] },
+      { w: "lavender", type: "color", color: "#c4a8ff", label: "Lavender", say: "Find LAVENDER!", successSay: "Lavender! A light purple!", alts: ["purple", "pink", "gray"] },
+      { w: "gold", type: "color", color: "#e9b824", text: "#c18f00", label: "Gold", say: "Find GOLD!", successSay: "Gold! Shiny like treasure!", alts: ["yellow", "orange", "brown"] },
+      { w: "navy", type: "color", color: "#26388a", label: "Navy", say: "Find NAVY!", successSay: "Navy! A dark, dark blue!", alts: ["blue", "black", "purple"] },
+      { w: "lime", type: "color", color: "#a3d930", text: "#6a9a0e", label: "Lime", say: "Find LIME!", successSay: "Lime! A bright yellow green!", alts: ["green", "yellow", "teal"] },
+      { w: "maroon", type: "color", color: "#8a1f3b", label: "Maroon", say: "Find MAROON!", successSay: "Maroon! A dark red!", alts: ["red", "brown", "purple"] }
+    ]
+  },
+  {
+    id: "castle",
+    name: "Shape Castle",
+    subtitle: "Tricky Shapes",
+    labelColor: "#c2410c",
+    sky: ["#ffe1c7", "#fff6ea"],
+    ground: "#e7c48a",
+    words: [
+      { w: "rectangle", type: "shape", shape: "rectangle", color: "#3a86ff", label: "Rectangle", say: "Find the RECTANGLE! Two long sides, two short sides.", successSay: "Rectangle! Like a door!", alts: ["square", "parallelogram", "trapezoid"] },
+      { w: "pentagon", type: "shape", shape: "pentagon", color: "#ff70a6", label: "Pentagon", say: "Find the PENTAGON! It has five sides.", successSay: "Pentagon! Five sides!", alts: ["hexagon", "octagon", "triangle"] },
+      { w: "hexagon", type: "shape", shape: "hexagon", color: "#ffbe0b", label: "Hexagon", say: "Find the HEXAGON! It has six sides.", successSay: "Hexagon! Six sides, like a honeycomb!", alts: ["pentagon", "octagon", "circle"] },
+      { w: "octagon", type: "shape", shape: "octagon", color: "#e63946", label: "Octagon", say: "Find the OCTAGON! It has eight sides.", successSay: "Octagon! Eight sides, like a stop sign!", alts: ["hexagon", "pentagon", "circle"] },
+      { w: "trapezoid", type: "shape", shape: "trapezoid", color: "#27ae60", label: "Trapezoid", say: "Find the TRAPEZOID!", successSay: "Trapezoid! Like a little hill!", alts: ["triangle", "rectangle", "parallelogram"] },
+      { w: "parallelogram", type: "shape", shape: "parallelogram", color: "#8338ec", label: "Parallelogram", say: "Find the PARALLELOGRAM! A leaning rectangle.", successSay: "Parallelogram! It leans over!", alts: ["rectangle", "trapezoid", "diamond"] },
+      { w: "crescent", type: "shape", shape: "crescent", color: "#f4c430", label: "Crescent", say: "Find the CRESCENT! Like the moon.", successSay: "Crescent! Like a banana moon!", alts: ["semicircle", "circle", "oval"] },
+      { w: "semicircle", type: "shape", shape: "semicircle", color: "#00b4d8", label: "Semicircle", say: "Find the SEMICIRCLE! Half a circle.", successSay: "Semicircle! Half of a circle!", alts: ["circle", "crescent", "trapezoid"] }
+    ]
+  },
+  {
+    id: "garden",
+    name: "Giant's Garden",
+    subtitle: "Big & Small",
+    labelColor: "#b45309",
+    sky: ["#d6f5c9", "#fffbe6"],
+    ground: "#9bd36b",
+    words: [
+      // group: which comparison picture to draw. Each card shows the same thing at a different amount.
+      { w: "big", type: "cmp", group: "size", label: "Big", say: "Which one is BIG?", successSay: "Big! That one is BIG!" },
+      { w: "small", type: "cmp", group: "size", label: "Small", say: "Which one is small?", successSay: "Small! That one is teeny tiny!" },
+      { w: "tall", type: "cmp", group: "height", label: "Tall", say: "Which tower is TALL?", successSay: "Tall! Up, up, up!" },
+      { w: "short", type: "cmp", group: "height", label: "Short", say: "Which tower is short?", successSay: "Short! Just a little one!" },
+      { w: "more", type: "cmp", group: "count", label: "More", say: "Which one has MORE?", successSay: "More! Lots and lots!" },
+      { w: "less", type: "cmp", group: "count", label: "Less", say: "Which one has LESS?", successSay: "Less! Just a few!" },
+      { w: "full", type: "cmp", group: "fill", label: "Full", say: "Which cup is FULL?", successSay: "Full! All the way to the top!" },
+      { w: "empty", type: "cmp", group: "fill", label: "Empty", say: "Which cup is EMPTY?", successSay: "Empty! Nothing inside!" },
+      { w: "biggest", type: "cmp", group: "size3", label: "Biggest", say: "Which one is the BIGGEST?", successSay: "Biggest! The biggest of all!" },
+      { w: "smallest", type: "cmp", group: "size3", label: "Smallest", say: "Which one is the SMALLEST?", successSay: "Smallest! The tiniest one!" },
+      { w: "tallest", type: "cmp", group: "height3", label: "Tallest", say: "Which tower is the TALLEST?", successSay: "Tallest! Touching the sky!" },
+      { w: "shortest", type: "cmp", group: "height3", label: "Shortest", say: "Which tower is the SHORTEST?", successSay: "Shortest! The littlest tower!" }
+    ]
+  },
+  {
+    id: "lagoon",
+    name: "Echo Lagoon",
+    subtitle: "Letter Sounds",
+    labelColor: "#0369a1",
+    sky: ["#c4ecff", "#f0fbff"],
+    ground: "#7fd1a8",
+    words: [
+      // The picture is shown on the sign; the child taps the letter it starts with.
+      // Pictures differ from Sparkle Cave on purpose so he matches the sound, not a memorized picture.
+      { w: "/a/", type: "sound", letter: "a", icon: "🐜", pic: "ant", snd: "ah", color: "#e63946" },
+      { w: "/b/", type: "sound", letter: "b", icon: "🍌", pic: "banana", snd: "buh", color: "#f4a100" },
+      { w: "/c/", type: "sound", letter: "c", icon: "🥕", pic: "carrot", snd: "kuh", color: "#fb5607" },
+      { w: "/d/", type: "sound", letter: "d", icon: "🐶", pic: "dog", snd: "duh", color: "#9a5b2e" },
+      { w: "/e/", type: "sound", letter: "e", icon: "🥚", pic: "egg", snd: "eh", color: "#8338ec" },
+      { w: "/f/", type: "sound", letter: "f", icon: "🐸", pic: "frog", snd: "fff", color: "#27ae60" },
+      { w: "/g/", type: "sound", letter: "g", icon: "🐐", pic: "goat", snd: "guh", color: "#7209b7" },
+      { w: "/h/", type: "sound", letter: "h", icon: "🎩", pic: "hat", snd: "huh", color: "#2b2440" },
+      { w: "/i/", type: "sound", letter: "i", icon: "🐛", pic: "inchworm", snd: "ih", color: "#2fbf5f" },
+      { w: "/j/", type: "sound", letter: "j", icon: "✈️", pic: "jet", snd: "juh", color: "#3a86ff" },
+      { w: "/k/", type: "sound", letter: "k", icon: "🔑", pic: "key", snd: "kuh", color: "#e9b824" },
+      { w: "/l/", type: "sound", letter: "l", icon: "🍋", pic: "lemon", snd: "lll", color: "#c9a800" },
+      { w: "/m/", type: "sound", letter: "m", icon: "🐒", pic: "monkey", snd: "mmm", color: "#9a5b2e" },
+      { w: "/n/", type: "sound", letter: "n", icon: "👃", pic: "nose", snd: "nnn", color: "#ff70a6" },
+      { w: "/o/", type: "sound", letter: "o", icon: "🐂", pic: "ox", snd: "ah", color: "#fb5607" },
+      { w: "/p/", type: "sound", letter: "p", icon: "🐷", pic: "pig", snd: "puh", color: "#ff70a6" },
+      { w: "/r/", type: "sound", letter: "r", icon: "🌈", pic: "rainbow", snd: "rrr", color: "#e63946" },
+      { w: "/s/", type: "sound", letter: "s", icon: "🐍", pic: "snake", snd: "sss", color: "#27ae60" },
+      { w: "/t/", type: "sound", letter: "t", icon: "🐢", pic: "turtle", snd: "tuh", color: "#17b3a9" },
+      { w: "/u/", type: "sound", letter: "u", icon: "☂️", pic: "umbrella", snd: "uh", color: "#00b4d8" },
+      { w: "/v/", type: "sound", letter: "v", icon: "🎻", pic: "violin", snd: "vvv", color: "#8338ec" },
+      { w: "/w/", type: "sound", letter: "w", icon: "🍉", pic: "watermelon", snd: "wuh", color: "#e63946" },
+      { w: "/y/", type: "sound", letter: "y", icon: "🧶", pic: "yarn", snd: "yuh", color: "#ff70a6" },
+      { w: "/z/", type: "sound", letter: "z", icon: "🤐", pic: "zipper", snd: "zzz", color: "#3a86ff" }
+    ]
   }
 ];
+
+// Letter sounds: fill in the spoken prompt, celebration, and look-alike decoys.
+(() => {
+  const lagoon = window.WM_REGIONS.find((r) => r.id === "lagoon");
+  const TRICKY = { b: ["d", "p"], d: ["b", "p"], p: ["b", "d"], m: ["n", "w"], n: ["m", "h"], u: ["n", "v"], w: ["m", "v"], c: ["k", "s"], k: ["c", "g"], i: ["e", "l"], e: ["i", "a"] };
+  lagoon.words.forEach((e) => {
+    const word = e.pic.charAt(0).toUpperCase() + e.pic.slice(1);
+    e.label = e.letter;
+    e.say = `${word}! ${e.snd}, ${e.snd}, ${e.pic}. Which letter says ${e.snd}?`;
+    e.successSay = `${e.letter.toUpperCase()}! ${e.letter.toUpperCase()} says ${e.snd}, like ${e.pic}!`;
+    e.alts = (TRICKY[e.letter] || []).map((l) => `/${l}/`);
+  });
+})();

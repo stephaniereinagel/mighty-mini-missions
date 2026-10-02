@@ -37,15 +37,64 @@
     pink: 335
   };
 
-  function monsterSVG(word, stage, silhouette = false) {
+  // Colors that can't be made from a hue alone: [body, outline, belly]
+  const COLOR_PAL = {
+    brown: ["#a8693a", "#6b4022", "#e3b88c"],
+    black: ["#3a3846", "#15141c", "#6e6a84"],
+    white: ["#f6f5fb", "#9a98ad", "#ffffff"],
+    gray: ["#a9adb8", "#6b7080", "#dfe2e8"],
+    teal: ["#1fb5ac", "#0d7a74", "#a4f0e8"],
+    peach: ["#ffbd9b", "#d9805a", "#ffe4d4"],
+    lavender: ["#c4a8ff", "#8a6bd1", "#ede3ff"],
+    gold: ["#f2c230", "#b98a00", "#fff0a8"],
+    navy: ["#2f4296", "#16224f", "#8ea0e0"],
+    lime: ["#a6e22e", "#6c9c10", "#e4ffad"],
+    maroon: ["#8f2340", "#561226", "#e08aa2"]
+  };
+
+  function tummyBadge(word, key) {
+    const t = (s, size = 28) => `<text x="100" y="159" text-anchor="middle" font-size="${size}" font-weight="900" fill="${INK}" font-family="Andika, sans-serif">${s}</text>`;
+    const sound = /^\/([a-z])\/$/.exec(word);
+    if (sound) return t(sound[1], 32);
+    if (/^[0-9]+$/.test(word) || /^[A-Za-z]$/.test(word)) return t(String(word).toUpperCase());
+    const poly = (pts, fill) => `<polygon points="${pts}" fill="${fill}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`;
+    switch (key) {
+      case "heart": return `<path d="M100 142 C92 130 80 144 100 160 C120 144 108 130 100 142 Z" fill="#ff70a6" stroke="${INK}" stroke-width="2"/>`;
+      case "star": return poly("100,136 103,145 112,145 105,150 108,159 100,154 92,159 95,150 88,145 97,145", "#ffd23f");
+      case "circle": return `<circle cx="100" cy="150" r="11" fill="#ff3b5c" stroke="${INK}" stroke-width="2"/>`;
+      case "square": return `<rect x="90" y="140" width="20" height="20" rx="3" fill="#2f80ed" stroke="${INK}" stroke-width="2"/>`;
+      case "triangle": return poly("100,138 112,158 88,158", "#27ae60");
+      case "diamond": return poly("100,138 112,150 100,162 88,150", "#8338ec");
+      case "rectangle": return `<rect x="84" y="142" width="32" height="17" rx="3" fill="#3a86ff" stroke="${INK}" stroke-width="2"/>`;
+      case "pentagon": return poly("100,138 112,147 107,161 93,161 88,147", "#ff70a6");
+      case "hexagon": return poly("88,150 94,139 106,139 112,150 106,161 94,161", "#ffbe0b");
+      case "octagon": return poly("95,138 105,138 112,145 112,155 105,162 95,162 88,155 88,145", "#e63946");
+      case "trapezoid": return poly("93,140 107,140 115,160 85,160", "#27ae60");
+      case "parallelogram": return poly("92,141 117,141 108,159 83,159", "#8338ec");
+      case "crescent": return `<path d="M104.5 139.4 A11.2 11.2 0 1 0 104.5 160.6 A16.2 16.2 0 0 1 104.5 139.4 Z" fill="#f4c430" stroke="${INK}" stroke-width="2"/>`;
+      case "semicircle": return `<path d="M86 156 A14 14 0 0 1 114 156 Z" fill="#00b4d8" stroke="${INK}" stroke-width="2"/>`;
+      case "big": case "biggest": return `<circle cx="100" cy="150" r="13" fill="#ffd23f" stroke="${INK}" stroke-width="2"/>`;
+      case "small": case "smallest": return `<circle cx="100" cy="153" r="5" fill="#ffd23f" stroke="${INK}" stroke-width="2"/>`;
+      case "tall": case "tallest": return `<rect x="95" y="136" width="10" height="26" rx="2" fill="#19c3b3" stroke="${INK}" stroke-width="2"/>`;
+      case "short": case "shortest": return `<rect x="95" y="152" width="10" height="10" rx="2" fill="#19c3b3" stroke="${INK}" stroke-width="2"/>`;
+      case "more": return [88, 100, 112, 94, 106].map((x, i) => `<circle cx="${x}" cy="${i < 3 ? 146 : 157}" r="4.5" fill="#ff5fa2" stroke="${INK}" stroke-width="1.5"/>`).join("");
+      case "less": return `<circle cx="100" cy="151" r="4.5" fill="#ff5fa2" stroke="${INK}" stroke-width="1.5"/>`;
+      case "full": return `<path d="M89 140 H111 L108 162 H92 Z" fill="#4dabf7" stroke="${INK}" stroke-width="2"/>`;
+      case "empty": return `<path d="M89 140 H111 L108 162 H92 Z" fill="#fff" stroke="${INK}" stroke-width="2"/>`;
+      default: return "";
+    }
+  }
+
+  // plain: hide the answer clues (true color and tummy badge) while the question is being asked.
+  function monsterSVG(word, stage, silhouette = false, plain = false) {
     const key = String(word).toLowerCase();
     const pick = (n, salt) => hash(key, salt) % n;
 
-    // Use specific hue if word is a color
-    const hue = COLOR_HUES[key] !== undefined ? COLOR_HUES[key] : (hash(key, 9) % 360);
-    const body = silhouette ? "#4a4868" : `hsl(${hue} 85% 62%)`;
-    const dark = silhouette ? "#3a3856" : `hsl(${hue} 65% 38%)`;
-    const light = silhouette ? "#4a4868" : `hsl(${(hue + 25) % 360} 95% 85%)`;
+    const pal = plain ? null : COLOR_PAL[key];
+    const hue = !plain && COLOR_HUES[key] !== undefined ? COLOR_HUES[key] : (hash(key, 9) % 360);
+    const body = silhouette ? "#4a4868" : pal ? pal[0] : `hsl(${hue} 85% 62%)`;
+    const dark = silhouette ? "#3a3856" : pal ? pal[1] : `hsl(${hue} 65% 38%)`;
+    const light = silhouette ? "#4a4868" : pal ? pal[2] : `hsl(${(hue + 25) % 360} 95% 85%)`;
     const horn = silhouette ? body : "#fff3c4";
     const s = stage >= 3 ? 1 : stage === 2 ? 0.92 : 0.82;
     const shape = BODIES[pick(BODIES.length, 1)];
@@ -99,25 +148,9 @@
       // Belly Patch
       front += `<ellipse cx="100" cy="150" rx="30" ry="20" fill="${light}" opacity=".92"/>`;
 
-      // Tummy Badge / Learning Icon
-      const isNum = /^[0-9]+$/.test(word);
-      const isLetter = /^[A-Za-z]$/.test(word);
-      if (isNum) {
-        front += `<text x="100" y="159" text-anchor="middle" font-size="28" font-weight="900" fill="${INK}">${word}</text>`;
-      } else if (isLetter) {
-        front += `<text x="100" y="159" text-anchor="middle" font-size="28" font-weight="900" fill="${INK}">${word.toUpperCase()}</text>`;
-      } else if (key === "heart") {
-        front += `<path d="M100 142 C92 130 80 144 100 160 C120 144 108 130 100 142 Z" fill="#ff70a6" stroke="${INK}" stroke-width="2"/>`;
-      } else if (key === "star") {
-        front += `<polygon points="100,136 103,145 112,145 105,150 108,159 100,154 92,159 95,150 88,145 97,145" fill="#ffd23f" stroke="${INK}" stroke-width="1.5"/>`;
-      } else if (key === "circle") {
-        front += `<circle cx="100" cy="150" r="11" fill="#ff3b5c" stroke="${INK}" stroke-width="2"/>`;
-      } else if (key === "square") {
-        front += `<rect x="90" y="140" width="20" height="20" rx="3" fill="#2f80ed" stroke="${INK}" stroke-width="2"/>`;
-      } else if (key === "triangle") {
-        front += `<polygon points="100,138 112,158 88,158" fill="#27ae60" stroke="${INK}" stroke-width="2"/>`;
-      } else if (key === "diamond") {
-        front += `<polygon points="100,138 112,150 100,162 88,150" fill="#8338ec" stroke="${INK}" stroke-width="2"/>`;
+      const badge = plain ? `<text x="100" y="161" text-anchor="middle" font-size="30" font-weight="900" fill="${dark}" font-family="Andika, sans-serif">?</text>` : tummyBadge(String(word), key);
+      if (badge) {
+        front += badge;
       } else if (spots) {
         front += `<circle cx="58" cy="140" r="7" fill="${dark}" opacity=".25"/>
                   <circle cx="146" cy="116" r="5" fill="${dark}" opacity=".25"/>`;

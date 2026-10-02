@@ -346,6 +346,27 @@ button:disabled { cursor: default; }
   font-weight: 700;
   color: #4a3e65;
 }
+.sound-letter { font-size: clamp(70px, 15vmin, 120px); }
+.cmp-box {
+  height: 118px;
+  min-width: 120px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.cmp-obj { line-height: 1; }
+.cmp-count {
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  gap: 2px 4px;
+  max-width: 150px;
+  font-size: 30px;
+  line-height: 1;
+}
+.sign.pic-sign .sign-pic { display: inline-block; font-size: 1em; line-height: 1.1; animation: wobble 2.4s ease-in-out infinite; }
+.sign.word-sign { font-size: clamp(40px, 9vmin, 80px); color: #b45309; text-transform: uppercase; letter-spacing: .04em; }
+.cmp-badge .cmp-box { transform: scale(1.1); }
 .opt.wrong-card {
   opacity: 0.35;
   transform: scale(0.92);
