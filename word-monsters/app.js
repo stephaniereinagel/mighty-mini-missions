@@ -823,7 +823,7 @@
       <label>Voice: <select id="p-voice"><option value="">Auto</option>${voiceOpts}</select></label>
       <label>Speed: <input id="p-rate" type="range" min="0.5" max="1.2" step="0.05" value="${state.settings.rate}" />
         <span id="p-rate-val">${state.settings.rate}</span></label>
-      <div class="row-btns"><button id="p-test">\u{1F50A} Test: "said"</button><button id="p-test-a">\u{1F50A} Test: "a"</button></div>
+      <div class="row-btns"><button id="p-test">\u{1F50A} Test: "said"</button><button id="p-test-a">\u{1F50A} Test: "a"</button><button id="p-test-the">\u{1F50A} Test: "the"</button></div>
       <p class="muted">If the robot voice says a word wrong (like "a" or "the"), tap \u{1F399}\uFE0F next to that word below and say it
         yourself. Recording stops after 3 seconds or when you tap \u23F9\uFE0F. Your voice is used from then on, on this tablet only.</p>
 
@@ -845,6 +845,7 @@
     });
     $("p-test").addEventListener("click", () => sayWord("said"));
     $("p-test-a").addEventListener("click", () => sayWord("a"));
+    $("p-test-the").addEventListener("click", () => sayWord("the"));
     $("parent-body").onclick = (ev) => {
       const b = ev.target.closest(".clip-btn");
       if (!b) return;

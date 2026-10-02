@@ -18,7 +18,7 @@ window.WM_REGIONS = [
     sky: ["#bdf2ff", "#e9fff0"],
     ground: "#8fdc7a",
     words: [
-      { w: "the", tricky: "th[e]", alts: ["then", "them", "he"], say: "thuh" },
+      { w: "the", tricky: "th[e]", alts: ["then", "them", "he"] },
       { w: "a", tricky: "[a]", alts: ["at", "an", "I"], say: "uh" },
       { w: "I", tricky: "I", alts: ["in", "it", "is"], say: "eye" },
       { w: "to", tricky: "t[o]", alts: ["top", "go", "so"] },
