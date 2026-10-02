@@ -1,11 +1,13 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "wm-v6";
+const VERSION = "wm-v7";
 const CORE = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
   "words.js",
+  "monsters.js",
+  "fx.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png"

@@ -225,113 +225,17 @@
     evolve() { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, i * 0.1, 0.3, "triangle", 0.18)); },
     boing() { this.tone(320, 0, 0.35, "sine", 0.22, 110); },
     escape() { this.tone(500, 0, 0.12, "square", 0.05); this.tone(900, 0.1, 0.5, "sine", 0.12, 200); },
-    fanfare() { [523, 523, 784, 659, 1047].forEach((f, i) => this.tone(f, i * 0.14, 0.28, "triangle", 0.16)); }
+    fanfare() { [523, 523, 784, 659, 1047].forEach((f, i) => this.tone(f, i * 0.14, 0.28, "triangle", 0.16)); },
+    appear() { this.tone(260, 0, 0.18, "sine", 0.16, 720); this.tone(900, 0.16, 0.08, "triangle", 0.08); },
+    squeak() { this.tone(900, 0, 0.12, "sine", 0.14, 1500); this.tone(1400, 0.1, 0.12, "sine", 0.1, 800); },
+    sparkle() { [1568, 2093, 2637, 3136].forEach((f, i) => this.tone(f, 0.15 + i * 0.05, 0.12, "sine", 0.05)); }
   };
+
+  const FX = window.WM_FX;
 
   // ---------------------------------------------------------------- monster art
 
-  function hash(str, salt = 0) {
-    let h = (2166136261 ^ (salt * 2654435761)) >>> 0;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    h ^= h >>> 13;
-    h = Math.imul(h, 2246822507);
-    h ^= h >>> 16;
-    return h >>> 0;
-  }
-
-  const BODIES = [
-    "M100 46 C150 40 170 80 162 120 C170 160 140 182 100 178 C60 182 28 160 38 120 C30 80 50 50 100 46Z",
-    "M100 40 C140 40 160 90 165 130 C170 170 140 180 100 180 C60 180 30 170 35 130 C40 90 60 40 100 40Z",
-    "M40 110 C40 60 70 42 100 42 C130 42 160 60 160 110 L160 176 L140 163 L120 176 L100 163 L80 176 L60 163 L40 176Z",
-    "M100 52 C148 52 166 78 166 116 C166 158 140 180 100 180 C60 180 34 158 34 116 C34 78 52 52 100 52Z"
-  ];
-  const EYES = [
-    [[100, 98, 20]],
-    [[78, 98, 15], [122, 98, 15]],
-    [[70, 102, 12], [100, 86, 13], [130, 102, 12]]
-  ];
-
-  function monsterSVG(word, stage, silhouette = false) {
-    const pick = (n, salt) => hash(word, salt) % n;
-    const hue = hash(word, 9) % 360;
-    const body = silhouette ? "#4a4868" : `hsl(${hue} 78% 63%)`;
-    const dark = silhouette ? "#3a3856" : `hsl(${hue} 62% 40%)`;
-    const light = silhouette ? "#4a4868" : `hsl(${(hue + 30) % 360} 90% 82%)`;
-    const ink = "#2b2440";
-    const s = stage >= 3 ? 1 : stage === 2 ? 0.92 : 0.82;
-    const shape = BODIES[pick(BODIES.length, 1)];
-    const eyes = EYES[pick(EYES.length, 2)];
-    const mouth = pick(4, 3);
-    const top = pick(4, 4);
-    const spots = pick(2, 5) === 1;
-
-    let back = "";
-    if (stage >= 3) {
-      back += `<ellipse cx="42" cy="96" rx="36" ry="20" transform="rotate(-30 42 96)" fill="${light}" stroke="${dark}" stroke-width="3"/>
-               <ellipse cx="158" cy="96" rx="36" ry="20" transform="rotate(30 158 96)" fill="${light}" stroke="${dark}" stroke-width="3"/>`;
-    }
-    const tops = [
-      `<line x1="84" y1="60" x2="70" y2="20" stroke="${dark}" stroke-width="5" stroke-linecap="round"/>
-       <line x1="116" y1="60" x2="130" y2="20" stroke="${dark}" stroke-width="5" stroke-linecap="round"/>
-       <circle cx="70" cy="18" r="8" fill="${light}" stroke="${dark}" stroke-width="3"/>
-       <circle cx="130" cy="18" r="8" fill="${light}" stroke="${dark}" stroke-width="3"/>`,
-      `<path d="M68 66 L60 24 L90 54Z" fill="${silhouette ? body : "#fff3c4"}" stroke="${dark}" stroke-width="3" stroke-linejoin="round"/>
-       <path d="M132 66 L140 24 L110 54Z" fill="${silhouette ? body : "#fff3c4"}" stroke="${dark}" stroke-width="3" stroke-linejoin="round"/>`,
-      `<circle cx="60" cy="62" r="21" fill="${body}" stroke="${dark}" stroke-width="3"/>
-       <circle cx="140" cy="62" r="21" fill="${body}" stroke="${dark}" stroke-width="3"/>
-       <circle cx="60" cy="62" r="11" fill="${light}"/><circle cx="140" cy="62" r="11" fill="${light}"/>`,
-      `<path d="M100 60 C88 34 94 20 100 12 C106 20 112 34 100 60Z" fill="${light}" stroke="${dark}" stroke-width="3"/>
-       <path d="M96 60 C76 44 74 30 76 22 C86 26 96 38 96 60Z" fill="${light}" stroke="${dark}" stroke-width="3"/>
-       <path d="M104 60 C124 44 126 30 124 22 C114 26 104 38 104 60Z" fill="${light}" stroke="${dark}" stroke-width="3"/>`
-    ];
-    back += tops[top];
-    if (stage >= 2 && top !== 1) {
-      back += `<path d="M80 58 L76 36 L92 52Z" fill="${silhouette ? body : "#fff3c4"}" stroke="${dark}" stroke-width="3" stroke-linejoin="round"/>
-               <path d="M120 58 L124 36 L108 52Z" fill="${silhouette ? body : "#fff3c4"}" stroke="${dark}" stroke-width="3" stroke-linejoin="round"/>`;
-    }
-
-    let front = `
-      <ellipse cx="38" cy="128" rx="11" ry="19" transform="rotate(25 38 128)" fill="${body}" stroke="${dark}" stroke-width="3"/>
-      <ellipse cx="162" cy="128" rx="11" ry="19" transform="rotate(-25 162 128)" fill="${body}" stroke="${dark}" stroke-width="3"/>
-      <ellipse cx="76" cy="180" rx="17" ry="9" fill="${dark}"/>
-      <ellipse cx="124" cy="180" rx="17" ry="9" fill="${dark}"/>
-      <path d="${shape}" fill="${body}" stroke="${dark}" stroke-width="4" stroke-linejoin="round"/>`;
-
-    if (silhouette) {
-      front += `<text x="100" y="136" text-anchor="middle" font-size="64" font-weight="700" fill="#8e8ab8" font-family="Andika, sans-serif">?</text>`;
-    } else {
-      if (stage >= 2) front += `<ellipse cx="100" cy="148" rx="32" ry="22" fill="${light}" opacity=".9"/>`;
-      if (spots) {
-        front += `<circle cx="62" cy="122" r="7" fill="${dark}" opacity=".3"/>
-                  <circle cx="142" cy="112" r="5" fill="${dark}" opacity=".3"/>
-                  <circle cx="134" cy="156" r="6" fill="${dark}" opacity=".3"/>`;
-      }
-      eyes.forEach(([x, y, r]) => {
-        front += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="${ink}" stroke-width="2.5"/>
-                  <circle cx="${x + r * 0.15}" cy="${y + r * 0.2}" r="${r * 0.52}" fill="${ink}"/>
-                  <circle cx="${x + r * 0.35}" cy="${y - r * 0.1}" r="${r * 0.18}" fill="#fff"/>`;
-      });
-      front += `<ellipse cx="64" cy="126" rx="10" ry="6" fill="#ff8fb1" opacity=".65"/>
-                <ellipse cx="136" cy="126" rx="10" ry="6" fill="#ff8fb1" opacity=".65"/>`;
-      const mouths = [
-        `<path d="M84 128 Q100 146 116 128" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`,
-        `<path d="M84 126 Q100 154 116 126 Z" fill="${ink}"/><ellipse cx="100" cy="140" rx="8" ry="5" fill="#ff6f91"/>`,
-        `<path d="M82 126 Q100 152 118 126 Z" fill="${ink}"/><rect x="88" y="126" width="8" height="8" rx="2" fill="#fff"/><rect x="104" y="126" width="8" height="8" rx="2" fill="#fff"/>`,
-        `<ellipse cx="100" cy="134" rx="8" ry="10" fill="${ink}"/>`
-      ];
-      front += mouths[mouth];
-      if (stage >= 3) {
-        front += `<path d="M76 50 L80 26 L91 40 L100 20 L109 40 L120 26 L124 50Z" fill="#ffd23f" stroke="#d89c00" stroke-width="3" stroke-linejoin="round"/>
-                  <text x="170" y="40" font-size="26">\u2728</text><text x="12" y="170" font-size="22">\u2728</text>`;
-      }
-    }
-
-    return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g transform="translate(100 112) scale(${s}) translate(-100 -112)">${back}${front}</g></svg>`;
-  }
+  const { monsterSVG } = window.WM_ART;
 
   function trickyHTML(e) {
     const src = e.tricky || e.w;
@@ -358,7 +262,7 @@
     const parade = $("parade");
     if (caught.length) {
       parade.innerHTML = shuffle(caught).slice(0, 5)
-        .map((e) => `<div class="mon">${monsterSVG(e.w, stageOf(pts(e.w)))}</div>`).join("");
+        .map((e) => `<button class="mon" data-w="${esc(e.w)}">${monsterSVG(e.w, stageOf(pts(e.w)))}</button>`).join("");
     } else {
       parade.innerHTML = ["x1", "x2", "x3"].map((w) => `<div class="mon">${monsterSVG(w, 1, true)}</div>`).join("") +
         `<p class="parade-hint">Monsters are hiding. Go find them!</p>`;
@@ -376,6 +280,16 @@
     }).join("");
     $("dex-count").textContent = caught.length;
   }
+
+  $("parade").addEventListener("click", (ev) => {
+    const m = ev.target.closest(".mon[data-w]");
+    if (!m) return;
+    Sfx.squeak();
+    m.classList.remove("boop");
+    void m.offsetWidth;
+    m.classList.add("boop");
+    FX.burstAt(m, 12, { symbols: ["\u2764\uFE0F", "\u2728", "\u2B50"], power: 160 });
+  });
 
   $("regions").addEventListener("click", (ev) => {
     const btn = ev.target.closest(".region-card");
@@ -467,6 +381,7 @@
     $("screen-play").style.setProperty("--sky1", region.sky[0]);
     $("screen-play").style.setProperty("--sky2", region.sky[1]);
     $("screen-play").style.setProperty("--ground", region.ground);
+    FX.scenery($("stage"), region.id);
     show("play");
     nextEncounter();
   }
@@ -475,7 +390,7 @@
     $("trip-dots").innerHTML = trip.queue.map((e, i) => {
       const r = trip.results[i];
       const icon = r ? (r.escaped ? "\u{1F4A8}" : "\u2B50") : "";
-      return `<span class="dot ${i === trip.i ? "now" : ""}">${icon}</span>`;
+      return `<span class="dot ${i === trip.i ? "now" : ""} ${r ? "filled" : ""}">${icon}</span>`;
     }).join("");
   }
 
@@ -498,7 +413,12 @@
     mon.innerHTML = monsterSVG(e.w, Math.max(1, stageOf(pts(e.w))));
     void mon.offsetWidth;
     mon.classList.add("enter");
-    setTimeout(() => { if (enc && enc.e === e && !enc.done) mon.className = "monster idle"; }, 650);
+    Sfx.appear();
+    setTimeout(() => {
+      if (!enc || enc.e !== e || enc.done) return;
+      mon.className = "monster idle";
+      FX.say(mode === "hear" ? "hear" : "hello", mon);
+    }, 650);
 
     const sign = $("sign");
     const choices = shuffle([e.w, ...shuffle(e.alts).slice(0, 2)]);
@@ -575,7 +495,8 @@
     mon.className = "monster";
     void mon.offsetWidth;
     mon.classList.add("dodge");
-    toast(enc.wrong === 1 ? "Whoosh! Try again!" : "Oops!");
+    FX.say("miss", mon);
+    FX.shake($("stage"));
     const t = trip;
     await sleep(700);
     if (trip !== t) return;
@@ -607,6 +528,7 @@
     net.classList.add("drop");
     await sleep(500);
     const mon = $("monster");
+    FX.burstAt(mon, 28, { symbols: ["\u2B50", "\u2728", "\u{1F31F}"], power: 220 });
     mon.className = "monster caught";
     await sleep(500);
     net.className = "net";
@@ -617,11 +539,21 @@
     if (evolved) Sfx.evolve(); else Sfx.catch();
 
     const card = $("catch-card");
-    card.innerHTML = `<div class="card ${evolved ? "evolved" : ""}">
+    card.innerHTML = `<div class="rays ${evolved ? "rainbow" : ""}"></div>
+      <div class="card ${evolved ? "evolved" : ""}">
       <h3>${title}</h3>
-      <div class="mon">${monsterSVG(e.w, Math.max(1, after))}</div>
+      <div class="mon dance">${monsterSVG(e.w, Math.max(1, after))}</div>
       ${trickyHTML(e)}</div>`;
     card.classList.remove("hidden");
+    const cardEl = card.querySelector(".card");
+    if (evolved) {
+      FX.flash();
+      FX.burstAt(cardEl, 70, { power: 460 });
+      FX.rain(40);
+    } else {
+      FX.burstAt(cardEl, 36);
+    }
+    Sfx.sparkle();
     setTimeout(() => sayWord(e.w), evolved ? 650 : 420);
 
     await waitForTapOrTimeout(card, 2800);
@@ -651,6 +583,7 @@
     mon.className = "monster";
     void mon.offsetWidth;
     mon.classList.add("escape");
+    FX.say("bye", mon);
     trip.results[trip.i] = { e, escaped: true };
     if (trip.requeues < MAX_REQUEUE) {
       trip.queue.splice(trip.i + 3, 0, e);
@@ -705,15 +638,15 @@
     $("end-title").textContent = caughtCount
       ? `You caught ${caughtCount} monster${caughtCount === 1 ? "" : "s"}!`
       : "Great exploring!";
-    $("end-grid").innerHTML = list.map((r) => {
+    $("end-grid").innerHTML = list.map((r, i) => {
       const stage = stageOf(pts(r.e.w));
       if (stage === 0) {
-        return `<div class="mon-tile unknown"><div class="mon">${monsterSVG(r.e.w, 1, true)}</div><div class="label">?</div></div>`;
+        return `<div class="mon-tile unknown pop-in" style="--i:${i}"><div class="mon">${monsterSVG(r.e.w, 1, true)}</div><div class="label">?</div></div>`;
       }
       let badge = "";
       if (!r.escaped && r.before === 0 && r.after >= 1) badge = `<span class="badge new">NEW!</span>`;
       else if (!r.escaped && r.after > r.before) badge = `<span class="badge">EVOLVED!</span>`;
-      return `<div class="mon-tile" data-w="${esc(r.e.w)}">${badge}<div class="mon">${monsterSVG(r.e.w, stage)}</div>
+      return `<div class="mon-tile pop-in stage-${stage}" style="--i:${i}" data-w="${esc(r.e.w)}">${badge}<div class="mon">${monsterSVG(r.e.w, stage)}</div>
         <div class="label">${esc(r.e.w)}</div><div class="stars">${"\u2B50".repeat(stage)}</div></div>`;
     }).join("");
 
@@ -732,6 +665,7 @@
     enc = null;
     show("end");
     Sfx.fanfare();
+    if (caughtCount) setTimeout(() => FX.rain(70), 200);
   }
 
   $("end-grid").addEventListener("click", (ev) => {
@@ -751,7 +685,7 @@
         if (!stage) {
           return `<div class="mon-tile unknown"><div class="mon">${monsterSVG(e.w, 1, true)}</div><div class="label">?</div><div class="stars"></div></div>`;
         }
-        return `<button class="mon-tile" data-w="${esc(e.w)}"><div class="mon">${monsterSVG(e.w, stage)}</div>
+        return `<button class="mon-tile stage-${stage}" data-w="${esc(e.w)}"><div class="mon">${monsterSVG(e.w, stage)}</div>
           <div class="label">${esc(e.w)}</div><div class="stars">${"\u2B50".repeat(stage)}</div></button>`;
       }).join("");
       return `<section class="dex-region ${open ? "" : "locked"}">
@@ -876,6 +810,10 @@
 
   Speech.init();
   Clips.init();
+  FX.bouncyTitle($("title"));
+  FX.floaties($("screen-home"), 18);
+  FX.floaties($("screen-end"), 12);
+  FX.floaties($("screen-dex"), 10);
   show("home");
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
