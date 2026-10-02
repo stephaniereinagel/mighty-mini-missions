@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#17102f" />
+    <title>Ghost Word Run</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=6" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="homeScreen" class="screen home-screen">
+        <a class="home-link" href="../" aria-label="Back to Mighty Mini Missions">&#8962;</a>
+        <div class="moon" aria-hidden="true"></div>
+        <div id="homeGhost" class="home-ghost" aria-hidden="true"></div>
+        <p class="eyebrow">A Mighty Mini Game</p>
+        <h1>Ghost Word Run</h1>
+        <p class="home-copy">Listen for the word. Guide Boo through the matching gate and fill the pumpkin with candy!</p>
+
+        <div class="setup-card">
+          <label for="levelSelect">Choose a trail</label>
+          <select id="levelSelect"></select>
+          <button id="startButton" class="primary-button" type="button">Start flying <span>&rarr;</span></button>
+          <button id="howButton" class="text-button" type="button">How to play</button>
+        </div>
+        <p class="grownup-note">Fly &amp; collect candy &middot; 3 chances &middot; Catch heart targets to restore chances &middot; No ads</p>
+      </section>
+
+      <section id="gameScreen" class="screen game-screen hidden" aria-label="Ghost Word Run game">
+        <header class="game-hud">
+          <button id="quitButton" class="round-button" type="button" aria-label="Leave game">&#8962;</button>
+          <div id="chancesTrack" class="chances-track" role="status" aria-label="3 chances left">
+            <span class="chance-label">Chances</span>
+            <div class="chance-tokens">
+              <span class="chance-token active" id="chance1" title="Chance 1"></span>
+              <span class="chance-token active" id="chance2" title="Chance 2"></span>
+              <span class="chance-token active" id="chance3" title="Chance 3"></span>
+            </div>
+          </div>
+          <div class="bucket-score" aria-label="Candy collected">
+            <div id="miniBucket" class="mini-bucket" aria-hidden="true">
+              <div id="miniBucketBody" class="mini-bucket-body"></div>
+              <span id="bucketCandies" class="bucket-candies"></span>
+            </div>
+            <strong id="candyScore">0</strong>
+          </div>
+          <button id="musicButton" class="round-button music-button" type="button" aria-label="Toggle background music">??</button>
+          <button id="pauseButton" class="round-button" type="button" aria-label="Pause game">II</button>
+        </header>
+
+        <div id="promptCard" class="prompt-card">
+          <span id="promptLabel">Fly through</span>
+          <strong id="targetWord">the</strong>
+          <button id="hearButton" class="hear-icon" type="button" aria-label="Hear the word again"><span></span></button>
+        </div>
+
+        <div id="gameWorld" class="game-world">
+          <div class="sky-decor" aria-hidden="true">
+            <span class="star s1"></span><span class="star s2"></span><span class="star s3"></span>
+            <span class="cloud c1"></span><span class="cloud c2"></span>
+          </div>
+          <div id="path" class="path"></div>
+          <div id="pickups" class="pickups"></div>
+          <div id="rows" class="rows"></div>
+          <div id="player" class="player ghost" aria-label="Boo the ghost"></div>
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+          <div class="drag-hint" id="dragHint">Drag Boo side to side</div>
+        </div>
+      </section>
+
+      <section id="endScreen" class="screen end-screen hidden">
+        <div id="celebrationCandy" class="celebration-candy" aria-hidden="true"></div>
+        <p class="eyebrow">Trail complete!</p>
+        <h2>Sweet flying!</h2>
+        <div class="big-bucket" aria-hidden="true">
+          <div id="bigBucketBack" class="big-bucket-back"></div>
+          <div id="bigBucketCandies" class="big-bucket-candies"></div>
+          <div id="bigBucketFront" class="big-bucket-front"></div>
+        </div>
+        <p class="total-line"><strong id="endCandy">0</strong> candies collected!</p>
+        <p id="endBestLine" class="end-best-line"></p>
+        <p id="endMessage" class="end-message"></p>
+        <button id="againButton" class="primary-button" type="button">Fly again</button>
+        <button id="chooseButton" class="secondary-button" type="button">Choose another trail</button>
+      </section>
+
+      <div id="helpModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+        <div class="modal-card">
+          <button id="closeHelpButton" class="modal-close" type="button" aria-label="Close">&times;</button>
+          <h2 id="helpTitle">How to play</h2>
+          <ol>
+            <li><span class="step-number">1</span><p>Listen for the sight word.</p></li>
+            <li><span class="step-number">2</span><p>Drag Boo left or right to line up.</p></li>
+            <li><span class="step-number">3</span><p>Fly through the matching word to collect the sweet candy!</p></li>
+          </ol>
+          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance!</p>
+          <button id="helpDoneButton" class="primary-button" type="button">Got it!</button>
+        </div>
+      </div>
+
+      <div id="pauseOverlay" class="pause-overlay hidden">
+        <div>
+          <div id="pauseGhost" class="pause-ghost" aria-hidden="true"></div>
+          <h2>Taking a boo-break?</h2>
+          <button id="resumeButton" class="primary-button" type="button">Keep flying</button>
+          <button id="pauseQuitButton" class="text-button" type="button">Leave trail</button>
+        </div>
+      </div>
+    </main>
+    <script src="content.js?v=6"></script>
+    <script src="candies.js?v=6"></script>
+    <script src="app.js?v=6"></script>
+  </body>
+</html>
