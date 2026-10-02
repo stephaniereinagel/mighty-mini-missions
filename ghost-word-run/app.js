@@ -726,8 +726,8 @@
 
   // Chrome's speech engine can wedge after many rapid cancel/speak cycles; resuming and
   // speaking on the next tick keeps it alive, and holding the utterance prevents early GC.
-  // Some voices read a lone "I" as "capital I".
-  const SPOKEN_AS = { I: "eye" };
+  // Some voices misread very short words on their own ("capital I", a clipped "nnn" for "an").
+  const SPOKEN_AS = { I: "eye", an: "ann" };
 
   let currentUtterance = null;
   let speakTimer = 0;
