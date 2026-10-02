@@ -396,7 +396,7 @@
   // ---------------------------------------------------------------- trip planning
 
   function weightedPick(list, prev, counts) {
-    const ok = list.filter((x) => x.e !== prev && (counts[x.e.w] || 0) < 3);
+    const ok = list.filter((x) => x.e !== prev && (counts[x.e.w] || 0) < (x.e.easy ? 1 : 3));
     const total = ok.reduce((sum, x) => sum + x.wt, 0);
     if (!total) return null;
     let r = Math.random() * total;
@@ -426,7 +426,10 @@
     REGIONS.slice(0, ri).forEach((r) => r.words.forEach((e) => {
       if (!e.easy && isCaught(e.w)) sightPool.push({ e, wt: 0.5 });
     }));
-    const easyPool = easy.map((e) => ({ e, wt: !isCaught(e.w) ? 3 : pts(e.w) >= STAGE_AT[2] ? 1 : 2 }));
+    const easyPool = easy.map((e) => {
+      const base = !isCaught(e.w) ? 3 : pts(e.w) >= STAGE_AT[2] ? 1 : 2;
+      return { e, wt: rec(e.w).lastTrip === state.trips ? base * 0.25 : base };
+    });
 
     const trip = [];
     const counts = {};
@@ -480,6 +483,7 @@
     if (trip.i >= trip.queue.length) { endTrip(); return; }
     const e = trip.queue[trip.i];
     rec(e.w).seen = true;
+    rec(e.w).lastTrip = state.trips;
     save();
     enc = { e, mode: modeFor(e), wrong: 0, selected: null, done: false };
     busy = false;
