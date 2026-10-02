@@ -290,52 +290,61 @@
 
   function renderHome() {
     const caught = ALL.filter((e) => isCaught(e.w));
-    const parade = $("parade");
-    if (caught.length) {
-      parade.innerHTML = shuffle(caught).slice(0, 5)
-        .map((e) => `<button class="mon" data-w="${esc(e.w)}">${monsterSVG(e.w, stageOf(pts(e.w)))}</button>`).join("");
-    } else {
-      parade.innerHTML = ["x1", "x2", "x3"].map((w) => `<div class="mon">${monsterSVG(w, 1, true)}</div>`).join("") +
-        `<p class="parade-hint">Monsters are hiding. Go find them!</p>`;
-    }
-
-    const cur = currentRegion();
-    $("regions").innerHTML = REGIONS.map((r, ri) => {
-      const open = isUnlocked(ri);
-      const cls = ["region-card", open ? "" : "locked", r.id === cur.id ? "selected" : ""].join(" ");
-      const count = open
-        ? `${caughtIn(r)} / ${r.words.length} caught`
-        : `Catch ${Math.max(0, UNLOCK_CAUGHT - caughtIn(REGIONS[ri - 1]))} more`;
-      return `<button class="${cls}" data-region="${r.id}" data-ri="${ri}">
-        <span class="emoji">${r.emoji}</span><span>${esc(r.name)}</span><span class="count">${count}</span></button>`;
-    }).join("");
+    const regions = REGIONS.map((r, ri) => {
+      const mons = shuffle(r.words.filter((e) => isCaught(e.w)))
+        .sort((a, b) => pts(b.w) - pts(a.w))
+        .map((e) => ({ w: e.w, stage: stageOf(pts(e.w)) }));
+      return {
+        id: r.id,
+        name: r.name,
+        color: r.labelColor,
+        open: isUnlocked(ri),
+        caught: caughtIn(r),
+        total: r.words.length,
+        need: ri > 0 ? Math.max(0, UNLOCK_CAUGHT - caughtIn(REGIONS[ri - 1])) : 0,
+        mons
+      };
+    });
+    $("map").innerHTML = window.WM_MAP.mapSVG({ regions, current: currentRegion().id, buddy: "Max" });
     $("dex-count").textContent = caught.length;
   }
 
-  $("parade").addEventListener("click", (ev) => {
-    const m = ev.target.closest(".mon[data-w]");
-    if (!m) return;
-    Sfx.squeak();
-    m.classList.remove("boop");
-    void m.offsetWidth;
-    m.classList.add("boop");
-    FX.burstAt(m, 12, { symbols: ["\u2764\uFE0F", "\u2728", "\u2B50"], power: 160 });
-  });
-
-  $("regions").addEventListener("click", (ev) => {
-    const btn = ev.target.closest(".region-card");
-    if (!btn) return;
-    Sfx.pop();
-    const ri = Number(btn.dataset.ri);
-    if (!isUnlocked(ri)) {
-      btn.classList.remove("wiggle");
-      void btn.offsetWidth;
-      btn.classList.add("wiggle");
+  let mapBusy = false;
+  $("map").addEventListener("click", (ev) => {
+    if (mapBusy) return;
+    const mon = ev.target.closest(".map-mon, .buddy");
+    if (mon) {
+      Sfx.squeak();
+      mon.classList.remove("boop");
+      void mon.getBoundingClientRect();
+      mon.classList.add("boop");
+      FX.burstAt(mon, 12, { symbols: ["\u2764\uFE0F", "\u2728", "\u2B50"], power: 160 });
+      if (mon.classList.contains("map-mon")) sayWord(mon.dataset.w);
       return;
     }
-    state.region = btn.dataset.region;
+    const zone = ev.target.closest(".zone");
+    if (!zone) return;
+    const ri = REGIONS.findIndex((r) => r.id === zone.dataset.region);
+    if (!isUnlocked(ri)) {
+      Sfx.boing();
+      zone.classList.remove("wiggle");
+      void zone.getBoundingClientRect();
+      zone.classList.add("wiggle");
+      const need = UNLOCK_CAUGHT - caughtIn(REGIONS[ri - 1]);
+      Speech.say(`Catch ${need} more monsters in ${REGIONS[ri - 1].name} to open ${REGIONS[ri].name}!`);
+      return;
+    }
+    mapBusy = true;
+    Sfx.pop();
+    state.region = REGIONS[ri].id;
     save();
     renderHome();
+    const picked = $("map").querySelector(`.zone[data-region="${REGIONS[ri].id}"]`);
+    if (picked) {
+      picked.classList.add("chosen");
+      FX.burstAt(picked.querySelector(".zone-art"), 30, { symbols: ["\u2B50", "\u2728", "\u{1F31F}"], power: 240 });
+    }
+    setTimeout(() => { mapBusy = false; startTrip(); }, 650);
   });
 
   // ---------------------------------------------------------------- trip planning
@@ -735,8 +744,6 @@
   });
   $("btn-dex").addEventListener("click", () => { Sfx.pop(); show("dex"); });
   $("btn-dex-home").addEventListener("click", () => show("home"));
-  $("btn-explore").addEventListener("click", startTrip);
-
   // ---------------------------------------------------------------- grown-up corner (long-press the title)
 
   (function setupLongPress() {

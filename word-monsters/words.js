@@ -14,6 +14,7 @@ window.WM_REGIONS = [
   {
     id: "meadow",
     name: "Giggle Meadow",
+    labelColor: "#3f9d2c",
     emoji: "\u{1F33C}",
     sky: ["#bdf2ff", "#e9fff0"],
     ground: "#8fdc7a",
@@ -41,6 +42,7 @@ window.WM_REGIONS = [
   {
     id: "woods",
     name: "Wobble Woods",
+    labelColor: "#26773a",
     emoji: "\u{1F332}",
     sky: ["#c9f0d8", "#f3ffe9"],
     ground: "#5fb36a",
@@ -68,6 +70,7 @@ window.WM_REGIONS = [
   {
     id: "cave",
     name: "Sparkle Cave",
+    labelColor: "#6d4fc4",
     emoji: "\u{1F48E}",
     sky: ["#d9ccff", "#f6efff"],
     ground: "#9b86d6",

@@ -474,7 +474,7 @@ button:disabled { cursor: default; }
 
 /* ================================================================ sparkle pass */
 
-#screen-home > :not(.floaties):not(.back-link),
+#screen-home > :not(.floaties):not(.back-link):not(.music-btn),
 #screen-end > :not(.floaties),
 #screen-dex > :not(.floaties) { position: relative; z-index: 1; }
 .back-link { z-index: 2; }
@@ -710,6 +710,58 @@ button:disabled { cursor: default; }
 .mon-tile .badge { animation: wiggle .5s ease-in-out infinite; }
 .mon-tile.wiggle { animation: boop .6s cubic-bezier(.3,1.6,.5,1); }
 
+/* home map */
+#screen-home { justify-content: center; gap: 10px; }
+#screen-home .title { font-size: clamp(38px, 7.5vmin, 76px); }
+.map {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: min(100%, 1200px);
+  display: flex;
+  justify-content: center;
+}
+.map svg {
+  width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 230px);
+  filter: drop-shadow(0 10px 0 rgba(43,36,64,.12)) drop-shadow(0 18px 24px rgba(43,36,64,.18));
+  overflow: visible;
+}
+.zone { cursor: pointer; transform-box: fill-box; transform-origin: 50% 60%; transition: transform .2s cubic-bezier(.3,1.6,.5,1); }
+.zone.open:active { transform: scale(.96); }
+.zone.open .map-label { transform-box: fill-box; transform-origin: 50% 50%; animation: labelBob 2.2s ease-in-out infinite; }
+.zone.current .map-label rect:first-child { stroke: var(--pink); }
+.zone.chosen { transform: scale(1.08); }
+.zone.locked .zone-art { filter: grayscale(.9) brightness(1.08); opacity: .75; }
+.zone.locked .map-lock { transform-box: fill-box; transform-origin: 50% 50%; animation: wobble 2s ease-in-out infinite; }
+.zone.wiggle { animation: wiggle .4s ease-in-out 2; }
+.map-mon, .buddy { cursor: pointer; overflow: visible; }
+.map-mon.boop, .buddy.boop { transform-box: fill-box; transform-origin: 50% 100%; animation: boop .6s cubic-bezier(.3,1.6,.5,1); }
+.map-buddy { transform-box: fill-box; transform-origin: 50% 100%; animation: buddyHop 1.3s ease-in-out infinite; }
+.map-wave { transform-box: fill-box; transform-origin: center; animation: waveRock 2.4s ease-in-out infinite; }
+.map-boat { transform-box: fill-box; transform-origin: center; animation: boatSail 18s ease-in-out infinite; }
+.map-compass { transform-box: fill-box; transform-origin: center; animation: wobble 3s ease-in-out infinite; }
+.map-sun { transform-box: fill-box; transform-origin: center; animation: spin 20s linear infinite; }
+.map-flyer { transform-box: fill-box; transform-origin: center; animation: flutter 4s ease-in-out infinite; }
+.map-flyer2 { animation-duration: 5s; animation-delay: -1.5s; }
+.map-flyer3 { animation-duration: 3.4s; animation-delay: -.8s; }
+.map-twinkle { transform-box: fill-box; transform-origin: center; animation: twinkle 1.4s ease-in-out infinite; }
+.map-twinkle2 { animation-delay: .7s; }
+.map-trail { animation: trailMarch 1.6s linear infinite; }
+.mon-grid .m-eyes, .map .m-wave, .map .m-antennae { animation-duration: 5s; }
+
+.home-bottom { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
+.map-hint { margin: 0; font-size: clamp(22px, 4vmin, 32px); font-weight: 700; color: var(--purple-dark); }
+.map-hint .point { display: inline-block; animation: pointTap 1s ease-in-out infinite; }
+
+@keyframes labelBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes buddyHop { 0%, 100% { transform: translateY(0) scale(1, 1); } 40% { transform: translateY(-16px) scale(.96, 1.05); } 70% { transform: translateY(0) scale(1.06, .94); } }
+@keyframes waveRock { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+@keyframes boatSail { 0%, 100% { transform: translate(0, 0) rotate(-6deg); } 50% { transform: translate(40px, 300px) rotate(6deg); } }
+@keyframes flutter { 0%, 100% { transform: translate(0, 0) rotate(-8deg); } 25% { transform: translate(18px, -14px) rotate(6deg); } 50% { transform: translate(34px, 0) rotate(-4deg); } 75% { transform: translate(14px, 10px) rotate(8deg); } }
+@keyframes trailMarch { to { stroke-dashoffset: -26; } }
+@keyframes pointTap { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
 /* effects layer */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 100; overflow: hidden; }
 .confetti {
@@ -765,5 +817,6 @@ button:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .parade .mon, .monster.idle, .catch-btn:not(:disabled), .title .ltr, .floaty, .big-btn, .big-btn::after,
   .m-bob, .m-wave, .m-wings, .m-antennae, .rays, .mon.dance, .cloud, .air-deco, .ground-deco,
-  .card h3, .end-title, .sign.mystery, .region-card.selected, .mon-tile.stage-3 { animation: none; }
+  .card h3, .end-title, .sign.mystery, .region-card.selected, .mon-tile.stage-3,
+  .map-buddy, .map-wave, .map-boat, .map-sun, .map-flyer, .map-trail, .zone .map-label { animation: none; }
 }
