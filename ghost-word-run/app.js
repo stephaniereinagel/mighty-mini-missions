@@ -726,6 +726,9 @@
 
   // Chrome's speech engine can wedge after many rapid cancel/speak cycles; resuming and
   // speaking on the next tick keeps it alive, and holding the utterance prevents early GC.
+  // Some voices read a lone "I" as "capital I".
+  const SPOKEN_AS = { I: "eye" };
+
   let currentUtterance = null;
   let speakTimer = 0;
   function speak(text) {
@@ -734,7 +737,7 @@
     speechSynthesis.resume();
     clearTimeout(speakTimer);
     speakTimer = window.setTimeout(() => {
-      currentUtterance = new SpeechSynthesisUtterance(text);
+      currentUtterance = new SpeechSynthesisUtterance(SPOKEN_AS[text] || text);
       currentUtterance.rate = 0.72;
       currentUtterance.pitch = 1.08;
       speechSynthesis.speak(currentUtterance);
