@@ -198,19 +198,18 @@ window.WM_REGIONS = [
   const TRICKY = { b: ["d", "p"], d: ["b", "p"], p: ["b", "d"], m: ["n", "w"], n: ["m", "h"], u: ["n", "v"], w: ["m", "v"], c: ["s", "g"], k: ["g", "h"], i: ["e", "l"], e: ["i", "o"] };
   // Letters that must never be a wrong answer: they make the same (or too close a) sound.
   const NEVER = { e: ["a"], a: ["e"], k: ["c"], c: ["k"] };
-  const NAME = { a: "ay" };
+  // A bare "A" reads as "uh" and "ay" reads as "I"; voices say the letter name reliably right after "the letter".
   const cave = window.WM_REGIONS.find((r) => r.id === "cave");
   cave.words.forEach((e) => {
-    const name = NAME[e.letter.toLowerCase()] || e.letter;
-    e.say = `Find letter ${name}! ${name} is for ${e.anchor}.`;
-    e.successSay = `Letter ${name}! ${name} is for ${e.anchor}!`;
+    const word = e.anchor.charAt(0).toUpperCase() + e.anchor.slice(1);
+    e.say = `Find the letter ${e.letter}! ${word} starts with the letter ${e.letter}.`;
+    e.successSay = `The letter ${e.letter}! ${word} starts with the letter ${e.letter}!`;
   });
   lagoon.words.forEach((e) => {
     const word = e.pic.charAt(0).toUpperCase() + e.pic.slice(1);
-    const name = NAME[e.letter] || e.letter.toUpperCase();
     e.label = e.letter;
     e.say = `${word}. What letter does ${e.pic} start with? ${word}.`;
-    e.successSay = `Yes! ${word} starts with ${name}!`;
+    e.successSay = `Yes! ${word} starts with the letter ${e.letter.toUpperCase()}!`;
     e.alts = (TRICKY[e.letter] || []).map((l) => `/${l}/`);
     e.never = (NEVER[e.letter] || []).map((l) => `/${l}/`);
   });
