@@ -1,4 +1,4 @@
-"""Draw the Word Monsters app icons (run: python3 tools/make_icons.py)."""
+"""Draw the Monster Hunt app icons (run: python3 tools/make_icons.py)."""
 from pathlib import Path
 
 from PIL import Image, ImageDraw

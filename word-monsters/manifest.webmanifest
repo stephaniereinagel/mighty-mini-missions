@@ -1,6 +1,6 @@
 {
-  "name": "Word Monsters",
-  "short_name": "Word Monsters",
+  "name": "Monster Hunt",
+  "short_name": "Monster Hunt",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

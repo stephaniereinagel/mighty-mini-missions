@@ -1,4 +1,4 @@
-// Hand-crafted Cartoon Storybook Island Map for Word Monsters.
+// Hand-crafted Cartoon Storybook Island Map for Monster Hunt.
 // 100% pure SVG vector illustration ù NO emojis.
 // Designed for Connor (3), Kyler (almost 3), and Ethan (2).
 
