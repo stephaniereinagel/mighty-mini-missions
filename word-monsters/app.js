@@ -598,7 +598,7 @@
       // Pick 2 decoys: listed look-alikes first (may come from other regions), then same-type items here.
       let decoys = shuffle((e.alts || []).filter((w) => w !== e.w && ALL.some((x) => x.w === w))).map(getItem).slice(0, 2);
       if (decoys.length < 2) {
-        const sameType = trip.region.words.filter((x) => x.type === e.type && x.w !== e.w && !decoys.includes(x));
+        const sameType = trip.region.words.filter((x) => x.type === e.type && x.w !== e.w && !decoys.includes(x) && !(e.never || []).includes(x.w));
         decoys = decoys.concat(shuffle(sameType).slice(0, 2 - decoys.length));
       }
       cards = shuffle([e, ...decoys]).map((item) => ({ w: item.w, label: item.label || item.w, html: renderCardContent(item) }));

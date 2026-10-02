@@ -195,7 +195,9 @@ window.WM_REGIONS = [
 // Text-to-speech can't say isolated sounds ("buh" comes out "boo"), so prompts only ever say whole words.
 (() => {
   const lagoon = window.WM_REGIONS.find((r) => r.id === "lagoon");
-  const TRICKY = { b: ["d", "p"], d: ["b", "p"], p: ["b", "d"], m: ["n", "w"], n: ["m", "h"], u: ["n", "v"], w: ["m", "v"], c: ["k", "s"], k: ["c", "g"], i: ["e", "l"], e: ["i", "a"] };
+  const TRICKY = { b: ["d", "p"], d: ["b", "p"], p: ["b", "d"], m: ["n", "w"], n: ["m", "h"], u: ["n", "v"], w: ["m", "v"], c: ["s", "g"], k: ["g", "h"], i: ["e", "l"], e: ["i", "o"] };
+  // Letters that must never be a wrong answer: they make the same (or too close a) sound.
+  const NEVER = { e: ["a"], a: ["e"], k: ["c"], c: ["k"] };
   const NAME = { a: "ay" };
   const cave = window.WM_REGIONS.find((r) => r.id === "cave");
   cave.words.forEach((e) => {
@@ -210,5 +212,6 @@ window.WM_REGIONS = [
     e.say = `${word}. What letter does ${e.pic} start with? ${word}.`;
     e.successSay = `Yes! ${word} starts with ${name}!`;
     e.alts = (TRICKY[e.letter] || []).map((l) => `/${l}/`);
+    e.never = (NEVER[e.letter] || []).map((l) => `/${l}/`);
   });
 })();
