@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#7b5cff" />
+  <title>Word Monsters</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="app">
+
+    <section id="screen-home" class="screen active">
+      <a class="icon-btn back-link" href="../" aria-label="Back to Mighty Mini Missions">&#x1F3E0;</a>
+      <h1 id="title" class="title">Word <span>Monsters</span></h1>
+      <div id="parade" class="parade"></div>
+      <div id="regions" class="regions"></div>
+      <button id="btn-explore" class="big-btn">&#x1F9ED; Explore!</button>
+      <button id="btn-dex" class="mid-btn">&#x1F4D6; My Monsters <span id="dex-count" class="pill"></span></button>
+    </section>
+
+    <section id="screen-play" class="screen">
+      <div class="play-top">
+        <button id="btn-quit" class="icon-btn" aria-label="Home">&#x1F3E0;</button>
+        <div id="trip-dots" class="trip-dots"></div>
+      </div>
+      <div id="stage" class="stage">
+        <div id="monster" class="monster"></div>
+        <div id="sign" class="sign"></div>
+        <div id="net" class="net">&#x1F945;</div>
+        <div id="toast" class="toast"></div>
+      </div>
+      <div id="options" class="options"></div>
+      <div class="play-bottom">
+        <button id="btn-help" class="icon-btn help-btn" aria-label="Help">&#x1F64B;</button>
+        <button id="btn-catch" class="catch-btn" disabled>&#x1F945; Catch!</button>
+        <button id="btn-hear" class="catch-btn hear-big hidden" aria-label="Hear it again">&#x1F50A; Hear it</button>
+      </div>
+      <div id="catch-card" class="overlay hidden"></div>
+    </section>
+
+    <section id="screen-end" class="screen">
+      <h2 id="end-title" class="end-title"></h2>
+      <div id="end-grid" class="mon-grid"></div>
+      <p id="end-next" class="end-next"></p>
+      <div class="end-buttons">
+        <button id="btn-again" class="big-btn">&#x1F9ED; Go again!</button>
+        <button id="btn-end-home" class="mid-btn">&#x1F3E0; Home</button>
+      </div>
+    </section>
+
+    <section id="screen-dex" class="screen">
+      <div class="dex-top">
+        <button id="btn-dex-home" class="icon-btn" aria-label="Home">&#x1F3E0;</button>
+        <h2>My Monsters</h2>
+      </div>
+      <div id="dex-body" class="dex-body"></div>
+    </section>
+
+    <div id="parent" class="overlay hidden">
+      <div class="parent-panel">
+        <div class="parent-head">
+          <h2>Grown-up corner</h2>
+          <button id="btn-parent-close" class="icon-btn" aria-label="Close">&#x2716;&#xFE0F;</button>
+        </div>
+        <div id="parent-body"></div>
+      </div>
+    </div>
+
+  </main>
+  <script src="words.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

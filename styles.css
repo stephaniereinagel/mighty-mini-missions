@@ -1238,3 +1238,18 @@ button.small {
   }
 }
 
+
+.word-monsters-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(180deg, #a48bff, #7b5cff);
+  box-shadow: 0 5px 0 #5a3fe0;
+}
+.word-monsters-link:active { transform: translateY(4px); box-shadow: 0 1px 0 #5a3fe0; }
