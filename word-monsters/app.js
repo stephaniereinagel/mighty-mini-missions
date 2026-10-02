@@ -200,7 +200,7 @@
     }
     if (e.type === "sound") {
       return `<div class="catch-badge letter-badge"><div class="badge-letter" style="color:${e.color}">${esc(e.letter.toUpperCase())}${esc(e.letter)}</div>
-        <div class="badge-hint">${e.icon} ${esc(e.letter)} says &ldquo;${esc(e.snd)}&rdquo;</div></div>`;
+        <div class="badge-hint">${e.icon} ${esc(e.pic)}</div></div>`;
     }
     if (e.type === "cmp") {
       return `<div class="catch-badge cmp-badge">${cardHTML || ""}<div class="badge-title">${esc(e.label)}</div></div>`;
@@ -866,7 +866,7 @@
       <p class="muted">Toddler &amp; Preschool Edition for Connor (3), Kyler (almost 3), and Ethan (2).
         Single-tap matching. The three lands on the big island are the starter level: colors, shapes, numbers 1–10, and letters A–Z.
         The four small islands are the next level up: more colors, tricky shapes, big/small comparisons, and letter sounds
-        (he sees a picture, hears its first sound, and taps the letter). Look-alike letters like b/d/p are mixed in on purpose.
+        (he sees a picture, hears the word, and taps the letter it starts with). Look-alike letters like b/d/p are mixed in on purpose.
         If the robot voice says a sound oddly, record your own for that row.
         Caught = ${STAGE_AT[0]} catch, evolved = ${STAGE_AT[1]}, mega = ${STAGE_AT[2]}.</p>
 
