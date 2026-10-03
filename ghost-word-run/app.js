@@ -1093,6 +1093,10 @@
   }
 
   function playTone(success) {
+    if (!success) {
+      playFailSound();
+      return;
+    }
     try {
       const context = getAudioContext();
       const oscillator = context.createOscillator();
@@ -1105,6 +1109,40 @@
       oscillator.connect(gain).connect(context.destination);
       oscillator.start();
       oscillator.stop(context.currentTime + 0.23);
+    } catch (_) { /* Sound is optional. */ }
+  }
+
+  // A soft, cartoon "wah-wah": two notes sliding down. Filtered so it reads as "oops", not harsh.
+  function playFailSound() {
+    try {
+      const context = getAudioContext();
+      const start = context.currentTime;
+      const filter = context.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 1100;
+      filter.connect(context.destination);
+      [[330, 277, 0], [262, 196, 0.24]].forEach(([from, to, offset]) => {
+        const osc = context.createOscillator();
+        const wobble = context.createOscillator();
+        const wobbleDepth = context.createGain();
+        const gain = context.createGain();
+        const t = start + offset;
+        const length = offset ? 0.42 : 0.22;
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(from, t);
+        osc.frequency.exponentialRampToValueAtTime(to, t + length);
+        wobble.frequency.value = 7;
+        wobbleDepth.gain.value = offset ? 6 : 0;
+        wobble.connect(wobbleDepth).connect(osc.frequency);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.11, t + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + length);
+        osc.connect(gain).connect(filter);
+        osc.start(t);
+        wobble.start(t);
+        osc.stop(t + length + 0.02);
+        wobble.stop(t + length + 0.02);
+      });
     } catch (_) { /* Sound is optional. */ }
   }
 
