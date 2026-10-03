@@ -25,7 +25,9 @@
   const candyScore = $("candyScore");
   const feedback = $("feedback");
   const chancesTrack = $("chancesTrack");
-  const chanceTokens = [ $("chance1"), $("chance2"), $("chance3") ];
+  const chanceTokens = [ $("chance1"), $("chance2"), $("chance3"), $("chance4") ];
+  const goalBadge = $("goalBadge");
+  const powerBadge = $("powerBadge");
   const homeGhost = $("homeGhost");
   const pauseGhost = $("pauseGhost");
   const miniBucketBody = $("miniBucketBody");
@@ -51,6 +53,23 @@
   // The visit's one costume hides behind a random correct door among the first few.
   const COSTUME_DOOR_MIN = 5;
   const COSTUME_DOOR_MAX = 10;
+
+  // Costume powers. Each beats plain Boo by roughly 10-15% on average, and each is strongest for
+  // a different kind of run, so the best pick depends on the trail. Keep the numbers in sync
+  // with tools/balance_sim.py and re-run it after any change.
+  const POWERS = {
+    "pumpkin-cap": { name: "Harvest Bonus", text: "Every 5th right word adds 1 bonus candy.", tip: "Good on any trail.", harvestEvery: 5 },
+    "witch-hat": { name: "Slow Spell", text: "The trail speeds up more slowly.", tip: "Best when the trail gets too fast.", ramp: 0.84 },
+    "cat-ears": { name: "Nine Lives", text: "Start with 4 chances instead of 3.", tip: "Best on a new trail.", maxChances: 4 },
+    "crown": { name: "Royal Riches", text: "5 right in a row earns 5 candies, but there is no 3-in-a-row bonus.", tip: "Best on trails you know well.", streakEvery: 5, streakPay: 5 },
+    "pirate-hat": { name: "Treasure Hearts", text: "A heart caught when you have all your chances is worth 3 candies.", tip: "Best when you hardly ever miss.", fullHeartCandy: 3 },
+    "wizard-hat": { name: "Magic Shield", text: "A shield blocks one miss. It comes back after 8 right words.", tip: "Best while you are learning the words.", shieldRecharge: 8 },
+    "top-hat": { name: "Showtime", text: "On your last chance, every right word earns 2 extra candies.", tip: "Best for big comebacks.", lastChanceBonus: 2 },
+    "bat-wings": { name: "Heart Radar", text: "Hearts are much easier to catch.", tip: "Best when you need hearts back.", catchReach: 0.32 }
+  };
+  const BASE_CATCH_REACH = 0.22;
+  // Rounds at or past this count as "the trail got fast" when suggesting a costume.
+  const FAST_ROUND = 20;
 
   // Trick-or-Treat Street visit; lives outside `state` because it starts after the run ends.
   let street = null;
@@ -240,6 +259,7 @@
 
   function showScreen(name) {
     Object.entries(screens).forEach(([key, screen]) => screen.classList.toggle("hidden", key !== name));
+    if (name === "home") updateHomeInfo();
   }
 
   function selectedLevel() {
@@ -270,10 +290,11 @@
 
   function updateChancesHUD(restoredIndex = -1) {
     if (!state) return;
-    const chancesLeft = Math.max(0, Math.min(3, state.chances));
+    const chancesLeft = Math.max(0, Math.min(state.maxChances, state.chances));
     chancesTrack.setAttribute("aria-label", `${chancesLeft} chances left`);
     chanceTokens.forEach((token, index) => {
       if (!token) return;
+      token.classList.toggle("hidden", index >= state.maxChances);
       const isActive = index < chancesLeft;
       token.classList.toggle("active", isActive);
       token.classList.toggle("lost", !isActive);
@@ -288,15 +309,29 @@
 
   function startGame() {
     const level = selectedLevel();
+    const saved = loadSaved();
+    const power = POWERS[saved.wearing] || {};
+    const best = saved.bestByLevel[level.id] || 0;
     state = {
       level,
+      power,
+      goal: Math.max(1, Math.ceil(best * STREET_SCORE_SHARE)),
+      goalReached: false,
       targets: shuffle(level.words),
       round: 0,
       candy: 0,
       displayedCandy: 0,
       streak: 0,
-      chances: 3,
-      maxChances: 3,
+      correctTotal: 0,
+      chances: power.maxChances || 3,
+      maxChances: power.maxChances || 3,
+      chancesLost: 0,
+      shield: Boolean(power.shieldRecharge),
+      shieldCount: 0,
+      powerCandy: 0,
+      shieldSaves: 0,
+      heartsCaught: 0,
+      missRounds: [],
       totalMisses: 0,
       playerX: 0.5,
       rows: [],
@@ -321,6 +356,8 @@
     candyScore.textContent = "0";
     $("bucketCandies").replaceChildren();
     updateChancesHUD();
+    goalBadge.classList.remove("reached");
+    updateRunBadges();
 
     $("dragHint").style.display = "";
     $("pauseOverlay").classList.add("hidden");
@@ -422,6 +459,7 @@
   function collectPickup(pickup) {
     makeSparkBurst(pickup.element);
     playRestoreChime();
+    state.heartsCaught += 1;
 
     if (state.chances < state.maxChances) {
       const restoredIndex = state.chances;
@@ -429,11 +467,45 @@
       updateChancesHUD(restoredIndex);
       showFeedback("+1 chance back!");
     } else {
-      state.candy += 1;
-      state.displayedCandy += 1;
+      const bonus = state.power.fullHeartCandy || 1;
+      state.powerCandy += bonus - 1;
+      state.candy += bonus;
+      state.displayedCandy += bonus;
       candyScore.textContent = String(state.displayedCandy);
-      showFeedback("Heart bonus! +1 candy!");
+      showFeedback(bonus > 1 ? `Treasure heart! +${bonus} candies!` : "Heart bonus! +1 candy!");
     }
+    updateRunBadges();
+  }
+
+  function updateRunBadges() {
+    if (!state) return;
+    if (!state.goalReached && state.candy >= state.goal) {
+      state.goalReached = true;
+      goalBadge.classList.add("reached");
+      playRestoreChime();
+    }
+    goalBadge.textContent = state.goalReached ? "Street unlocked!" : `Goal: ${state.goal}`;
+
+    const p = state.power;
+    let text = p.name || "";
+    let ready = false;
+    if (p.shieldRecharge) {
+      ready = state.shield;
+      text = state.shield ? "Shield ready" : `Shield back in ${p.shieldRecharge - state.shieldCount}`;
+    } else if (p.harvestEvery) {
+      const left = p.harvestEvery - (state.correctTotal % p.harvestEvery);
+      ready = left === 1;
+      text = `Harvest in ${left}`;
+    } else if (p.streakEvery) {
+      ready = state.streak % p.streakEvery === p.streakEvery - 1;
+      text = `Royal streak ${state.streak % p.streakEvery}/${p.streakEvery}`;
+    } else if (p.lastChanceBonus) {
+      ready = state.chances === 1;
+      text = ready ? "Showtime is on!" : "Showtime: last chance";
+    }
+    powerBadge.textContent = text;
+    powerBadge.classList.toggle("ready", ready);
+    powerBadge.classList.toggle("hidden", !text);
   }
 
   function announceTarget(target) {
@@ -470,7 +542,7 @@
     // Tetris-like continual speed ramp: starts comfortable (145 px/s) and gradually
     // but continually accelerates as you survive more words and time, becoming blistering fast!
     const elapsedSeconds = (now - state.startTime) / 1000;
-    const speed = 145 + state.round * 9 + elapsedSeconds * 1.3;
+    const speed = 145 + (state.round * 9 + elapsedSeconds * 1.3) * (state.power.ramp || 1);
 
     state.rows.forEach((row) => {
       row.y += speed * elapsed;
@@ -493,7 +565,7 @@
       pickup.element.style.transform = `translate(-50%, ${pickup.y}px)`;
 
       if (!pickup.resolved && Math.abs(pickup.y - playerCenterY) <= 38) {
-        if (Math.abs(pickup.xNorm - state.playerX) <= 0.22) {
+        if (Math.abs(pickup.xNorm - state.playerX) <= (state.power.catchReach || BASE_CATCH_REACH)) {
           pickup.resolved = true;
           collectPickup(pickup);
         }
@@ -555,8 +627,30 @@
     void player.offsetWidth;
 
     if (correct) {
+      const p = state.power;
       state.streak += 1;
-      const earned = (state.streak > 0 && state.streak % 3 === 0) ? 2 : 1;
+      state.correctTotal += 1;
+      const plainEarned = state.streak % 3 === 0 ? 2 : 1;
+      const streakEvery = p.streakEvery || 3;
+      const onStreak = state.streak % streakEvery === 0;
+      let earned = onStreak ? (p.streakPay || 2) : 1;
+      let message = onStreak
+        ? `${p.streakEvery ? "Royal streak" : "Sweet streak"}! +${earned} candies!`
+        : "Sweet! +1 candy!";
+      if (p.lastChanceBonus && state.chances === 1) {
+        earned += p.lastChanceBonus;
+        message = `Showtime! +${earned} candies!`;
+      }
+      if (p.harvestEvery && state.correctTotal % p.harvestEvery === 0) {
+        earned += 1;
+        message = `Harvest bonus! +${earned} candies!`;
+      }
+      if (p.shieldRecharge && !state.shield && ++state.shieldCount >= p.shieldRecharge) {
+        state.shield = true;
+        state.shieldCount = 0;
+        message = "Magic shield is back!";
+      }
+      state.powerCandy += earned - plainEarned;
       state.candy += earned;
 
       player.innerHTML = candies ? candies.getGhostSVG("happy", 72) : "";
@@ -564,17 +658,26 @@
 
       launchCandy(selectedGate, earned, candyIdx);
       makeSparkBurst(selectedGate);
-      showFeedback(earned === 2 ? "Sweet streak! +2 candies!" : "Sweet! +1 candy!");
+      showFeedback(message);
       playTone(true);
 
       window.setTimeout(() => {
         if (state?.running) player.innerHTML = candies ? candies.getGhostSVG("normal", 72) : "";
       }, 550);
     } else {
-      // Missed gate: dock 1 chance (from 3 total)
-      state.chances -= 1;
       state.totalMisses += 1;
-      state.streak = 0;
+      state.missRounds.push(row.roundIndex);
+      const shielded = state.shield;
+      if (shielded) {
+        // The shield keeps the chance and the streak; the word still comes back for practice.
+        state.shield = false;
+        state.shieldCount = 0;
+        state.shieldSaves += 1;
+      } else {
+        state.chances -= 1;
+        state.chancesLost += 1;
+        state.streak = 0;
+      }
 
       player.innerHTML = candies ? candies.getGhostSVG("wobble", 72) : "";
       player.classList.add("missed");
@@ -582,7 +685,8 @@
       updateChancesHUD();
 
       if (state.chances > 0) {
-        showFeedback(state.chances === 1 ? `Watch out! 1 chance left! (${row.target})` : `Oops! 2 chances left! (${row.target})`);
+        if (shielded) showFeedback(`Shield saved you! (${row.target})`);
+        else showFeedback(state.chances === 1 ? `Watch out! 1 chance left! (${row.target})` : `Oops! ${state.chances} chances left! (${row.target})`);
         // Re-queue the missed word 2-3 rows ahead for practice
         ensureTargets(6);
         const retryAt = Math.max(state.nextSpawnIndex, row.roundIndex + 2);
@@ -601,6 +705,7 @@
     }
 
     state.round += 1;
+    updateRunBadges();
     window.setTimeout(() => player.classList.remove("correct", "missed"), 480);
 
     if (!state.finishAt) {
@@ -780,6 +885,8 @@
     prizeTitle.textContent = "You found a costume!";
     prizeShow.innerHTML = candies.getGhostSVG("happy", 150);
     prizeName.textContent = costume.name;
+    const power = POWERS[costume.id];
+    $("prizePower").textContent = power ? `Power: ${power.name}. ${power.text}` : "";
     speak(`You got ${costume.spoken}!`);
     prizeOverlay.classList.remove("hidden");
   }
@@ -809,6 +916,7 @@
     if (player) player.innerHTML = candies.getGhostSVG("normal", 72);
     if (street) setStreetBoo("normal");
     updateClosetCount();
+    updateHomeInfo();
   }
 
   function launchCandy(gate, amount, baseCandyIdx = 0) {
@@ -1025,7 +1133,20 @@
     const isNewRecord = state.candy > prevBest;
     saved.totalCandy += state.candy;
     saved.bestByLevel[state.level.id] = Math.max(prevBest, state.candy);
+    if (isNewRecord) saved.bestCostumeByLevel[state.level.id] = saved.wearing || null;
+    saved.lastRunByLevel[state.level.id] = {
+      words: state.round,
+      misses: state.missRounds.length,
+      fastMisses: state.missRounds.filter((round) => round >= FAST_ROUND).length
+    };
     localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+
+    const powerLine = powerReport();
+    $("endPowerLine").textContent = powerLine;
+    $("endPowerLine").classList.toggle("hidden", !powerLine);
+    const tip = strategyTip(state.level.id, saved);
+    $("endTipLine").textContent = tip;
+    $("endTipLine").classList.toggle("hidden", !tip);
 
     $("endCandy").textContent = String(state.candy);
 
@@ -1071,11 +1192,89 @@
   }
 
   function loadSaved() {
+    const fresh = () => ({ totalCandy: 0, bestByLevel: {}, bestCostumeByLevel: {}, lastRunByLevel: {}, costumes: [], wearing: null });
     try {
-      return Object.assign({ totalCandy: 0, bestByLevel: {}, costumes: [], wearing: null }, JSON.parse(localStorage.getItem(STORE_KEY)) || {});
+      return Object.assign(fresh(), JSON.parse(localStorage.getItem(STORE_KEY)) || {});
     } catch (_) {
-      return { totalCandy: 0, bestByLevel: {}, costumes: [], wearing: null };
+      return fresh();
     }
+  }
+
+  function costumeName(id) {
+    return candies?.costumes.find((c) => c.id === id)?.name || "Just Boo";
+  }
+
+  // One line on the end screen showing what the worn costume's power did this run.
+  function powerReport() {
+    const p = state.power;
+    if (!p.name) return "";
+    if (p.shieldRecharge) {
+      return state.shieldSaves
+        ? `Magic Shield blocked ${state.shieldSaves} ${state.shieldSaves === 1 ? "miss" : "misses"}!`
+        : "Magic Shield was ready, but you didn't need it!";
+    }
+    if (p.maxChances) {
+      return state.chancesLost >= 3 && state.round > 0
+        ? "Nine Lives gave you an extra chance to keep flying!"
+        : "Nine Lives kept a spare chance ready for you.";
+    }
+    if (p.ramp) {
+      const elapsed = (performance.now() - state.startTime) / 1000;
+      const normal = state.round * 9 + elapsed * 1.3;
+      const slower = Math.round((normal * (1 - p.ramp)) / (145 + normal) * 100);
+      return `Slow Spell made the trail ${slower}% slower by the end!`;
+    }
+    if (p.catchReach) {
+      return `Heart Radar helped you catch ${state.heartsCaught} ${state.heartsCaught === 1 ? "heart" : "hearts"}!`;
+    }
+    if (state.powerCandy > 0) return `${p.name} earned ${state.powerCandy} bonus ${state.powerCandy === 1 ? "candy" : "candies"}!`;
+    if (p.streakEvery) return "Royal Riches pays off on long streaks. Try it on a trail you know well!";
+    if (p.lastChanceBonus) return "Showtime starts on your last chance. Keep going to make a comeback!";
+    return "";
+  }
+
+  // Coaching line: looks at how the last run on this trail went and suggests costumes Max owns.
+  function strategyTip(levelId, saved) {
+    if (!candies || !saved.costumes.length) return "";
+    const last = saved.lastRunByLevel[levelId];
+    let reason;
+    let ideas;
+    if (!last) {
+      reason = "New trail?";
+      ideas = ["cat-ears", "wizard-hat", "bat-wings"];
+    } else if (last.misses <= Math.max(1, Math.floor(last.words * 0.1))) {
+      reason = "You know these words!";
+      ideas = ["crown", "pirate-hat", "pumpkin-cap"];
+    } else if (last.words >= FAST_ROUND && last.fastMisses * 2 >= last.misses) {
+      reason = "The trail got too fast last time.";
+      ideas = ["witch-hat", "bat-wings", "wizard-hat"];
+    } else {
+      reason = "Still learning these words?";
+      ideas = ["wizard-hat", "cat-ears", "top-hat"];
+    }
+    const owned = ideas.filter((id) => saved.costumes.includes(id));
+    if (owned.includes(saved.wearing)) return `${reason} ${costumeName(saved.wearing)} is a great pick.`;
+    if (owned.length) return `${reason} Try ${owned.slice(0, 2).map(costumeName).join(" or ")}.`;
+    if (saved.costumes.includes("pumpkin-cap") && saved.wearing !== "pumpkin-cap") return `${reason} Pumpkin Hat helps on any trail.`;
+    return "";
+  }
+
+  function updateHomeInfo() {
+    const saved = loadSaved();
+    const level = selectedLevel();
+    const best = saved.bestByLevel[level.id] || 0;
+    const trailGoal = $("trailGoal");
+    if (best) {
+      const bestWith = level.id in saved.bestCostumeByLevel ? ` as ${costumeName(saved.bestCostumeByLevel[level.id])}` : "";
+      trailGoal.innerHTML = `Best: <strong>${best}</strong>${bestWith}. Get <strong>${Math.ceil(best * STREET_SCORE_SHARE)}</strong> for Trick-or-Treat Street.`;
+    } else {
+      trailGoal.innerHTML = "Get any candy to visit <strong>Trick-or-Treat Street</strong>!";
+    }
+    const power = POWERS[saved.wearing];
+    $("wearingLine").innerHTML = power
+      ? `Wearing <strong>${costumeName(saved.wearing)}</strong>: ${power.text}`
+      : "";
+    $("trailTip").textContent = strategyTip(level.id, saved);
   }
 
   function makeCandyRain() {
@@ -1142,9 +1341,11 @@
       item.classList.toggle("wearing", (saved.wearing || null) === costume.id);
       item.disabled = !unlocked;
       item.setAttribute("aria-label", unlocked ? `Wear ${costume.name}` : "Costume not found yet");
+      const power = POWERS[costume.id];
       item.innerHTML = `
         <span class="closet-boo">${candies.getGhostSVG("normal", 70, costume.id || "none")}</span>
         <span class="closet-name">${unlocked ? costume.name : "?"}</span>
+        <span class="closet-power-name">${unlocked ? (power ? power.name : "No power") : ""}</span>
       `;
       item.addEventListener("click", () => {
         const latest = loadSaved();
@@ -1156,9 +1357,15 @@
       });
       closetGrid.appendChild(item);
     });
+    const worn = POWERS[saved.wearing];
+    $("closetPower").innerHTML = worn
+      ? `<strong>${costumeName(saved.wearing)}: ${worn.name}</strong><p>${worn.text}</p><p class="power-tip">${worn.tip}</p>`
+      : "<strong>Just Boo</strong><p>No power. Tap a costume to see what it does.</p>";
   }
 
   updateClosetCount();
+  updateHomeInfo();
+  levelSelect.addEventListener("change", updateHomeInfo);
   $("closetButton").addEventListener("click", () => {
     renderCloset();
     closetModal.classList.remove("hidden");

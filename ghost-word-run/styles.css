@@ -1201,6 +1201,86 @@ select {
 .closet-item.locked { opacity: .55; }
 .closet-item.locked .ghost-img { filter: brightness(0) invert(.8); opacity: .45; }
 .closet-boo { width: 70px; height: 80px; }
+.closet-power-name {
+  color: #ffd27a;
+  font-size: 12px;
+  line-height: 1.1;
+}
+.closet-power {
+  min-height: 64px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 178, 77, .12);
+  text-align: left;
+}
+.closet-power strong {
+  display: block;
+  color: #ffd27a;
+  font-family: "Fredoka", sans-serif;
+  font-size: 18px;
+}
+.closet-power p { margin: 3px 0 0; color: #f3eaff; font-size: 15px; line-height: 1.3; }
+.closet-power .power-tip { color: #b9f3d0; }
+
+.prize-name { margin-bottom: 6px; }
+.prize-power {
+  margin: 0 0 18px;
+  color: #f3eaff;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.trail-line {
+  margin: -4px 0 10px;
+  color: #f3eaff;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: left;
+}
+.trail-line:empty { display: none; }
+.wearing-line strong, .trail-line strong { color: #ffd27a; }
+.trail-tip { color: #b9f3d0; }
+
+.run-badges {
+  position: absolute;
+  z-index: 35;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+.run-badge {
+  padding: 4px 11px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(20, 12, 43, .72);
+  border: 1px solid rgba(255,255,255,.18);
+  font-family: "Fredoka", sans-serif;
+  font-size: 15px;
+}
+.goal-badge.reached {
+  color: #351723;
+  background: #ffd27a;
+  animation: goalPop .6s cubic-bezier(.2,.85,.3,1.3);
+}
+.power-badge { color: #ffd27a; }
+.power-badge.ready { border-color: #ffd27a; box-shadow: 0 0 10px rgba(255, 210, 122, .55); }
+@keyframes goalPop {
+  50% { transform: scale(1.25); }
+}
+
+.end-power-line, .end-tip-line {
+  width: min(100%, 420px);
+  margin: -4px 0 10px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+.end-power-line { color: #ffd27a; font-family: "Fredoka", sans-serif; }
+.end-tip-line { color: #b9f3d0; }
 
 @media (max-height: 690px) {
   .home-ghost { width: 58px; height: 63px; margin-top: 0; }

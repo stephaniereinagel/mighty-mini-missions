@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=14" />
+    <link rel="stylesheet" href="styles.css?v=15" />
   </head>
   <body>
     <main id="app">
@@ -26,11 +26,14 @@
         <div class="setup-card">
           <label for="levelSelect">Choose a trail</label>
           <select id="levelSelect"></select>
+          <p id="trailGoal" class="trail-line"></p>
+          <p id="wearingLine" class="trail-line wearing-line"></p>
+          <p id="trailTip" class="trail-line trail-tip"></p>
           <button id="startButton" class="primary-button" type="button">Start flying <span>&rarr;</span></button>
           <button id="closetButton" class="secondary-button closet-button" type="button">Boo's Costumes <span id="closetCount" class="closet-count"></span></button>
           <button id="howButton" class="text-button" type="button">How to play</button>
         </div>
-        <p class="grownup-note">Fly &amp; collect candy &middot; 3 chances &middot; Great runs unlock Trick-or-Treat Street &middot; No ads</p>
+        <p class="grownup-note">Fly &amp; collect candy &middot; Costume powers &middot; Great runs unlock Trick-or-Treat Street &middot; No ads</p>
       </section>
 
       <section id="gameScreen" class="screen game-screen hidden" aria-label="Ghost Word Run game">
@@ -42,6 +45,7 @@
               <span class="chance-token active" id="chance1" title="Chance 1"></span>
               <span class="chance-token active" id="chance2" title="Chance 2"></span>
               <span class="chance-token active" id="chance3" title="Chance 3"></span>
+              <span class="chance-token active hidden" id="chance4" title="Chance 4"></span>
             </div>
           </div>
           <div class="bucket-score" aria-label="Candy collected">
@@ -67,6 +71,10 @@
             <span class="cloud c1"></span><span class="cloud c2"></span>
           </div>
           <div id="path" class="path"></div>
+          <div class="run-badges">
+            <span id="goalBadge" class="run-badge goal-badge"></span>
+            <span id="powerBadge" class="run-badge power-badge hidden"></span>
+          </div>
           <div id="pickups" class="pickups"></div>
           <div id="rows" class="rows"></div>
           <div id="player" class="player ghost" aria-label="Boo the ghost"></div>
@@ -87,6 +95,8 @@
         <p class="total-line"><strong id="endCandy">0</strong> candies collected!</p>
         <p id="endBestLine" class="end-best-line"></p>
         <p id="endMessage" class="end-message"></p>
+        <p id="endPowerLine" class="end-power-line hidden"></p>
+        <p id="endTipLine" class="end-tip-line hidden"></p>
         <div id="streetInvite" class="street-invite hidden">
           <p id="streetInviteText"></p>
           <button id="streetButton" class="primary-button street-go-button" type="button">Go trick-or-treating <span>&rarr;</span></button>
@@ -135,7 +145,7 @@
             <li><span class="step-number">2</span><p>Drag Boo left or right to line up.</p></li>
             <li><span class="step-number">3</span><p>Fly through the matching word to collect the sweet candy!</p></li>
           </ol>
-          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance! Finish a run within 90% of your best and Boo gets to go trick-or-treating: knock on the door whose word rhymes for candy, and find one new costume each visit.</p>
+          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance! Finish a run within 90% of your best and Boo gets to go trick-or-treating: knock on the door whose word rhymes for candy, and find one new costume each visit. Each costume has a special power, and different powers help on different trails, so choose wisely to reach your goal!</p>
           <button id="helpDoneButton" class="primary-button" type="button">Got it!</button>
         </div>
       </div>
@@ -146,6 +156,7 @@
           <h2 id="prizeTitle">You found a costume!</h2>
           <div id="prizeShow" class="prize-show" aria-hidden="true"></div>
           <p id="prizeName" class="prize-name"></p>
+          <p id="prizePower" class="prize-power"></p>
           <button id="prizeButton" class="primary-button" type="button">Keep trick-or-treating <span>&rarr;</span></button>
         </div>
       </div>
@@ -155,7 +166,8 @@
           <button id="closeClosetButton" class="modal-close" type="button" aria-label="Close">&times;</button>
           <h2 id="closetTitle">Boo's Costumes</h2>
           <div id="closetGrid" class="closet-grid"></div>
-          <p class="help-tip">Find new costumes by knocking on doors on Trick-or-Treat Street.</p>
+          <div id="closetPower" class="closet-power" aria-live="polite"></div>
+          <p class="help-tip">Every costume has a power. Pick the one that fits the trail! Find new costumes on Trick-or-Treat Street.</p>
         </div>
       </div>
 
@@ -168,8 +180,8 @@
         </div>
       </div>
     </main>
-    <script src="content.js?v=14"></script>
-    <script src="candies.js?v=14"></script>
-    <script src="app.js?v=14"></script>
+    <script src="content.js?v=15"></script>
+    <script src="candies.js?v=15"></script>
+    <script src="app.js?v=15"></script>
   </body>
 </html>
