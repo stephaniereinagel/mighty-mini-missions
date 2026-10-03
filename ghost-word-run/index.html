@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=16" />
+    <link rel="stylesheet" href="styles.css?v=18" />
   </head>
   <body>
     <main id="app">
@@ -22,6 +22,16 @@
         <p class="eyebrow">A Mighty Mini Game</p>
         <h1>Ghost Word Run</h1>
         <p class="home-copy">Listen for the word. Guide Boo through the matching gate and fill the pumpkin with candy!</p>
+
+        <button id="mapButton" class="map-strip" type="button" aria-label="Open Boo's neighborhood map">
+          <span id="mapStripBucket" class="map-strip-bucket" aria-hidden="true"></span>
+          <span class="map-strip-text">
+            <strong><span id="mapStripCandy">0</span> candies</strong>
+            <span class="map-progress"><span id="mapStripFill" class="map-progress-fill"></span></span>
+            <span id="mapStripNext" class="map-strip-next"></span>
+          </span>
+          <span class="map-strip-go" aria-hidden="true">Map &rarr;</span>
+        </button>
 
         <div class="setup-card">
           <label for="levelSelect">Choose a trail</label>
@@ -95,6 +105,7 @@
         <p class="total-line"><strong id="endCandy">0</strong> candies collected!</p>
         <p id="endBestLine" class="end-best-line"></p>
         <p id="endMessage" class="end-message"></p>
+        <p id="endMapLine" class="end-map-line hidden"></p>
         <p id="endPowerLine" class="end-power-line hidden"></p>
         <p id="endTipLine" class="end-tip-line hidden"></p>
         <div id="streetInvite" class="street-invite hidden">
@@ -161,6 +172,16 @@
         </div>
       </div>
 
+      <div id="mapModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mapTitle">
+        <div class="modal-card map-card">
+          <button id="closeMapButton" class="modal-close" type="button" aria-label="Close">&times;</button>
+          <h2 id="mapTitle">Boo's Neighborhood</h2>
+          <p id="mapSummary" class="map-summary"></p>
+          <div id="mapStats" class="map-stats"></div>
+          <div id="mapRoad" class="map-road"></div>
+        </div>
+      </div>
+
       <div id="closetModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="closetTitle">
         <div class="modal-card closet-card">
           <button id="closeClosetButton" class="modal-close" type="button" aria-label="Close">&times;</button>
@@ -180,8 +201,8 @@
         </div>
       </div>
     </main>
-    <script src="content.js?v=16"></script>
-    <script src="candies.js?v=16"></script>
-    <script src="app.js?v=16"></script>
+    <script src="content.js?v=18"></script>
+    <script src="candies.js?v=18"></script>
+    <script src="app.js?v=18"></script>
   </body>
 </html>

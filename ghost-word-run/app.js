@@ -68,6 +68,17 @@
     "bat-wings": { name: "Heart Radar", text: "Hearts are much easier to catch.", tip: "Best when you need hearts back.", catchReach: 0.32 }
   };
   const BASE_CATCH_REACH = 0.22;
+
+  // Boo's neighborhood map: each house lights up when lifetime candy (runs + street treats)
+  // reaches its number. Early houses come every run or two; later ones take a week of play.
+  const MAP_HOUSES = [
+    [10, "Pumpkin Cottage"], [25, "Bat Barn"], [50, "Moonbeam House"], [80, "Candy Corn Corner"],
+    [120, "Spider Hollow"], [160, "Owl Tower"], [200, "Lollipop Lane"], [250, "Black Cat Inn"],
+    [300, "Cauldron Cabin"], [375, "Gumdrop Garden"], [450, "Lantern Lodge"], [525, "Broomstick Barn"],
+    [600, "Toffee Treehouse"], [700, "Skeleton Shack"], [800, "Caramel Castle"], [900, "Foggy Farmhouse"],
+    [1000, "Witch's Workshop"], [1150, "Mummy Manor"], [1300, "Starlight Steeple"], [1500, "Grand Haunted Mansion"]
+  ].map(([candy, name]) => ({ candy, name }));
+  const housesLit = (totalCandy) => MAP_HOUSES.filter((house) => totalCandy >= house.candy).length;
   // Rounds at or past this count as "the trail got fast" when suggesting a costume.
   const FAST_ROUND = 20;
 
@@ -726,6 +737,8 @@
 
   function enterStreet() {
     const saved = loadSaved();
+    saved.streetVisits += 1;
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved));
     const hasLockedCostume = candies?.costumes.some((c) => !saved.costumes.includes(c.id));
     street = {
       prompt: "",
@@ -855,8 +868,14 @@
 
   function addStreetTreats(amount, fromEl) {
     const saved = loadSaved();
+    const litBefore = housesLit(saved.totalCandy);
     saved.totalCandy += amount;
+    saved.doorsOpened += 1;
     localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+    if (housesLit(saved.totalCandy) > litBefore) {
+      const house = MAP_HOUSES[housesLit(saved.totalCandy) - 1];
+      window.setTimeout(() => showFeedback(`${house.name} lit up on Boo's map!`, streetFeedback), 700);
+    }
     const visit = street;
     for (let i = 0; i < amount; i++) {
       window.setTimeout(() => {
@@ -1169,7 +1188,10 @@
     const saved = loadSaved();
     const prevBest = saved.bestByLevel[state.level.id] || 0;
     const isNewRecord = state.candy > prevBest;
+    const litBefore = housesLit(saved.totalCandy);
     saved.totalCandy += state.candy;
+    saved.wordsRead += state.correctTotal;
+    saved.runs += 1;
     saved.bestByLevel[state.level.id] = Math.max(prevBest, state.candy);
     if (isNewRecord) saved.bestCostumeByLevel[state.level.id] = saved.wearing || null;
     saved.lastRunByLevel[state.level.id] = {
@@ -1178,6 +1200,12 @@
       fastMisses: state.missRounds.filter((round) => round >= FAST_ROUND).length
     };
     localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+
+    const litNow = housesLit(saved.totalCandy);
+    $("endMapLine").textContent = litNow > litBefore
+      ? `New on Boo's map: ${MAP_HOUSES[litNow - 1].name}${litNow - litBefore > 1 ? ` and ${litNow - litBefore - 1} more` : ""}!`
+      : "";
+    $("endMapLine").classList.toggle("hidden", litNow <= litBefore);
 
     const powerLine = powerReport();
     $("endPowerLine").textContent = powerLine;
@@ -1230,7 +1258,10 @@
   }
 
   function loadSaved() {
-    const fresh = () => ({ totalCandy: 0, bestByLevel: {}, bestCostumeByLevel: {}, lastRunByLevel: {}, costumes: [], wearing: null });
+    const fresh = () => ({
+      totalCandy: 0, wordsRead: 0, runs: 0, streetVisits: 0, doorsOpened: 0,
+      bestByLevel: {}, bestCostumeByLevel: {}, lastRunByLevel: {}, costumes: [], wearing: null
+    });
     try {
       return Object.assign(fresh(), JSON.parse(localStorage.getItem(STORE_KEY)) || {});
     } catch (_) {
@@ -1313,6 +1344,63 @@
       ? `Wearing <strong>${costumeName(saved.wearing)}</strong>: ${power.text}`
       : "";
     $("trailTip").textContent = strategyTip(level.id, saved);
+    updateMapStrip(saved);
+  }
+
+  function updateMapStrip(saved) {
+    const total = saved.totalCandy;
+    const lit = housesLit(total);
+    const next = MAP_HOUSES[lit];
+    const prevMark = lit ? MAP_HOUSES[lit - 1].candy : 0;
+    $("mapStripCandy").textContent = total.toLocaleString();
+    $("mapStripFill").style.width = next ? `${Math.round(((total - prevMark) / (next.candy - prevMark)) * 100)}%` : "100%";
+    $("mapStripNext").textContent = next
+      ? `${lit} of ${MAP_HOUSES.length} houses lit. ${next.candy - total} more for ${next.name}!`
+      : `All ${MAP_HOUSES.length} houses lit! Boo is the Candy Champion!`;
+    if (candies && !$("mapStripBucket").firstChild) $("mapStripBucket").innerHTML = candies.getPumpkinBucketSVG(44);
+  }
+
+  function renderMap() {
+    const saved = loadSaved();
+    const lit = housesLit(saved.totalCandy);
+    const next = MAP_HOUSES[lit];
+    $("mapSummary").textContent = next
+      ? `${lit} of ${MAP_HOUSES.length} houses lit. ${next.candy - saved.totalCandy} more candies to light ${next.name}!`
+      : "Every house is lit! Boo is the Candy Champion!";
+
+    const stats = [
+      [saved.totalCandy.toLocaleString(), "candies"],
+      [saved.wordsRead.toLocaleString(), "words read"],
+      [saved.doorsOpened.toLocaleString(), "rhymes"],
+      [`${saved.costumes.length}/${candies ? candies.costumes.length : 8}`, "costumes"]
+    ];
+    $("mapStats").innerHTML = stats.map(([value, label]) => `<div class="map-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
+
+    const art = candies ? candies.houses : [];
+    const road = $("mapRoad");
+    road.replaceChildren();
+    MAP_HOUSES.forEach((house, index) => {
+      const stop = document.createElement("div");
+      const isLit = index < lit;
+      const isNext = index === lit;
+      stop.className = `map-stop ${index % 2 ? "right" : "left"}${isLit ? " lit" : ""}${isNext ? " next" : ""}`;
+      const houseArt = art[index % art.length];
+      stop.innerHTML = `
+        <div class="map-house">${houseArt ? `<img src="${houseArt.src}" alt="" draggable="false" />` : ""}</div>
+        <div class="map-label">
+          <strong>${isLit || isNext ? house.name : "???"}</strong>
+          <span>${isLit ? "Lit up!" : `${house.candy.toLocaleString()} candies`}</span>
+        </div>
+        ${index === Math.max(0, lit - 1) && lit ? `<div class="map-boo">${candies ? candies.getGhostSVG("happy", 46) : ""}</div>` : ""}
+      `;
+      road.appendChild(stop);
+    });
+    if (!lit) {
+      const start = document.createElement("div");
+      start.className = "map-start";
+      start.innerHTML = `${candies ? candies.getGhostSVG("normal", 46) : ""}<span>Boo starts here! Collect candy to light the first house.</span>`;
+      road.prepend(start);
+    }
   }
 
   function makeCandyRain() {
@@ -1404,6 +1492,15 @@
   updateClosetCount();
   updateHomeInfo();
   levelSelect.addEventListener("change", updateHomeInfo);
+  const mapModal = $("mapModal");
+  $("mapButton").addEventListener("click", () => {
+    renderMap();
+    mapModal.classList.remove("hidden");
+    const road = $("mapRoad");
+    const focus = road.querySelector(".map-stop.next") || road.lastElementChild;
+    if (focus) road.scrollTop = focus.offsetTop - road.clientHeight / 2 + focus.offsetHeight / 2;
+  });
+  $("closeMapButton").addEventListener("click", () => mapModal.classList.add("hidden"));
   $("closetButton").addEventListener("click", () => {
     renderCloset();
     closetModal.classList.remove("hidden");
