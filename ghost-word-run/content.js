@@ -61,6 +61,64 @@
     ["which", "witch"]
   ];
 
+  // Trick-or-Treat Street rhyming: words in a family rhyme with each other and with no other family.
+  // Only sight words and short words Max can sound out. Homophones inside a family (no/know) are
+  // never used as prompt and answer together.
+  const RHYME_FAMILIES = [
+    ["cat", "hat", "bat", "sat", "mat", "that"],
+    ["can", "man", "ran", "fan", "pan", "an"],
+    ["big", "pig", "dig", "wig"],
+    ["it", "sit", "hit", "bit"],
+    ["hot", "not", "got", "pot", "dot"],
+    ["fun", "run", "sun", "one"],
+    ["up", "cup", "pup"],
+    ["get", "wet", "pet", "net", "let", "yet"],
+    ["ten", "men", "hen", "then", "when"],
+    ["in", "pin", "win", "fin", "thin"],
+    ["day", "way", "may", "say", "play", "they", "away"],
+    ["he", "me", "we", "be", "see", "tree", "three", "she"],
+    ["go", "no", "so", "snow", "grow", "show", "know"],
+    ["my", "by", "fly", "try", "why", "sky", "high"],
+    ["all", "ball", "call", "tall", "fall", "small"],
+    ["look", "book", "took", "cook"],
+    ["night", "light", "right", "might", "white", "write"],
+    ["down", "town", "brown", "clown"],
+    ["now", "how", "cow"],
+    ["old", "cold", "told", "gold"],
+    ["make", "take", "cake", "lake"],
+    ["came", "name", "same", "game"],
+    ["will", "hill", "still", "fill"],
+    ["thing", "sing", "king", "ring", "bring"],
+    ["and", "hand", "land", "sand", "band"],
+    ["well", "tell", "bell", "yell", "spell"],
+    ["kind", "find", "mind"],
+    ["boy", "toy", "joy"],
+    ["back", "black", "sack", "pack"],
+    ["feet", "eat", "street", "sweet", "meet"],
+    ["out", "about", "shout"],
+    ["hop", "stop", "top", "mop"],
+    ["red", "bed", "said", "head"],
+    ["more", "four", "for", "door", "store"],
+    ["car", "far", "star", "jar"],
+    ["there", "where", "chair", "bear", "their"],
+    ["you", "do", "who", "new", "blue", "zoo", "two"],
+    ["house", "mouse"]
+  ];
+
+  // Families that sound close enough (man/hand, my/kind) to confuse a young listener.
+  // Never shown as the right door and a wrong door on the same knock. Each entry names a word from each family.
+  const NEAR_RHYMES = [
+    ["can", "and"],
+    ["my", "kind", "night"],
+    ["he", "feet"],
+    ["hot", "hop"],
+    ["day", "make", "came"],
+    ["go", "old"],
+    ["now", "down", "out", "house"],
+    ["in", "thing"],
+    ["it", "big"]
+  ];
+
   const sightWordLevels = [
     {
       id: "moonlit-meadow",
@@ -122,6 +180,8 @@
 
   window.GHOST_RUN_CONTENT = {
     soundAlikeGroups: SOUND_ALIKE_GROUPS,
+    rhymeFamilies: RHYME_FAMILIES,
+    nearRhymes: NEAR_RHYMES,
     categories: [
       {
         id: "sight-words",

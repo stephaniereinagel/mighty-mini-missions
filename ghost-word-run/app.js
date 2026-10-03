@@ -49,11 +49,11 @@
   // A run earns Trick-or-Treat Street when it scores at least this share of the trail's best.
   const STREET_SCORE_SHARE = 0.9;
   // The visit's one costume hides behind a random correct door among the first few.
-  const COSTUME_DOOR_RANGE = 3;
+  const COSTUME_DOOR_MIN = 5;
+  const COSTUME_DOOR_MAX = 10;
 
   // Trick-or-Treat Street visit; lives outside `state` because it starts after the run ends.
   let street = null;
-  let lastRun = null;
 
   let state = null;
   let frameId = 0;
@@ -306,8 +306,7 @@
       startTime: performance.now(),
       paused: false,
       running: true,
-      finishAt: 0,
-      missedWords: []
+      finishAt: 0
     };
 
     ensureTargets(8);
@@ -574,7 +573,6 @@
     } else {
       // Missed gate: dock 1 chance (from 3 total)
       state.chances -= 1;
-      if (!state.missedWords.includes(row.target)) state.missedWords.push(row.target);
       state.totalMisses += 1;
       state.streak = 0;
 
@@ -615,21 +613,26 @@
   }
 
   // Trick-or-Treat Street: a reward visit after a run that scores within 90% of the trail's best.
-  // Words missed in that run come up first. Max can knock as long as he likes; wrong doors cost
-  // nothing, and one correct door per visit hides a new costume.
-  function enterStreet(run) {
+  // It practices rhyming: Max hears a word and knocks on the door whose word rhymes with it.
+  // He can knock as long as he likes; wrong doors cost nothing, and one correct door per visit
+  // hides a new costume.
+  const rhymeFamilies = content.rhymeFamilies || [];
+  const pick = (items) => items[Math.floor(Math.random() * items.length)];
+
+  function enterStreet() {
     const saved = loadSaved();
     const hasLockedCostume = candies?.costumes.some((c) => !saved.costumes.includes(c.id));
     street = {
-      level: run.level,
-      missed: run.missedWords.slice(),
-      seen: run.seenWords.length ? run.seenWords : run.level.words,
+      prompt: "",
       target: "",
+      familyIndex: -1,
       busy: false,
       firstTry: true,
       knocks: 0,
       treats: 0,
-      costumeAt: hasLockedCostume ? 1 + Math.floor(Math.random() * COSTUME_DOOR_RANGE) : 0,
+      costumeAt: hasLockedCostume
+        ? COSTUME_DOOR_MIN + Math.floor(Math.random() * (COSTUME_DOOR_MAX - COSTUME_DOOR_MIN + 1))
+        : 0,
       costumeFound: false
     };
     streetTreats.textContent = "0";
@@ -643,21 +646,30 @@
 
   function updateStreetHint() {
     streetHint.textContent = street.costumeAt && !street.costumeFound
-      ? "A costume is hiding behind one of these doors!"
-      : "Knock for more treats, or tap All done.";
+      ? "A costume is hiding behind a rhyming door!"
+      : "Find more rhymes for treats, or tap All done.";
+  }
+
+  function speakRhymePrompt() {
+    if (street?.prompt) speak(`What rhymes with ${SPOKEN_AS[street.prompt] || street.prompt}?`);
   }
 
   function nextKnock() {
-    const pool = street.missed.length ? street.missed : street.seen;
-    let target = pool[Math.floor(Math.random() * pool.length)];
-    for (let tries = 0; target === street.target && pool.length > 1 && tries < 8; tries++) {
-      target = pool[Math.floor(Math.random() * pool.length)];
-    }
-    Object.assign(street, { target, busy: false, firstTry: true });
+    let familyIndex = Math.floor(Math.random() * rhymeFamilies.length);
+    if (familyIndex === street.familyIndex) familyIndex = (familyIndex + 1) % rhymeFamilies.length;
+    const family = rhymeFamilies[familyIndex];
+    const prompt = pick(family);
+    const target = pick(family.filter((word) => word !== prompt && !soundsAlike(word, prompt)));
+
+    const tooClose = (other) => (content.nearRhymes || []).some((group) =>
+      group.some((word) => family.includes(word)) && group.some((word) => other.includes(word)));
+    const otherFamilies = shuffle(rhymeFamilies.filter((other, index) => index !== familyIndex && !tooClose(other))).slice(0, 2);
+    const doors = shuffle([target, ...otherFamilies.map(pick)]);
+    Object.assign(street, { prompt, target, familyIndex, busy: false, firstTry: true });
 
     const houseArt = candies ? candies.houses : [];
     streetHouses.replaceChildren();
-    choicesFor(target, 3, street.level).forEach((word, index) => {
+    doors.forEach((word, index) => {
       const art = houseArt[index % houseArt.length];
       const house = document.createElement("button");
       house.type = "button";
@@ -673,8 +685,8 @@
       streetHouses.appendChild(house);
     });
 
-    streetWord.textContent = target;
-    speak(target);
+    streetWord.textContent = prompt;
+    speakRhymePrompt();
   }
 
   function moveStreetBoo(house) {
@@ -704,14 +716,14 @@
         if (street === visit) setStreetBoo("normal");
       }, 600);
       window.setTimeout(() => {
-        if (street === visit && !visit.busy) speak(visit.target);
+        if (street === visit && !visit.busy) speakRhymePrompt();
       }, 500);
       return;
     }
 
     visit.busy = true;
     visit.knocks += 1;
-    visit.missed = visit.missed.filter((word) => word !== visit.target);
+    speak(`${SPOKEN_AS[visit.prompt] || visit.prompt}, ${SPOKEN_AS[visit.target] || visit.target}!`);
     house.classList.add("opened");
     makeSparkBurst(house);
     playRestoreChime();
@@ -722,7 +734,7 @@
       showFeedback("A costume!", streetFeedback);
       window.setTimeout(() => {
         if (street === visit) giveCostume();
-      }, 900);
+      }, 1500);
       return;
     }
 
@@ -1037,11 +1049,6 @@
     }
 
     const earnedStreet = state.candy > 0 && state.candy >= prevBest * STREET_SCORE_SHARE;
-    lastRun = {
-      level: state.level,
-      missedWords: state.missedWords.slice(),
-      seenWords: [...new Set(state.targets.slice(0, state.round))]
-    };
     $("streetInvite").classList.toggle("hidden", !earnedStreet);
     $("streetInviteText").textContent = isNewRecord
       ? "A new best! Boo earned a trip to Trick-or-Treat Street!"
@@ -1159,10 +1166,10 @@
   $("closeClosetButton").addEventListener("click", () => closetModal.classList.add("hidden"));
   $("prizeButton").addEventListener("click", closePrize);
   $("streetButton").addEventListener("click", () => {
-    if (lastRun) enterStreet(lastRun);
+    enterStreet();
   });
   $("streetHearButton").addEventListener("click", () => {
-    if (street?.target) speak(street.target);
+    speakRhymePrompt();
   });
   $("streetClosetButton").addEventListener("click", () => {
     renderCloset();
