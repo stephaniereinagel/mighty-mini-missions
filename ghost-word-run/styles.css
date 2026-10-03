@@ -214,6 +214,34 @@ select {
   user-select: none;
 }
 
+/* Boo plus costume layers share one box shaped exactly like the pose image,
+   so costume positions (in %) line up with his head. */
+.player, .home-ghost, .pause-ghost, .street-boo, .prize-show, .closet-boo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.boo-dressed {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.boo-dressed .ghost-img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+.boo-costume {
+  position: absolute;
+  z-index: 2;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+.boo-costume.behind { z-index: 0; }
+
 .home-ghost {
   position: relative;
   z-index: 3;
@@ -516,8 +544,9 @@ select {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  animation: ghostBob 2s ease-in-out infinite;
 }
+
+.player .boo-dressed { animation: ghostBob 2s ease-in-out infinite; }
 
 @keyframes ghostBob {
   0%, 100% { transform: translateY(0); }
@@ -963,6 +992,198 @@ select {
     transform: translateY(110vh) rotate(540deg);
   }
 }
+
+/* ---------- Trick-or-Treat Street ---------- */
+.street-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 108%, rgba(255, 160, 70, .28), transparent 45%),
+    linear-gradient(180deg, #2b1c58 0%, #3d2a72 55%, #24183f 100%);
+  animation: streetIn .5s ease-out;
+}
+@keyframes streetIn { from { opacity: 0; transform: scale(1.04); } }
+
+.street-moon {
+  position: absolute;
+  top: 6%;
+  right: 9%;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ffeeb0;
+  box-shadow: 0 0 40px rgba(255, 236, 160, .55);
+}
+
+.street-title {
+  position: relative;
+  z-index: 2;
+  margin: 18px 0 0;
+  color: #ffd27a;
+  font-family: "Fredoka", sans-serif;
+  font-size: clamp(24px, 6vw, 34px);
+  text-align: center;
+  text-shadow: 0 3px 0 rgba(0,0,0,.3);
+}
+
+.street-houses {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 24%;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3%;
+}
+
+.street-house {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 220px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform .15s, filter .25s;
+  filter: drop-shadow(0 10px 12px rgba(0,0,0,.35));
+  -webkit-tap-highlight-color: transparent;
+}
+.street-house:active { transform: scale(.96); }
+.street-house .house-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.door-word {
+  position: absolute;
+  min-width: 70%;
+  padding: 5px 8px 6px;
+  border: 3px solid #6b3f1f;
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fff4d6;
+  box-shadow: 0 4px 0 rgba(60, 30, 10, .45);
+  font-family: "Fredoka", sans-serif;
+  font-size: clamp(19px, 5.2vw, 32px);
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.street-house.opened {
+  filter: drop-shadow(0 0 22px rgba(255, 214, 110, .95)) brightness(1.12);
+  animation: houseCheer .6s cubic-bezier(.18, .89, .32, 1.28);
+}
+.street-house.opened .door-word {
+  border-color: #23905f;
+  background: #c9f7df;
+}
+@keyframes houseCheer {
+  40% { transform: translateY(-14px) scale(1.06); }
+}
+
+.street-house.rattle { animation: houseRattle .45s ease; }
+.street-house.rattle .door-word { animation: wrongFlash .45s ease; }
+@keyframes houseRattle {
+  20% { transform: rotate(-4deg); }
+  40% { transform: rotate(4deg); }
+  60% { transform: rotate(-3deg); }
+  80% { transform: rotate(2deg); }
+}
+@keyframes wrongFlash {
+  30% { background: #ffd0d0; border-color: #c04848; }
+}
+
+.street-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 25%;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, #5b4a7e 0, #5b4a7e 14px, #463768 14px, #2d2346 100%);
+}
+
+.street-boo {
+  position: absolute;
+  z-index: 3;
+  bottom: 5%;
+  left: 50%;
+  width: 80px;
+  height: 92px;
+  transform: translateX(-50%);
+  transition: left .45s cubic-bezier(.3, .8, .4, 1);
+  pointer-events: none;
+}
+.street-boo .boo-dressed { animation: ghostBob 2s ease-in-out infinite; }
+
+/* ---------- Prize card ---------- */
+.prize-card .eyebrow { margin: 0 0 4px; }
+.prize-card h2 { margin-bottom: 8px; }
+.prize-show {
+  width: 150px;
+  height: 170px;
+  margin: 48px auto 0;
+  animation: prizePop .7s cubic-bezier(.18, .89, .32, 1.28);
+}
+.prize-show .big-bucket-img { width: 150px; height: auto; }
+.prize-name {
+  margin: 6px 0 18px;
+  color: #ffd27a;
+  font-family: "Fredoka", sans-serif;
+  font-size: 28px;
+}
+@keyframes prizePop {
+  from { transform: scale(.3) rotate(-12deg); opacity: 0; }
+}
+
+/* ---------- Boo's closet ---------- */
+.closet-button { position: relative; }
+.closet-count {
+  margin-left: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: #351723;
+  background: #ffd27a;
+  font-size: 15px;
+}
+.closet-card { width: min(100%, 520px); max-height: 90vh; overflow-y: auto; }
+.closet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.closet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 30px 4px 8px;
+  border: 2px solid rgba(255,255,255,.15);
+  border-radius: 16px;
+  color: #fff;
+  background: rgba(255,255,255,.06);
+  font-family: "Fredoka", sans-serif;
+  font-size: 14px;
+}
+.closet-item.wearing {
+  border-color: #ffb24d;
+  background: rgba(255, 178, 77, .18);
+}
+.closet-item.locked { opacity: .55; }
+.closet-item.locked .ghost-img { opacity: .35; }
+.closet-item.locked .boo-costume { filter: brightness(0) invert(.8); opacity: .5; }
+.closet-boo { width: 70px; height: 80px; }
 
 @media (max-height: 690px) {
   .home-ghost { width: 58px; height: 63px; margin-top: 0; }

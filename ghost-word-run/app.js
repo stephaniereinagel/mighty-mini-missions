@@ -31,6 +31,19 @@
   const bigBucketBack = $("bigBucketBack");
   const bigBucketFront = $("bigBucketFront");
   const musicButton = $("musicButton");
+  const promptLabel = $("promptLabel");
+  const streetScene = $("streetScene");
+  const streetHouses = $("streetHouses");
+  const streetBoo = $("streetBoo");
+  const prizeOverlay = $("prizeOverlay");
+  const prizeTitle = $("prizeTitle");
+  const prizeShow = $("prizeShow");
+  const prizeName = $("prizeName");
+  const closetModal = $("closetModal");
+  const closetGrid = $("closetGrid");
+
+  const STREET_EVERY = 10;
+  const STREET_KNOCKS = 2;
 
   let state = null;
   let frameId = 0;
@@ -190,6 +203,7 @@
 
   // Initialize visual SVGs for cute ghost and jack-o'-lantern buckets
   if (candies) {
+    candies.setCostume(loadSaved().wearing);
     if (homeGhost) homeGhost.innerHTML = candies.getGhostSVG("normal", 84);
     if (pauseGhost) pauseGhost.innerHTML = candies.getGhostSVG("normal", 78);
     if (player) player.innerHTML = candies.getGhostSVG("normal", 72);
@@ -282,7 +296,13 @@
       startTime: performance.now(),
       paused: false,
       running: true,
-      finishAt: 0
+      finishAt: 0,
+      phase: "trail",
+      streetPendingFor: 0,
+      streetReadyAt: 0,
+      lastStreetAt: 0,
+      street: null,
+      missedWords: []
     };
 
     ensureTargets(8);
@@ -300,6 +320,9 @@
 
     $("dragHint").style.display = "";
     $("pauseOverlay").classList.add("hidden");
+    streetScene.classList.add("hidden");
+    prizeOverlay.classList.add("hidden");
+    promptLabel.textContent = "Fly through";
     showScreen("game");
 
     music.start();
@@ -403,12 +426,12 @@
       const restoredIndex = state.chances;
       state.chances = Math.min(state.maxChances, state.chances + 1);
       updateChancesHUD(restoredIndex);
-      showFeedback("+1 Chance Restored! ??");
+      showFeedback("+1 chance back!");
     } else {
       state.candy += 1;
       state.displayedCandy += 1;
       candyScore.textContent = String(state.displayedCandy);
-      showFeedback("Heart Bonus! +1 Candy! ??");
+      showFeedback("Heart bonus! +1 candy!");
     }
   }
 
@@ -430,7 +453,9 @@
 
   function step(now) {
     if (!state?.running) return;
-    if (state.paused) {
+    if (state.paused || state.phase === "street") {
+      // Frozen time must not count toward the speed ramp.
+      state.startTime += now - lastFrame;
       lastFrame = now;
       frameId = requestAnimationFrame(tick);
       return;
@@ -484,15 +509,26 @@
     });
 
     // Spawn new rows continuously as long as run is active
-    if (!state.finishAt) {
+    if (!state.finishAt && !state.streetPendingFor) {
       const newestRow = state.rows[state.rows.length - 1];
       // Adaptive row spacing gives human reaction time even as speed ramps continually
       const reactionTime = Math.max(1.35, 2.35 - Math.min(state.round, 30) * 0.025);
       // Spacing must stay below the visible trail height or rows get cleaned up before the next spawns
       const rowSpacing = Math.min(worldHeight * 0.9, Math.max(worldHeight * 0.6, speed * reactionTime));
       if (!newestRow || newestRow.y >= rowSpacing) {
-        spawnRow(state.nextSpawnIndex);
+        const index = state.nextSpawnIndex;
+        if (index > 0 && index % STREET_EVERY === 0 && state.lastStreetAt !== index) {
+          state.streetPendingFor = index;
+        } else {
+          spawnRow(index);
+        }
       }
+    }
+
+    // Once the last gate before a street visit has been flown, head to Trick-or-Treat Street
+    if (state.streetPendingFor && !state.finishAt && state.rows.every((row) => row.resolved)) {
+      if (!state.streetReadyAt) state.streetReadyAt = now + 900;
+      if (now >= state.streetReadyAt) enterStreet();
     }
 
     // Clean up passed rows
@@ -547,6 +583,7 @@
     } else {
       // Missed gate: dock 1 chance (from 3 total)
       state.chances -= 1;
+      if (!state.missedWords.includes(row.target)) state.missedWords.push(row.target);
       state.totalMisses += 1;
       state.streak = 0;
 
@@ -584,6 +621,166 @@
         nextRow.announced = true;
       }
     }
+  }
+
+  // Trick-or-Treat Street: every STREET_EVERY words the trail pauses and Boo knocks on doors.
+  // Words missed earlier in the run come back here first. Wrong doors cost nothing.
+  function enterStreet() {
+    state.phase = "street";
+    state.lastStreetAt = state.streetPendingFor;
+    state.streetReadyAt = 0;
+    state.street = { knock: 0, target: "", busy: false, firstTry: true };
+    rows.replaceChildren();
+    state.rows = [];
+    pickupsWrap?.replaceChildren();
+    state.pickups = [];
+
+    streetBoo.innerHTML = candies ? candies.getGhostSVG("normal", 80) : "";
+    streetBoo.style.left = "50%";
+    streetScene.classList.remove("hidden");
+    promptLabel.textContent = "Knock on";
+    nextKnock();
+  }
+
+  function nextKnock() {
+    const street = state.street;
+    const seen = state.targets.slice(0, state.round);
+    const pool = state.missedWords.length ? state.missedWords : seen;
+    let target = pool[Math.floor(Math.random() * pool.length)];
+    for (let tries = 0; target === street.target && pool.length > 1 && tries < 8; tries++) {
+      target = pool[Math.floor(Math.random() * pool.length)];
+    }
+    Object.assign(street, { target, busy: false, firstTry: true });
+
+    const houseArt = candies ? candies.houses : [];
+    streetHouses.replaceChildren();
+    choicesFor(target, 3, state.level).forEach((word, index) => {
+      const art = houseArt[index % houseArt.length];
+      const house = document.createElement("button");
+      house.type = "button";
+      house.className = "street-house";
+      house.dataset.word = word;
+      house.setAttribute("aria-label", `Door that says ${word}`);
+      house.style.aspectRatio = `1 / ${art.ratio}`;
+      house.innerHTML = `
+        <img class="house-img" src="${art.src}" alt="" draggable="false" />
+        <span class="door-word" style="left:${art.sign[0]}%;top:${art.sign[1]}%">${word}</span>
+      `;
+      house.addEventListener("click", () => knockOn(house));
+      streetHouses.appendChild(house);
+    });
+
+    targetWord.textContent = target;
+    promptCard.setAttribute("aria-label", `Knock on the door that says ${target}`);
+    speak(target);
+  }
+
+  function moveStreetBoo(house) {
+    const scene = streetScene.getBoundingClientRect();
+    const rect = house.getBoundingClientRect();
+    streetBoo.style.left = `${((rect.left + rect.width / 2 - scene.left) / scene.width) * 100}%`;
+  }
+
+  function knockOn(house) {
+    const street = state?.street;
+    if (!street || street.busy || state.paused) return;
+    moveStreetBoo(house);
+
+    if (house.dataset.word !== street.target) {
+      street.firstTry = false;
+      house.classList.remove("rattle");
+      void house.offsetWidth;
+      house.classList.add("rattle");
+      playTone(false);
+      showFeedback("Not this door!");
+      streetBoo.innerHTML = candies ? candies.getGhostSVG("wobble", 80) : "";
+      window.setTimeout(() => {
+        if (state?.street === street) streetBoo.innerHTML = candies ? candies.getGhostSVG("normal", 80) : "";
+      }, 600);
+      window.setTimeout(() => {
+        if (state?.street === street && !street.busy) speak(street.target);
+      }, 500);
+      return;
+    }
+
+    street.busy = true;
+    street.knock += 1;
+    state.missedWords = state.missedWords.filter((word) => word !== street.target);
+    house.classList.add("opened");
+    makeSparkBurst(house);
+    playRestoreChime();
+    streetBoo.innerHTML = candies ? candies.getGhostSVG("happy", 80) : "";
+
+    if (street.knock < STREET_KNOCKS) {
+      const treat = street.firstTry ? 3 : 2;
+      state.candy += treat;
+      launchCandy(house, treat, street.knock * 2);
+      showFeedback(`Treat! +${treat} candies!`);
+      window.setTimeout(() => {
+        if (state?.street !== street) return;
+        streetBoo.innerHTML = candies ? candies.getGhostSVG("normal", 80) : "";
+        nextKnock();
+      }, 1600);
+    } else {
+      showFeedback("Trick or treat!");
+      window.setTimeout(() => {
+        if (state?.street === street) givePrize();
+      }, 1000);
+    }
+  }
+
+  function givePrize() {
+    const saved = loadSaved();
+    const costume = candies?.costumes.find((c) => !saved.costumes.includes(c.id));
+    if (costume) {
+      saved.costumes.push(costume.id);
+      saved.wearing = costume.id;
+      localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+      candies.setCostume(costume.id);
+      refreshBooArt();
+      prizeTitle.textContent = "You found a costume!";
+      prizeShow.innerHTML = candies.getGhostSVG("happy", 150);
+      prizeName.textContent = costume.name;
+      speak(`You got ${costume.spoken}!`);
+    } else {
+      const treat = 5;
+      state.candy += treat;
+      state.displayedCandy += treat;
+      candyScore.textContent = String(state.displayedCandy);
+      prizeTitle.textContent = "A giant candy treat!";
+      prizeShow.innerHTML = candies ? candies.getPumpkinBucketOverflowSVG(150) : "";
+      prizeName.textContent = `+${treat} candies`;
+      speak("A giant candy treat!");
+    }
+    prizeOverlay.classList.remove("hidden");
+  }
+
+  function exitStreet() {
+    prizeOverlay.classList.add("hidden");
+    if (!state?.running || state.phase !== "street") return;
+    streetScene.classList.add("hidden");
+    streetHouses.replaceChildren();
+    promptLabel.textContent = "Fly through";
+    state.street = null;
+    state.phase = "trail";
+    state.streetPendingFor = 0;
+    if (candies) player.innerHTML = candies.getGhostSVG("normal", 72);
+
+    spawnRow(state.nextSpawnIndex);
+    const row = state.rows[state.rows.length - 1];
+    row.y = 95;
+    row.element.style.transform = "translateY(95px)";
+    announceTarget(row.target);
+    row.announced = true;
+    lastFrame = performance.now();
+  }
+
+  function refreshBooArt() {
+    if (!candies) return;
+    if (homeGhost) homeGhost.innerHTML = candies.getGhostSVG("normal", 84);
+    if (pauseGhost) pauseGhost.innerHTML = candies.getGhostSVG("normal", 78);
+    if (player) player.innerHTML = candies.getGhostSVG("normal", 72);
+    updateClosetCount();
   }
 
   function launchCandy(gate, amount, baseCandyIdx = 0) {
@@ -670,7 +867,7 @@
   }
 
   function setPlayerFromClientX(clientX) {
-    if (!state?.running || state.paused) return;
+    if (!state?.running || state.paused || state.phase === "street") return;
     const rect = gameWorld.getBoundingClientRect();
     const edge = 38;
     const x = Math.max(edge, Math.min(rect.width - edge, clientX - rect.left));
@@ -689,6 +886,8 @@
   }
 
   gameWorld.addEventListener("pointerdown", (event) => {
+    // Pointer capture would swallow taps on the street's doors.
+    if (state?.phase === "street") return;
     pointerActive = true;
     lastClientX = event.clientX;
     gameWorld.setPointerCapture?.(event.pointerId);
@@ -709,7 +908,7 @@
   });
 
   window.addEventListener("keydown", (event) => {
-    if (!state?.running || state.paused) return;
+    if (!state?.running || state.paused || state.phase === "street") return;
     const step = 0.12;
     if (event.key === "ArrowLeft") {
       state.playerX = Math.max(0.06, state.playerX - step);
@@ -803,7 +1002,7 @@
     const endBestLine = $("endBestLine");
     if (endBestLine) {
       if (isNewRecord && state.candy > 0) {
-        endBestLine.textContent = `? New Record! Beat previous best of ${prevBest}!`;
+        endBestLine.textContent = `New record! Beat previous best of ${prevBest}!`;
       } else {
         endBestLine.textContent = `Trail Record: ${saved.bestByLevel[state.level.id]} candies`;
       }
@@ -835,9 +1034,9 @@
 
   function loadSaved() {
     try {
-      return Object.assign({ totalCandy: 0, bestByLevel: {} }, JSON.parse(localStorage.getItem(STORE_KEY)) || {});
+      return Object.assign({ totalCandy: 0, bestByLevel: {}, costumes: [], wearing: null }, JSON.parse(localStorage.getItem(STORE_KEY)) || {});
     } catch (_) {
-      return { totalCandy: 0, bestByLevel: {} };
+      return { totalCandy: 0, bestByLevel: {}, costumes: [], wearing: null };
     }
   }
 
@@ -865,6 +1064,9 @@
     rows.replaceChildren();
     if (pickupsWrap) pickupsWrap.replaceChildren();
     $("pauseOverlay").classList.add("hidden");
+    streetScene.classList.add("hidden");
+    prizeOverlay.classList.add("hidden");
+    streetHouses.replaceChildren();
     showScreen("home");
   }
 
@@ -878,10 +1080,60 @@
       music.pause();
     } else {
       music.resume();
-      const nextRow = state.rows.find((row) => !row.resolved);
-      if (nextRow) speak(nextRow.target);
+      speakCurrentWord();
     }
   }
+
+  function speakCurrentWord() {
+    if (state?.phase === "street") {
+      if (state.street?.target) speak(state.street.target);
+      return;
+    }
+    const nextRow = state?.rows.find((row) => !row.resolved);
+    if (nextRow) speak(nextRow.target);
+  }
+
+  function updateClosetCount() {
+    const count = $("closetCount");
+    if (!count || !candies) return;
+    count.textContent = `${loadSaved().costumes.length}/${candies.costumes.length}`;
+  }
+
+  function renderCloset() {
+    const saved = loadSaved();
+    closetGrid.replaceChildren();
+    [{ id: null, name: "Just Boo" }, ...candies.costumes].forEach((costume) => {
+      const unlocked = !costume.id || saved.costumes.includes(costume.id);
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "closet-item";
+      item.classList.toggle("locked", !unlocked);
+      item.classList.toggle("wearing", (saved.wearing || null) === costume.id);
+      item.disabled = !unlocked;
+      item.setAttribute("aria-label", unlocked ? `Wear ${costume.name}` : "Costume not found yet");
+      item.innerHTML = `
+        <span class="closet-boo">${candies.getGhostSVG("normal", 70, costume.id || "none")}</span>
+        <span class="closet-name">${unlocked ? costume.name : "?"}</span>
+      `;
+      item.addEventListener("click", () => {
+        const latest = loadSaved();
+        latest.wearing = costume.id;
+        localStorage.setItem(STORE_KEY, JSON.stringify(latest));
+        candies.setCostume(costume.id);
+        refreshBooArt();
+        renderCloset();
+      });
+      closetGrid.appendChild(item);
+    });
+  }
+
+  updateClosetCount();
+  $("closetButton").addEventListener("click", () => {
+    renderCloset();
+    closetModal.classList.remove("hidden");
+  });
+  $("closeClosetButton").addEventListener("click", () => closetModal.classList.add("hidden"));
+  $("prizeButton").addEventListener("click", exitStreet);
 
   $("startButton").addEventListener("click", startGame);
   $("againButton").addEventListener("click", startGame);
@@ -891,10 +1143,7 @@
   $("pauseButton").addEventListener("click", () => togglePause(true));
   $("resumeButton").addEventListener("click", () => togglePause(false));
   if (musicButton) musicButton.addEventListener("click", toggleMusic);
-  $("hearButton").addEventListener("click", () => {
-    const nextRow = state?.rows.find((row) => !row.resolved);
-    if (nextRow) speak(nextRow.target);
-  });
+  $("hearButton").addEventListener("click", speakCurrentWord);
 
   const helpModal = $("helpModal");
   $("howButton").addEventListener("click", () => helpModal.classList.remove("hidden"));

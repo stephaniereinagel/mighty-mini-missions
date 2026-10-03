@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=10" />
   </head>
   <body>
     <main id="app">
@@ -27,9 +27,10 @@
           <label for="levelSelect">Choose a trail</label>
           <select id="levelSelect"></select>
           <button id="startButton" class="primary-button" type="button">Start flying <span>&rarr;</span></button>
+          <button id="closetButton" class="secondary-button closet-button" type="button">Boo's Costumes <span id="closetCount" class="closet-count"></span></button>
           <button id="howButton" class="text-button" type="button">How to play</button>
         </div>
-        <p class="grownup-note">Fly &amp; collect candy &middot; 3 chances &middot; Catch heart targets to restore chances &middot; No ads</p>
+        <p class="grownup-note">Fly &amp; collect candy &middot; 3 chances &middot; Trick-or-treat every 10 words &middot; No ads</p>
       </section>
 
       <section id="gameScreen" class="screen game-screen hidden" aria-label="Ghost Word Run game">
@@ -50,12 +51,12 @@
             </div>
             <strong id="candyScore">0</strong>
           </div>
-          <button id="musicButton" class="round-button music-button" type="button" aria-label="Toggle background music">??</button>
+          <button id="musicButton" class="round-button music-button" type="button" aria-label="Toggle background music"></button>
           <button id="pauseButton" class="round-button" type="button" aria-label="Pause game">II</button>
         </header>
 
         <div id="promptCard" class="prompt-card">
-          <span id="promptLabel">Fly through</span>
+          <span id="promptLabel" class="prompt-label">Fly through</span>
           <strong id="targetWord">the</strong>
           <button id="hearButton" class="hear-icon" type="button" aria-label="Hear the word again"><span></span></button>
         </div>
@@ -69,6 +70,13 @@
           <div id="pickups" class="pickups"></div>
           <div id="rows" class="rows"></div>
           <div id="player" class="player ghost" aria-label="Boo the ghost"></div>
+          <div id="streetScene" class="street-scene hidden" aria-label="Trick-or-Treat Street">
+            <div class="street-moon" aria-hidden="true"></div>
+            <p class="street-title">Trick-or-Treat Street!</p>
+            <div id="streetHouses" class="street-houses"></div>
+            <div class="street-ground" aria-hidden="true"></div>
+            <div id="streetBoo" class="street-boo" aria-hidden="true"></div>
+          </div>
           <div id="feedback" class="feedback" aria-live="polite"></div>
           <div class="drag-hint" id="dragHint">Drag Boo side to side</div>
         </div>
@@ -99,8 +107,27 @@
             <li><span class="step-number">2</span><p>Drag Boo left or right to line up.</p></li>
             <li><span class="step-number">3</span><p>Fly through the matching word to collect the sweet candy!</p></li>
           </ol>
-          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance!</p>
+          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance! Every 10 words, Boo visits Trick-or-Treat Street: knock on the door with the word to win candy and costumes.</p>
           <button id="helpDoneButton" class="primary-button" type="button">Got it!</button>
+        </div>
+      </div>
+
+      <div id="prizeOverlay" class="modal prize-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prizeTitle">
+        <div class="modal-card prize-card">
+          <p class="eyebrow">Trick or treat!</p>
+          <h2 id="prizeTitle">You found a costume!</h2>
+          <div id="prizeShow" class="prize-show" aria-hidden="true"></div>
+          <p id="prizeName" class="prize-name"></p>
+          <button id="prizeButton" class="primary-button" type="button">Back to the trail <span>&rarr;</span></button>
+        </div>
+      </div>
+
+      <div id="closetModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="closetTitle">
+        <div class="modal-card closet-card">
+          <button id="closeClosetButton" class="modal-close" type="button" aria-label="Close">&times;</button>
+          <h2 id="closetTitle">Boo's Costumes</h2>
+          <div id="closetGrid" class="closet-grid"></div>
+          <p class="help-tip">Find new costumes by knocking on doors on Trick-or-Treat Street.</p>
         </div>
       </div>
 
@@ -113,8 +140,8 @@
         </div>
       </div>
     </main>
-    <script src="content.js?v=8"></script>
-    <script src="candies.js?v=8"></script>
-    <script src="app.js?v=8"></script>
+    <script src="content.js?v=10"></script>
+    <script src="candies.js?v=10"></script>
+    <script src="app.js?v=10"></script>
   </body>
 </html>

@@ -48,12 +48,56 @@
     }
   ];
 
+  // Trick-or-Treat Street houses. sign: where the door's sign panel sits, as % of the image (center x, center y).
+  const HOUSE_LIST = [
+    { src: "assets/house_purple.png", ratio: 420 / 330, sign: [49.6, 66.3] },
+    { src: "assets/house_orange.png", ratio: 420 / 367, sign: [49.4, 66.4] },
+    { src: "assets/house_green.png", ratio: 420 / 334, sign: [49.4, 72.9] }
+  ];
+  const HOUSES = HOUSE_LIST.map((h) => h.src);
+
   const GHOST_ASSETS = {
     normal: "assets/ghost_normal.png",
     happy: "assets/ghost_happy.png",
     wobble: "assets/ghost_wobble.png",
     missed: "assets/ghost_wobble.png"
   };
+
+  // Natural pixel size of each Boo pose and where his head sits in it, as fractions of the image:
+  // [center x, top of head y, head width]. Measured from the art; check fit with tools/preview_costumes.py.
+  const GHOST_POSES = {
+    normal: { w: 439, h: 460, head: [0.52, 0.06, 0.62] },
+    happy: { w: 460, h: 445, head: [0.505, 0.10, 0.46] },
+    wobble: { w: 460, h: 421, head: [0.53, 0.06, 0.60] }
+  };
+
+  // Unlocked in this order on Trick-or-Treat Street. Fit: width and drop are in head widths,
+  // drop is how far below the top of the head the item's bottom edge sits; ratio is the image's h/w.
+  const COSTUMES = [
+    { id: "pumpkin-cap", name: "Pumpkin Hat", spoken: "a pumpkin hat", src: "assets/costume_pumpkin_cap.png", ratio: 320 / 315, width: 0.95, drop: 0.30 },
+    { id: "witch-hat", name: "Witch Hat", spoken: "a witch hat", src: "assets/costume_witch_hat.png", ratio: 316 / 320, width: 1.25, drop: 0.22 },
+    { id: "cat-ears", name: "Cat Ears", spoken: "cat ears", src: "assets/costume_cat_ears.png", ratio: 303 / 320, width: 1.2, drop: 0.46 },
+    { id: "crown", name: "Royal Crown", spoken: "a royal crown", src: "assets/costume_crown.png", ratio: 246 / 320, width: 0.8, drop: 0.16 },
+    { id: "pirate-hat", name: "Pirate Hat", spoken: "a pirate hat", src: "assets/costume_pirate_hat.png", ratio: 183 / 320, width: 1.15, drop: 0.22 },
+    { id: "wizard-hat", name: "Wizard Hat", spoken: "a wizard hat", src: "assets/costume_wizard_hat.png", ratio: 320 / 315, width: 1.15, drop: 0.22 },
+    { id: "top-hat", name: "Fancy Top Hat", spoken: "a fancy top hat", src: "assets/costume_top_hat.png", ratio: 265 / 320, width: 0.85, drop: 0.16 },
+    { id: "bat-wings", name: "Bat Wings", spoken: "bat wings", src: "assets/costume_bat_wings.png", ratio: 136 / 320, width: 2.4, drop: 0.95, behind: true }
+  ];
+
+  let wornCostumeId = null;
+  function setCostume(id) {
+    wornCostumeId = COSTUMES.some((c) => c.id === id) ? id : null;
+  }
+
+  function costumeLayer(pose, costume) {
+    const { w, h, head: [cx, top, head] } = pose;
+    const width = head * costume.width;
+    const height = (width * w * costume.ratio) / h;
+    const left = cx - width / 2;
+    const itemTop = top + (costume.drop * head * w) / h - height;
+    const pct = (n) => `${(n * 100).toFixed(2)}%`;
+    return `<img class="boo-costume${costume.behind ? " behind" : ""}" src="${costume.src}" style="left:${pct(left)};top:${pct(itemTop)};width:${pct(width)}" alt="" draggable="false" />`;
+  }
 
   function getCandyItem(indexOrId) {
     if (typeof indexOrId === "number") {
@@ -72,11 +116,17 @@
     return getCandySVG(idx, size);
   }
 
-  // Boo the Ghost with expressive high-polish character states: normal, happy, and wobble
-  function getGhostSVG(expression = "normal", size = 72) {
-    const src = GHOST_ASSETS[expression] || GHOST_ASSETS.normal;
+  // Boo the Ghost with expressive high-polish character states: normal, happy, and wobble,
+  // wearing his current costume unless a costume id (or "none") is passed.
+  function getGhostSVG(expression = "normal", size = 72, costumeId = wornCostumeId) {
+    const poseName = expression === "missed" ? "wobble" : (GHOST_POSES[expression] ? expression : "normal");
+    const pose = GHOST_POSES[poseName];
+    const src = GHOST_ASSETS[poseName];
     const height = Math.round(size * 1.05);
-    return `<img class="ghost-img ghost-svg ghost-${expression}" src="${src}" width="${size}" height="${height}" alt="Boo the Ghost (${expression})" draggable="false" />`;
+    const costume = COSTUMES.find((c) => c.id === costumeId);
+    const ghost = `<img class="ghost-img ghost-svg ghost-${poseName}" src="${src}" width="${size}" height="${height}" alt="Boo the Ghost (${poseName})" draggable="false" />`;
+    const layer = costume ? costumeLayer(pose, costume) : "";
+    return `<span class="boo-dressed" style="aspect-ratio:${pose.w}/${pose.h}">${costume?.behind ? layer : ""}${ghost}${costume && !costume.behind ? layer : ""}</span>`;
   }
 
   // Plump Jack-o'-Lantern Pumpkin Candy Bucket for the in-game HUD
@@ -108,7 +158,9 @@
       "assets/pumpkin_bucket.png",
       "assets/pumpkin_bucket_overflow.png",
       "assets/candy_heart_restore.png",
-      ...CANDIES.map(c => c.src)
+      ...CANDIES.map(c => c.src),
+      ...COSTUMES.map(c => c.src),
+      ...HOUSES
     ];
     allUrls.forEach((src) => {
       const img = new Image();
@@ -120,6 +172,9 @@
 
   window.GHOST_CANDIES = {
     list: CANDIES,
+    costumes: COSTUMES,
+    houses: HOUSE_LIST,
+    setCostume,
     getCandySVG,
     getRandomCandySVG,
     getGhostSVG,
