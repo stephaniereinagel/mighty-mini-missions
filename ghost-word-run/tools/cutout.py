@@ -1,4 +1,7 @@
-"""Cut generated art out of its white background (run: python3 tools/cutout.py SRC.jpg OUT.png [max_side])."""
+"""Cut generated art out of its white background (run: python3 tools/cutout.py SRC.jpg OUT.png [max_side] [threshold]).
+
+Use a threshold near 249 for Boo art: his body is almost white and lower values eat into it.
+"""
 import sys
 
 import cv2
@@ -44,4 +47,9 @@ def cutout(src: str, out: str, max_side: int = 460, threshold: int = 246) -> Non
 
 
 if __name__ == "__main__":
-    cutout(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 460)
+    cutout(
+        sys.argv[1],
+        sys.argv[2],
+        int(sys.argv[3]) if len(sys.argv) > 3 else 460,
+        int(sys.argv[4]) if len(sys.argv) > 4 else 246,
+    )

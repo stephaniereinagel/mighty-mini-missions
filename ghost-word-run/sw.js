@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "gwr-v4";
+const VERSION = "gwr-v5";
 const CORE = [
   "./",
   "index.html",
@@ -26,14 +26,14 @@ const CORE = [
   "assets/house_purple.png",
   "assets/house_orange.png",
   "assets/house_green.png",
-  "assets/costume_pumpkin_cap.png",
-  "assets/costume_witch_hat.png",
-  "assets/costume_cat_ears.png",
-  "assets/costume_crown.png",
-  "assets/costume_pirate_hat.png",
-  "assets/costume_wizard_hat.png",
-  "assets/costume_top_hat.png",
-  "assets/costume_bat_wings.png",
+  "assets/boo_pumpkin_cap.png",
+  "assets/boo_witch.png",
+  "assets/boo_cat.png",
+  "assets/boo_king.png",
+  "assets/boo_pirate.png",
+  "assets/boo_wizard.png",
+  "assets/boo_top_hat.png",
+  "assets/boo_bat.png",
   "trick-or-treat-fun.m4a"
 ];
 
