@@ -1390,6 +1390,21 @@ select {
 .map-stop.right .map-boo { left: -23px; }
 .map-boo .ghost-img { width: 100%; height: 100%; }
 
+#helpModal .modal-card { max-height: calc(100dvh - 40px); overflow-y: auto; }
+
+.voice-setting {
+  margin: 4px 0 16px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  text-align: left;
+}
+.voice-setting label { display: block; margin-bottom: 6px; color: #d9c9ff; font-weight: 700; font-size: 14px; }
+.voice-row { display: flex; gap: 8px; align-items: center; }
+.voice-row select { flex: 1; min-width: 0; min-height: 44px; margin: 0; font-size: 14px; }
+.voice-test { width: auto; min-height: 44px; margin: 0; padding: 0 16px; font-size: 16px; }
+.voice-hint { margin: 8px 0 0; color: #b9aedb; font-size: 12px; line-height: 1.35; }
+
 .end-map-line {
   width: min(100%, 420px);
   margin: -4px 0 10px;

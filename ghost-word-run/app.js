@@ -1085,6 +1085,65 @@
   // Some voices misread very short words on their own ("capital I", a clipped "nnn" for "an").
   const SPOKEN_AS = { I: "eye", an: "ann" };
 
+  // Browsers default to their oldest, most robotic voice. Prefer the natural-sounding ones a
+  // device has (Apple Premium/Enhanced, Edge Natural, Google), skip macOS novelty voices, and
+  // let a grown-up override the pick from the help screen.
+  const VOICE_STORE_KEY = "mightyMini.ghostWordRun.voice";
+  const NOVELTY_VOICES = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley)\b/i;
+  const failedVoices = new Set();
+  let chosenVoice = null;
+
+  function englishVoices() {
+    if (!("speechSynthesis" in window)) return [];
+    return speechSynthesis.getVoices().filter((v) => /^en([-_]|$)/i.test(v.lang) && !NOVELTY_VOICES.test(v.name));
+  }
+
+  function voiceScore(voice) {
+    const name = voice.name;
+    let score = 0;
+    if (/premium/i.test(name)) score += 100;
+    if (/natural|neural/i.test(name)) score += 90;
+    if (/enhanced/i.test(name)) score += 80;
+    if (/google/i.test(name)) score += 60;
+    if (/\b(ava|zoe|samantha|allison|susan|evan|nathan|joelle|noelle|aria|jenny)\b/i.test(name)) score += 20;
+    if (/^en[-_]us/i.test(voice.lang)) score += 15;
+    if (voice.localService) score += 5;
+    return score;
+  }
+
+  function pickVoice() {
+    const voices = englishVoices().filter((v) => !failedVoices.has(v.name));
+    const savedName = localStorage.getItem(VOICE_STORE_KEY);
+    chosenVoice = voices.find((v) => v.name === savedName)
+      || voices.slice().sort((a, b) => voiceScore(b) - voiceScore(a))[0]
+      || null;
+    renderVoiceSelect();
+  }
+
+  function renderVoiceSelect() {
+    const select = $("voiceSelect");
+    if (!select) return;
+    const voices = englishVoices();
+    const savedName = localStorage.getItem(VOICE_STORE_KEY);
+    select.replaceChildren();
+    const auto = document.createElement("option");
+    auto.value = "";
+    auto.textContent = `Best available${!savedName && chosenVoice ? ` (${chosenVoice.name})` : ""}`;
+    select.appendChild(auto);
+    voices.sort((a, b) => voiceScore(b) - voiceScore(a)).forEach((voice) => {
+      const option = document.createElement("option");
+      option.value = voice.name;
+      option.textContent = `${voice.name} (${voice.lang})`;
+      select.appendChild(option);
+    });
+    select.value = savedName && voices.some((v) => v.name === savedName) ? savedName : "";
+  }
+
+  if ("speechSynthesis" in window) {
+    pickVoice();
+    speechSynthesis.addEventListener?.("voiceschanged", pickVoice);
+  }
+
   let currentUtterance = null;
   let speakTimer = 0;
   function speak(text) {
@@ -1093,10 +1152,24 @@
     speechSynthesis.resume();
     clearTimeout(speakTimer);
     speakTimer = window.setTimeout(() => {
-      currentUtterance = new SpeechSynthesisUtterance(SPOKEN_AS[text] || text);
-      currentUtterance.rate = 0.72;
-      currentUtterance.pitch = 1.08;
-      speechSynthesis.speak(currentUtterance);
+      if (!chosenVoice) pickVoice();
+      const utterance = new SpeechSynthesisUtterance(SPOKEN_AS[text] || text);
+      const voice = chosenVoice;
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      }
+      utterance.rate = 0.75;
+      utterance.pitch = 1;
+      // Online-only voices (Google, Edge Natural) fail without a connection; fall back to an on-device one.
+      utterance.onerror = (event) => {
+        if (!voice || voice.localService || event.error === "interrupted" || event.error === "canceled") return;
+        failedVoices.add(voice.name);
+        pickVoice();
+        if (chosenVoice && chosenVoice !== voice) speak(text);
+      };
+      currentUtterance = utterance;
+      speechSynthesis.speak(utterance);
     }, 60);
   }
 
@@ -1531,7 +1604,17 @@
   $("hearButton").addEventListener("click", speakCurrentWord);
 
   const helpModal = $("helpModal");
-  $("howButton").addEventListener("click", () => helpModal.classList.remove("hidden"));
+  $("howButton").addEventListener("click", () => {
+    pickVoice();
+    helpModal.classList.remove("hidden");
+  });
+  $("voiceSelect").addEventListener("change", (event) => {
+    if (event.target.value) localStorage.setItem(VOICE_STORE_KEY, event.target.value);
+    else localStorage.removeItem(VOICE_STORE_KEY);
+    pickVoice();
+    speak("Hi Max! Can you find the word said?");
+  });
+  $("voiceTestButton").addEventListener("click", () => speak("Hi Max! Can you find the word said?"));
   $("closeHelpButton").addEventListener("click", () => helpModal.classList.add("hidden"));
   $("helpDoneButton").addEventListener("click", () => helpModal.classList.add("hidden"));
 
