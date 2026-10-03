@@ -11,7 +11,8 @@
   const screens = {
     home: $("homeScreen"),
     game: $("gameScreen"),
-    end: $("endScreen")
+    end: $("endScreen"),
+    street: $("streetScreen")
   };
 
   const levelSelect = $("levelSelect");
@@ -31,10 +32,13 @@
   const bigBucketBack = $("bigBucketBack");
   const bigBucketFront = $("bigBucketFront");
   const musicButton = $("musicButton");
-  const promptLabel = $("promptLabel");
-  const streetScene = $("streetScene");
+  const streetFeedback = $("streetFeedback");
+  const streetWorld = $("streetWorld");
   const streetHouses = $("streetHouses");
   const streetBoo = $("streetBoo");
+  const streetWord = $("streetWord");
+  const streetTreats = $("streetTreats");
+  const streetHint = $("streetHint");
   const prizeOverlay = $("prizeOverlay");
   const prizeTitle = $("prizeTitle");
   const prizeShow = $("prizeShow");
@@ -42,8 +46,14 @@
   const closetModal = $("closetModal");
   const closetGrid = $("closetGrid");
 
-  const STREET_EVERY = 10;
-  const STREET_KNOCKS = 2;
+  // A run earns Trick-or-Treat Street when it scores at least this share of the trail's best.
+  const STREET_SCORE_SHARE = 0.9;
+  // The visit's one costume hides behind a random correct door among the first few.
+  const COSTUME_DOOR_RANGE = 3;
+
+  // Trick-or-Treat Street visit; lives outside `state` because it starts after the run ends.
+  let street = null;
+  let lastRun = null;
 
   let state = null;
   let frameId = 0;
@@ -297,11 +307,6 @@
       paused: false,
       running: true,
       finishAt: 0,
-      phase: "trail",
-      streetPendingFor: 0,
-      streetReadyAt: 0,
-      lastStreetAt: 0,
-      street: null,
       missedWords: []
     };
 
@@ -320,9 +325,6 @@
 
     $("dragHint").style.display = "";
     $("pauseOverlay").classList.add("hidden");
-    streetScene.classList.add("hidden");
-    prizeOverlay.classList.add("hidden");
-    promptLabel.textContent = "Fly through";
     showScreen("game");
 
     music.start();
@@ -453,7 +455,7 @@
 
   function step(now) {
     if (!state?.running) return;
-    if (state.paused || state.phase === "street") {
+    if (state.paused) {
       // Frozen time must not count toward the speed ramp.
       state.startTime += now - lastFrame;
       lastFrame = now;
@@ -509,26 +511,15 @@
     });
 
     // Spawn new rows continuously as long as run is active
-    if (!state.finishAt && !state.streetPendingFor) {
+    if (!state.finishAt) {
       const newestRow = state.rows[state.rows.length - 1];
       // Adaptive row spacing gives human reaction time even as speed ramps continually
       const reactionTime = Math.max(1.35, 2.35 - Math.min(state.round, 30) * 0.025);
       // Spacing must stay below the visible trail height or rows get cleaned up before the next spawns
       const rowSpacing = Math.min(worldHeight * 0.9, Math.max(worldHeight * 0.6, speed * reactionTime));
       if (!newestRow || newestRow.y >= rowSpacing) {
-        const index = state.nextSpawnIndex;
-        if (index > 0 && index % STREET_EVERY === 0 && state.lastStreetAt !== index) {
-          state.streetPendingFor = index;
-        } else {
-          spawnRow(index);
-        }
+        spawnRow(state.nextSpawnIndex);
       }
-    }
-
-    // Once the last gate before a street visit has been flown, head to Trick-or-Treat Street
-    if (state.streetPendingFor && !state.finishAt && state.rows.every((row) => row.resolved)) {
-      if (!state.streetReadyAt) state.streetReadyAt = now + 900;
-      if (now >= state.streetReadyAt) enterStreet();
     }
 
     // Clean up passed rows
@@ -623,29 +614,41 @@
     }
   }
 
-  // Trick-or-Treat Street: every STREET_EVERY words the trail pauses and Boo knocks on doors.
-  // Words missed earlier in the run come back here first. Wrong doors cost nothing.
-  function enterStreet() {
-    state.phase = "street";
-    state.lastStreetAt = state.streetPendingFor;
-    state.streetReadyAt = 0;
-    state.street = { knock: 0, target: "", busy: false, firstTry: true };
-    rows.replaceChildren();
-    state.rows = [];
-    pickupsWrap?.replaceChildren();
-    state.pickups = [];
-
+  // Trick-or-Treat Street: a reward visit after a run that scores within 90% of the trail's best.
+  // Words missed in that run come up first. Max can knock as long as he likes; wrong doors cost
+  // nothing, and one correct door per visit hides a new costume.
+  function enterStreet(run) {
+    const saved = loadSaved();
+    const hasLockedCostume = candies?.costumes.some((c) => !saved.costumes.includes(c.id));
+    street = {
+      level: run.level,
+      missed: run.missedWords.slice(),
+      seen: run.seenWords.length ? run.seenWords : run.level.words,
+      target: "",
+      busy: false,
+      firstTry: true,
+      knocks: 0,
+      treats: 0,
+      costumeAt: hasLockedCostume ? 1 + Math.floor(Math.random() * COSTUME_DOOR_RANGE) : 0,
+      costumeFound: false
+    };
+    streetTreats.textContent = "0";
+    $("streetBucket").innerHTML = candies ? candies.getPumpkinBucketSVG(48) : "";
     streetBoo.innerHTML = candies ? candies.getGhostSVG("normal", 80) : "";
     streetBoo.style.left = "50%";
-    streetScene.classList.remove("hidden");
-    promptLabel.textContent = "Knock on";
+    updateStreetHint();
+    showScreen("street");
     nextKnock();
   }
 
+  function updateStreetHint() {
+    streetHint.textContent = street.costumeAt && !street.costumeFound
+      ? "A costume is hiding behind one of these doors!"
+      : "Knock for more treats, or tap All done.";
+  }
+
   function nextKnock() {
-    const street = state.street;
-    const seen = state.targets.slice(0, state.round);
-    const pool = state.missedWords.length ? state.missedWords : seen;
+    const pool = street.missed.length ? street.missed : street.seen;
     let target = pool[Math.floor(Math.random() * pool.length)];
     for (let tries = 0; target === street.target && pool.length > 1 && tries < 8; tries++) {
       target = pool[Math.floor(Math.random() * pool.length)];
@@ -654,7 +657,7 @@
 
     const houseArt = candies ? candies.houses : [];
     streetHouses.replaceChildren();
-    choicesFor(target, 3, state.level).forEach((word, index) => {
+    choicesFor(target, 3, street.level).forEach((word, index) => {
       const art = houseArt[index % houseArt.length];
       const house = document.createElement("button");
       house.type = "button";
@@ -670,109 +673,121 @@
       streetHouses.appendChild(house);
     });
 
-    targetWord.textContent = target;
-    promptCard.setAttribute("aria-label", `Knock on the door that says ${target}`);
+    streetWord.textContent = target;
     speak(target);
   }
 
   function moveStreetBoo(house) {
-    const scene = streetScene.getBoundingClientRect();
+    const scene = streetWorld.getBoundingClientRect();
     const rect = house.getBoundingClientRect();
     streetBoo.style.left = `${((rect.left + rect.width / 2 - scene.left) / scene.width) * 100}%`;
   }
 
+  function setStreetBoo(expression) {
+    if (candies) streetBoo.innerHTML = candies.getGhostSVG(expression, 80);
+  }
+
   function knockOn(house) {
-    const street = state?.street;
-    if (!street || street.busy || state.paused) return;
+    const visit = street;
+    if (!visit || visit.busy) return;
     moveStreetBoo(house);
 
-    if (house.dataset.word !== street.target) {
-      street.firstTry = false;
+    if (house.dataset.word !== visit.target) {
+      visit.firstTry = false;
       house.classList.remove("rattle");
       void house.offsetWidth;
       house.classList.add("rattle");
       playTone(false);
-      showFeedback("Not this door!");
-      streetBoo.innerHTML = candies ? candies.getGhostSVG("wobble", 80) : "";
+      showFeedback("Not this door!", streetFeedback);
+      setStreetBoo("wobble");
       window.setTimeout(() => {
-        if (state?.street === street) streetBoo.innerHTML = candies ? candies.getGhostSVG("normal", 80) : "";
+        if (street === visit) setStreetBoo("normal");
       }, 600);
       window.setTimeout(() => {
-        if (state?.street === street && !street.busy) speak(street.target);
+        if (street === visit && !visit.busy) speak(visit.target);
       }, 500);
       return;
     }
 
-    street.busy = true;
-    street.knock += 1;
-    state.missedWords = state.missedWords.filter((word) => word !== street.target);
+    visit.busy = true;
+    visit.knocks += 1;
+    visit.missed = visit.missed.filter((word) => word !== visit.target);
     house.classList.add("opened");
     makeSparkBurst(house);
     playRestoreChime();
-    streetBoo.innerHTML = candies ? candies.getGhostSVG("happy", 80) : "";
+    setStreetBoo("happy");
 
-    if (street.knock < STREET_KNOCKS) {
-      const treat = street.firstTry ? 3 : 2;
-      state.candy += treat;
-      launchCandy(house, treat, street.knock * 2);
-      showFeedback(`Treat! +${treat} candies!`);
+    if (visit.costumeAt && !visit.costumeFound && visit.knocks >= visit.costumeAt) {
+      visit.costumeFound = true;
+      showFeedback("A costume!", streetFeedback);
       window.setTimeout(() => {
-        if (state?.street !== street) return;
-        streetBoo.innerHTML = candies ? candies.getGhostSVG("normal", 80) : "";
-        nextKnock();
-      }, 1600);
-    } else {
-      showFeedback("Trick or treat!");
+        if (street === visit) giveCostume();
+      }, 900);
+      return;
+    }
+
+    const treat = visit.firstTry ? 2 : 1;
+    addStreetTreats(treat, house);
+    showFeedback(`Treat! +${treat}`, streetFeedback);
+    window.setTimeout(() => {
+      if (street !== visit) return;
+      setStreetBoo("normal");
+      nextKnock();
+    }, 1500);
+  }
+
+  function addStreetTreats(amount, fromEl) {
+    const saved = loadSaved();
+    saved.totalCandy += amount;
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+    const visit = street;
+    for (let i = 0; i < amount; i++) {
       window.setTimeout(() => {
-        if (state?.street === street) givePrize();
-      }, 1000);
+        if (street !== visit) return;
+        flyCandy(fromEl, $("streetBucket"), visit.knocks + i, () => {
+          if (street !== visit) return;
+          visit.treats += 1;
+          streetTreats.textContent = String(visit.treats);
+        });
+      }, i * 130);
     }
   }
 
-  function givePrize() {
+  function giveCostume() {
     const saved = loadSaved();
-    const costume = candies?.costumes.find((c) => !saved.costumes.includes(c.id));
-    if (costume) {
-      saved.costumes.push(costume.id);
-      saved.wearing = costume.id;
-      localStorage.setItem(STORE_KEY, JSON.stringify(saved));
-      candies.setCostume(costume.id);
-      refreshBooArt();
-      prizeTitle.textContent = "You found a costume!";
-      prizeShow.innerHTML = candies.getGhostSVG("happy", 150);
-      prizeName.textContent = costume.name;
-      speak(`You got ${costume.spoken}!`);
-    } else {
-      const treat = 5;
-      state.candy += treat;
-      state.displayedCandy += treat;
-      candyScore.textContent = String(state.displayedCandy);
-      prizeTitle.textContent = "A giant candy treat!";
-      prizeShow.innerHTML = candies ? candies.getPumpkinBucketOverflowSVG(150) : "";
-      prizeName.textContent = `+${treat} candies`;
-      speak("A giant candy treat!");
+    const costume = candies.costumes.find((c) => !saved.costumes.includes(c.id));
+    if (!costume) {
+      closePrize();
+      return;
     }
+    saved.costumes.push(costume.id);
+    saved.wearing = costume.id;
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+    candies.setCostume(costume.id);
+    refreshBooArt();
+    prizeTitle.textContent = "You found a costume!";
+    prizeShow.innerHTML = candies.getGhostSVG("happy", 150);
+    prizeName.textContent = costume.name;
+    speak(`You got ${costume.spoken}!`);
     prizeOverlay.classList.remove("hidden");
   }
 
-  function exitStreet() {
+  function closePrize() {
     prizeOverlay.classList.add("hidden");
-    if (!state?.running || state.phase !== "street") return;
-    streetScene.classList.add("hidden");
-    streetHouses.replaceChildren();
-    promptLabel.textContent = "Fly through";
-    state.street = null;
-    state.phase = "trail";
-    state.streetPendingFor = 0;
-    if (candies) player.innerHTML = candies.getGhostSVG("normal", 72);
+    if (!street) return;
+    updateStreetHint();
+    setStreetBoo("normal");
+    nextKnock();
+  }
 
-    spawnRow(state.nextSpawnIndex);
-    const row = state.rows[state.rows.length - 1];
-    row.y = 95;
-    row.element.style.transform = "translateY(95px)";
-    announceTarget(row.target);
-    row.announced = true;
-    lastFrame = performance.now();
+  function leaveStreet() {
+    street = null;
+    streetHouses.replaceChildren();
+    prizeOverlay.classList.add("hidden");
+    clearTimeout(speakTimer);
+    window.speechSynthesis?.cancel();
+    music.stop();
+    showScreen("home");
   }
 
   function refreshBooArt() {
@@ -780,46 +795,51 @@
     if (homeGhost) homeGhost.innerHTML = candies.getGhostSVG("normal", 84);
     if (pauseGhost) pauseGhost.innerHTML = candies.getGhostSVG("normal", 78);
     if (player) player.innerHTML = candies.getGhostSVG("normal", 72);
+    if (street) setStreetBoo("normal");
     updateClosetCount();
   }
 
   function launchCandy(gate, amount, baseCandyIdx = 0) {
     if (!gate) return;
-    const start = gate.getBoundingClientRect();
-    const bucket = $("miniBucket");
-    const destination = bucket.getBoundingClientRect();
-
     for (let i = 0; i < amount; i++) {
       window.setTimeout(() => {
         if (!state?.running) return;
         const currentCandyIdx = (baseCandyIdx + i) % (candies ? candies.list.length : 7);
-        const candy = document.createElement("div");
-        candy.className = "flying-candy";
-        candy.innerHTML = candies ? candies.getCandySVG(currentCandyIdx, 42) : "";
-        candy.style.left = `${start.left + start.width / 2 - 21}px`;
-        candy.style.top = `${start.top + start.height / 2 - 21}px`;
-        document.body.appendChild(candy);
-
-        const dx = destination.left + destination.width / 2 - (start.left + start.width / 2);
-        const dy = destination.top + destination.height / 2 - (start.top + start.height / 2);
-        const flight = candy.animate([
-          { transform: "translate(0, 0) rotate(0) scale(.65)", opacity: 0 },
-          { transform: "translate(0, -48px) rotate(140deg) scale(1.3)", opacity: 1, offset: .22 },
-          { transform: `translate(${dx * .55}px, ${dy * .42 - 65}px) rotate(320deg) scale(1.05)`, opacity: 1, offset: .62 },
-          { transform: `translate(${dx}px, ${dy}px) rotate(540deg) scale(.45)`, opacity: 1 }
-        ], { duration: 640, easing: "cubic-bezier(.2,.75,.25,1)", fill: "forwards" });
-
-        flight.finished.then(() => {
-          candy.remove();
+        flyCandy(gate, $("miniBucket"), currentCandyIdx, () => {
           state.displayedCandy += 1;
           candyScore.textContent = String(state.displayedCandy);
           addCandyToBucket(currentCandyIdx);
-          bucket.classList.remove("bucket-pop");
-          void bucket.offsetWidth;
-          bucket.classList.add("bucket-pop");
-        }).catch(() => candy.remove());
+        });
       }, i * 130);
     }
+  }
+
+  function flyCandy(fromEl, bucket, candyIdx, onLand) {
+    const start = fromEl.getBoundingClientRect();
+    const destination = bucket.getBoundingClientRect();
+    const candy = document.createElement("div");
+    candy.className = "flying-candy";
+    candy.innerHTML = candies ? candies.getCandySVG(candyIdx % candies.list.length, 42) : "";
+    candy.style.left = `${start.left + start.width / 2 - 21}px`;
+    candy.style.top = `${start.top + start.height / 2 - 21}px`;
+    document.body.appendChild(candy);
+
+    const dx = destination.left + destination.width / 2 - (start.left + start.width / 2);
+    const dy = destination.top + destination.height / 2 - (start.top + start.height / 2);
+    const flight = candy.animate([
+      { transform: "translate(0, 0) rotate(0) scale(.65)", opacity: 0 },
+      { transform: "translate(0, -48px) rotate(140deg) scale(1.3)", opacity: 1, offset: .22 },
+      { transform: `translate(${dx * .55}px, ${dy * .42 - 65}px) rotate(320deg) scale(1.05)`, opacity: 1, offset: .62 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(540deg) scale(.45)`, opacity: 1 }
+    ], { duration: 640, easing: "cubic-bezier(.2,.75,.25,1)", fill: "forwards" });
+
+    flight.finished.then(() => {
+      candy.remove();
+      onLand();
+      bucket.classList.remove("bucket-pop");
+      void bucket.offsetWidth;
+      bucket.classList.add("bucket-pop");
+    }).catch(() => candy.remove());
   }
 
   function addCandyToBucket(candyIdx = 0) {
@@ -859,15 +879,15 @@
     }
   }
 
-  function showFeedback(message) {
-    feedback.textContent = message;
-    feedback.classList.remove("show");
-    void feedback.offsetWidth;
-    feedback.classList.add("show");
+  function showFeedback(message, target = feedback) {
+    target.textContent = message;
+    target.classList.remove("show");
+    void target.offsetWidth;
+    target.classList.add("show");
   }
 
   function setPlayerFromClientX(clientX) {
-    if (!state?.running || state.paused || state.phase === "street") return;
+    if (!state?.running || state.paused) return;
     const rect = gameWorld.getBoundingClientRect();
     const edge = 38;
     const x = Math.max(edge, Math.min(rect.width - edge, clientX - rect.left));
@@ -886,8 +906,6 @@
   }
 
   gameWorld.addEventListener("pointerdown", (event) => {
-    // Pointer capture would swallow taps on the street's doors.
-    if (state?.phase === "street") return;
     pointerActive = true;
     lastClientX = event.clientX;
     gameWorld.setPointerCapture?.(event.pointerId);
@@ -908,7 +926,7 @@
   });
 
   window.addEventListener("keydown", (event) => {
-    if (!state?.running || state.paused || state.phase === "street") return;
+    if (!state?.running || state.paused) return;
     const step = 0.12;
     if (event.key === "ArrowLeft") {
       state.playerX = Math.max(0.06, state.playerX - step);
@@ -1018,6 +1036,19 @@
       $("endMessage").textContent = "Good try! Every flight makes those words easier to spot!";
     }
 
+    const earnedStreet = state.candy > 0 && state.candy >= prevBest * STREET_SCORE_SHARE;
+    lastRun = {
+      level: state.level,
+      missedWords: state.missedWords.slice(),
+      seenWords: [...new Set(state.targets.slice(0, state.round))]
+    };
+    $("streetInvite").classList.toggle("hidden", !earnedStreet);
+    $("streetInviteText").textContent = isNewRecord
+      ? "A new best! Boo earned a trip to Trick-or-Treat Street!"
+      : "So close to your best! Boo earned a trip to Trick-or-Treat Street!";
+    $("againButton").classList.toggle("primary-button", !earnedStreet);
+    $("againButton").classList.toggle("secondary-button", earnedStreet);
+
     populateBigBucket();
     makeCandyRain();
     showScreen("end");
@@ -1064,9 +1095,6 @@
     rows.replaceChildren();
     if (pickupsWrap) pickupsWrap.replaceChildren();
     $("pauseOverlay").classList.add("hidden");
-    streetScene.classList.add("hidden");
-    prizeOverlay.classList.add("hidden");
-    streetHouses.replaceChildren();
     showScreen("home");
   }
 
@@ -1085,10 +1113,6 @@
   }
 
   function speakCurrentWord() {
-    if (state?.phase === "street") {
-      if (state.street?.target) speak(state.street.target);
-      return;
-    }
     const nextRow = state?.rows.find((row) => !row.resolved);
     if (nextRow) speak(nextRow.target);
   }
@@ -1133,7 +1157,19 @@
     closetModal.classList.remove("hidden");
   });
   $("closeClosetButton").addEventListener("click", () => closetModal.classList.add("hidden"));
-  $("prizeButton").addEventListener("click", exitStreet);
+  $("prizeButton").addEventListener("click", closePrize);
+  $("streetButton").addEventListener("click", () => {
+    if (lastRun) enterStreet(lastRun);
+  });
+  $("streetHearButton").addEventListener("click", () => {
+    if (street?.target) speak(street.target);
+  });
+  $("streetClosetButton").addEventListener("click", () => {
+    renderCloset();
+    closetModal.classList.remove("hidden");
+  });
+  $("streetDoneButton").addEventListener("click", leaveStreet);
+  $("streetHomeButton").addEventListener("click", leaveStreet);
 
   $("startButton").addEventListener("click", startGame);
   $("againButton").addEventListener("click", startGame);

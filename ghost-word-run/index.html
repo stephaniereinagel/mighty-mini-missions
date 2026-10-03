@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=11" />
+    <link rel="stylesheet" href="styles.css?v=13" />
   </head>
   <body>
     <main id="app">
@@ -30,7 +30,7 @@
           <button id="closetButton" class="secondary-button closet-button" type="button">Boo's Costumes <span id="closetCount" class="closet-count"></span></button>
           <button id="howButton" class="text-button" type="button">How to play</button>
         </div>
-        <p class="grownup-note">Fly &amp; collect candy &middot; 3 chances &middot; Trick-or-treat every 10 words &middot; No ads</p>
+        <p class="grownup-note">Fly &amp; collect candy &middot; 3 chances &middot; Great runs unlock Trick-or-Treat Street &middot; No ads</p>
       </section>
 
       <section id="gameScreen" class="screen game-screen hidden" aria-label="Ghost Word Run game">
@@ -70,13 +70,6 @@
           <div id="pickups" class="pickups"></div>
           <div id="rows" class="rows"></div>
           <div id="player" class="player ghost" aria-label="Boo the ghost"></div>
-          <div id="streetScene" class="street-scene hidden" aria-label="Trick-or-Treat Street">
-            <div class="street-moon" aria-hidden="true"></div>
-            <p class="street-title">Trick-or-Treat Street!</p>
-            <div id="streetHouses" class="street-houses"></div>
-            <div class="street-ground" aria-hidden="true"></div>
-            <div id="streetBoo" class="street-boo" aria-hidden="true"></div>
-          </div>
           <div id="feedback" class="feedback" aria-live="polite"></div>
           <div class="drag-hint" id="dragHint">Drag Boo side to side</div>
         </div>
@@ -94,8 +87,43 @@
         <p class="total-line"><strong id="endCandy">0</strong> candies collected!</p>
         <p id="endBestLine" class="end-best-line"></p>
         <p id="endMessage" class="end-message"></p>
+        <div id="streetInvite" class="street-invite hidden">
+          <p id="streetInviteText"></p>
+          <button id="streetButton" class="primary-button street-go-button" type="button">Go trick-or-treating <span>&rarr;</span></button>
+        </div>
         <button id="againButton" class="primary-button" type="button">Fly again</button>
         <button id="chooseButton" class="secondary-button" type="button">Choose another trail</button>
+      </section>
+
+      <section id="streetScreen" class="screen street-screen hidden" aria-label="Trick-or-Treat Street">
+        <header class="game-hud street-hud">
+          <button id="streetHomeButton" class="round-button" type="button" aria-label="Leave Trick-or-Treat Street">&#8962;</button>
+          <p class="street-title">Trick-or-Treat Street!</p>
+          <div class="bucket-score" aria-label="Treats collected on the street">
+            <div id="streetBucket" class="mini-bucket" aria-hidden="true"></div>
+            <strong id="streetTreats">0</strong>
+          </div>
+        </header>
+
+        <div class="prompt-card">
+          <span>Knock on</span>
+          <strong id="streetWord"></strong>
+          <button id="streetHearButton" class="hear-icon" type="button" aria-label="Hear the word again"><span></span></button>
+        </div>
+
+        <div id="streetWorld" class="street-world">
+          <div class="street-moon" aria-hidden="true"></div>
+          <p id="streetHint" class="street-hint"></p>
+          <div id="streetHouses" class="street-houses"></div>
+          <div class="street-ground" aria-hidden="true"></div>
+          <div id="streetBoo" class="street-boo" aria-hidden="true"></div>
+          <div id="streetFeedback" class="feedback" aria-live="polite"></div>
+        </div>
+
+        <div class="street-actions">
+          <button id="streetClosetButton" class="secondary-button" type="button">Change costume</button>
+          <button id="streetDoneButton" class="primary-button" type="button">All done</button>
+        </div>
       </section>
 
       <div id="helpModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
@@ -107,7 +135,7 @@
             <li><span class="step-number">2</span><p>Drag Boo left or right to line up.</p></li>
             <li><span class="step-number">3</span><p>Fly through the matching word to collect the sweet candy!</p></li>
           </ol>
-          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance! Every 10 words, Boo visits Trick-or-Treat Street: knock on the door with the word to win candy and costumes.</p>
+          <p class="help-tip">Keep flying and collecting candies as the trail gets faster and faster! You have 3 chances. If you miss a word, look out for small glowing winged hearts floating between gates to restore a missed chance! Finish a run within 90% of your best and Boo gets to go trick-or-treating: knock on the door with the word for candy, and find one new costume each visit.</p>
           <button id="helpDoneButton" class="primary-button" type="button">Got it!</button>
         </div>
       </div>
@@ -118,7 +146,7 @@
           <h2 id="prizeTitle">You found a costume!</h2>
           <div id="prizeShow" class="prize-show" aria-hidden="true"></div>
           <p id="prizeName" class="prize-name"></p>
-          <button id="prizeButton" class="primary-button" type="button">Back to the trail <span>&rarr;</span></button>
+          <button id="prizeButton" class="primary-button" type="button">Keep trick-or-treating <span>&rarr;</span></button>
         </div>
       </div>
 
@@ -140,8 +168,8 @@
         </div>
       </div>
     </main>
-    <script src="content.js?v=11"></script>
-    <script src="candies.js?v=11"></script>
-    <script src="app.js?v=11"></script>
+    <script src="content.js?v=13"></script>
+    <script src="candies.js?v=13"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>

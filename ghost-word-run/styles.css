@@ -870,6 +870,7 @@ select {
 }
 
 .end-screen h2 { font-size: clamp(44px, 12vw, 68px); }
+.end-screen > button { width: min(100%, 420px); }
 
 .big-bucket {
   position: relative;
@@ -970,10 +971,17 @@ select {
 }
 
 /* ---------- Trick-or-Treat Street ---------- */
-.street-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
+.street-screen {
+  display: flex;
+  flex-direction: column;
+  background: var(--night);
+}
+.street-hud { justify-content: space-between; }
+
+.street-world {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 108%, rgba(255, 160, 70, .28), transparent 45%),
@@ -981,6 +989,42 @@ select {
   animation: streetIn .5s ease-out;
 }
 @keyframes streetIn { from { opacity: 0; transform: scale(1.04); } }
+
+.street-hint {
+  position: relative;
+  z-index: 2;
+  margin: 16px 20px 0;
+  color: #e6d9ff;
+  font-family: "Fredoka", sans-serif;
+  font-size: clamp(17px, 4.4vw, 22px);
+  text-align: center;
+}
+
+.street-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px calc(12px + var(--safe-bottom));
+  background: #1b1337;
+}
+.street-actions button { flex: 1; margin: 0; min-height: 52px; }
+
+.street-invite {
+  width: min(100%, 420px);
+  margin-bottom: 12px;
+}
+.street-invite p {
+  margin: 0 0 10px;
+  color: #ffd27a;
+  font-family: "Fredoka", sans-serif;
+  font-size: 18px;
+}
+.street-go-button {
+  animation: streetGoPulse 1.6s ease-in-out infinite;
+}
+@keyframes streetGoPulse {
+  50% { transform: scale(1.04); box-shadow: 0 6px 0 #bd4c27, 0 0 26px rgba(255, 178, 77, .65); }
+}
 
 .street-moon {
   position: absolute;
@@ -994,12 +1038,10 @@ select {
 }
 
 .street-title {
-  position: relative;
-  z-index: 2;
-  margin: 18px 0 0;
+  margin: 0;
   color: #ffd27a;
   font-family: "Fredoka", sans-serif;
-  font-size: clamp(24px, 6vw, 34px);
+  font-size: clamp(19px, 5vw, 28px);
   text-align: center;
   text-shadow: 0 3px 0 rgba(0,0,0,.3);
 }
@@ -1168,11 +1210,11 @@ select {
 }
 
 @media (min-width: 700px) {
-  .game-world, .prompt-card, .game-hud {
+  .game-world, .prompt-card, .game-hud, .street-world, .street-actions {
     width: min(100%, 700px);
     margin-inline: auto;
   }
-  .game-screen { background: #0d0920; }
+  .game-screen, .street-screen { background: #0d0920; }
 }
 
 @media (prefers-reduced-motion: reduce) {
