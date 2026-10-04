@@ -1,101 +1,43 @@
-// Hand-crafted Cartoon Storybook Island Map for Monster Hunt.
-// 100% pure SVG vector illustration - NO emojis.
-// Designed for Connor (3), Kyler (almost 3), and Ethan (2).
+// Monster Hunt world map: a wide, side-scrolling storybook world of big
+// tappable landmarks (two painted panels joined side by side), with caught
+// monsters hanging out at their landmark and the buddy walking between them.
 
 (() => {
   "use strict";
 
   const { monsterSVG } = window.WM_ART;
-  const INK = "#2b2440";
 
-  // Reusable vector art components for the map
-  const ART = {
-    // A smiling cartoon daisy
-    flower(x, y, petalColor = "#ffffff", centerColor = "#ffd23f", size = 1) {
-      return `<g transform="translate(${x} ${y}) scale(${size})" class="map-flower" pointer-events="none">
-        <circle cx="-14" cy="0" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="14" cy="0" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="0" cy="-14" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="0" cy="14" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="-10" cy="-10" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="10" cy="-10" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="-10" cy="10" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="10" cy="10" r="10" fill="${petalColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="0" cy="0" r="12" fill="${centerColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="-3" cy="-2" r="2" fill="${INK}"/>
-        <circle cx="3" cy="-2" r="2" fill="${INK}"/>
-        <path d="M-3 3 Q0 6 3 3" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/>
-      </g>`;
-    },
+  const PANEL_W = 1024;
+  const PANEL_H = 576;
+  const OVERLAP = 56;
+  const OX = PANEL_W - OVERLAP;
+  const WORLD_W = OX + PANEL_W;
+  const WORLD_H = PANEL_H;
 
-    // A cute spotted toadstool mushroom
-    mushroom(x, y, capColor = "#ff3b5c", size = 1) {
-      return `<g transform="translate(${x} ${y}) scale(${size})" pointer-events="none">
-        <path d="M-9 16 C-9 6 -6 4 0 4 C6 4 9 6 9 16 Z" fill="#fff5ea" stroke="${INK}" stroke-width="2.5"/>
-        <path d="M-22 6 C-22 -14 22 -14 22 6 C14 8 -14 8 -22 6 Z" fill="${capColor}" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="-9" cy="-3" r="3.5" fill="#ffffff"/>
-        <circle cx="4" cy="-5" r="4.5" fill="#ffffff"/>
-        <circle cx="13" cy="2" r="2.5" fill="#ffffff"/>
-        <circle cx="-4" cy="3" r="2" fill="#ffffff"/>
-      </g>`;
-    },
+  const PANELS = [
+    { href: "images/world-1.jpg", x: 0 },
+    { href: "images/world-2.jpg", x: OX }
+  ];
 
-    // A layered cartoon pine tree
-    pineTree(x, y, color = "#2d8048", size = 1) {
-      return `<g transform="translate(${x} ${y}) scale(${size})" pointer-events="none">
-        <rect x="-6" y="24" width="12" height="14" rx="3" fill="#8b5a2b" stroke="${INK}" stroke-width="2.5"/>
-        <path d="M-28 28 L0 -4 L28 28 C18 24 -18 24 -28 28 Z" fill="${color}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M-24 12 L0 -14 L24 12 C16 9 -16 9 -24 12 Z" fill="${color}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M-18 -4 L0 -26 L18 -4 C12 -6 -12 -6 -18 -4 Z" fill="${color}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-        <circle cx="0" cy="-26" r="3.5" fill="#ffd23f"/>
-      </g>`;
-    },
-
-    // A fluffy round deciduous tree
-    roundTree(x, y, color = "#42b86c", size = 1) {
-      return `<g transform="translate(${x} ${y}) scale(${size})" pointer-events="none">
-        <path d="M-5 12 L-6 32 C-6 34 6 34 6 32 L5 12 Z" fill="#8b5a2b" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="-15" cy="0" r="16" fill="${color}" stroke="${INK}" stroke-width="3"/>
-        <circle cx="15" cy="0" r="16" fill="${color}" stroke="${INK}" stroke-width="3"/>
-        <circle cx="0" cy="-14" r="18" fill="${color}" stroke="${INK}" stroke-width="3"/>
-        <circle cx="0" cy="4" r="18" fill="${color}" stroke="${INK}" stroke-width="3"/>
-        <ellipse cx="-4" cy="-8" rx="8" ry="4" fill="#ffffff" opacity=".35" transform="rotate(-20 -4 -8)"/>
-      </g>`;
-    },
-
-    // A cartoon crystal shard
-    crystal(x, y, rot = 0, color = "#00f0ff", size = 1) {
-      return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${size})" pointer-events="none">
-        <polygon points="0,-36 10,-12 10,24 -10,24 -10,-12" fill="${color}" stroke="${INK}" stroke-width="2.5"/>
-        <polygon points="0,-36 10,-12 0,24 0,-12" fill="#ffffff" opacity=".45"/>
-        <polygon points="0,-36 -10,-12 -6,-8" fill="#ffffff" opacity=".7"/>
-      </g>`;
-    },
-
-    // A wooden signpost for each zone with a crisp vector golden star
-    sign(x, y, title, subtitle, caught, total, accentColor) {
-      const w = 224;
-      return `<g class="map-sign" transform="translate(${x} ${y}) scale(1.15)">
-        <!-- Wooden Post -->
-        <rect x="-9" y="16" width="18" height="42" rx="4" fill="#9c6634" stroke="${INK}" stroke-width="3"/>
-        <rect x="-6" y="20" width="4" height="34" fill="#b87b42"/>
-        <!-- Main Board -->
-        <g class="sign-board">
-          <rect x="-112" y="-36" width="${w}" height="56" rx="18" fill="#fffdf6" stroke="${INK}" stroke-width="4.5"/>
-          <path d="M-108 -32 H108" stroke="${accentColor}" stroke-width="4" stroke-linecap="round"/>
-          <text y="-10" text-anchor="middle" font-size="23" font-weight="800" fill="${accentColor}">${title}</text>
-          <text y="12" text-anchor="middle" font-size="14.5" font-weight="700" fill="#665b78">${subtitle}</text>
-          <!-- Star Badge Pill with Vector Star -->
-          <g transform="translate(0 30)">
-            <rect x="-62" y="-13" width="124" height="26" rx="13" fill="#ffd23f" stroke="${INK}" stroke-width="2.5"/>
-            <!-- Vector Star Icon -->
-            <polygon points="-28,-5 -25,-1 -20,-1 -24,2 -22,7 -28,3 -34,7 -32,2 -36,-1 -31,-1" fill="${INK}"/>
-            <text x="6" y="5" text-anchor="middle" font-size="15" font-weight="800" fill="${INK}">${caught} / ${total}</text>
-          </g>
-        </g>
-      </g>`;
-    }
-  };
+  // Each landmark: tap area (ellipse), name tag, where the buddy stands, and
+  // where caught monsters hang out. Coordinates are world units.
+  const LANDMARKS = [
+    { id: "meadow", title: "Giggle Meadow", sub: "Colors & Shapes", color: "#2e8b22",
+      hit: [175, 300, 175, 205], tag: [125, 470], buddy: [300, 510], pals: [[40, 400], [330, 440]] },
+    { id: "woods", title: "Wobble Woods", sub: "Numbers 1&#8211;10", color: "#1e7232",
+      hit: [512, 235, 190, 240], tag: [600, 478], buddy: [440, 380], pals: [[372, 430], [690, 410]] },
+    { id: "cave", title: "Sparkle Cave", sub: "Letters A&#8211;Z", color: "#613bbd",
+      hit: [850, 260, 160, 270], tag: [770, 470], buddy: [880, 420], pals: [[700, 400], [850, 395]] },
+    { id: "castle", title: "Shape Castle", sub: "Tricky Shapes", color: "#c2410c",
+      hit: [OX + 130, 245, 125, 150], tag: [OX + 150, 438], buddy: [OX + 255, 470], pals: [[OX + 25, 395], [OX + 250, 375]] },
+    { id: "garden", title: "Giant's Garden", sub: "Big & Small", color: "#b45309",
+      hit: [OX + 390, 320, 135, 180], tag: [OX + 390, 480], buddy: [OX + 505, 500], pals: [[OX + 275, 470], [OX + 520, 455]] },
+    { id: "reef", title: "Rainbow Reef", sub: "More Colors", color: "#0d8a84",
+      hit: [OX + 650, 360, 125, 165], tag: [OX + 650, 478], buddy: [OX + 760, 505], pals: [[OX + 545, 470], [OX + 745, 420]] },
+    { id: "lagoon", title: "Echo Lagoon", sub: "Letter Sounds", color: "#0369a1",
+      hit: [OX + 885, 380, 130, 170], tag: [OX + 885, 478], buddy: [OX + 985, 505], pals: [[OX + 790, 300], [OX + 1000, 400]] }
+  ];
+  const landmark = (id) => LANDMARKS.find((l) => l.id === id) || LANDMARKS[0];
 
   function nested(word, stage, x, y, size, cls) {
     const svg = monsterSVG(word, stage, false)
@@ -103,595 +45,148 @@
     return `<g class="${cls}" data-w="${word}">${svg}</g>`;
   }
 
-  // ---------------------------------------------------------------- small islands (next level up)
+  // ---------------------------------------------------------------- world SVG
 
-  function islet(cx, cy, rx, ry, grass) {
-    return `<ellipse cx="${cx}" cy="${cy + 8}" rx="${rx + 22}" ry="${ry + 18}" fill="#a6f1ff" opacity=".55"/>
-      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#sandGrad)" stroke="#d99f32" stroke-width="10"/>
-      ${grass ? `<ellipse cx="${cx}" cy="${cy - 8}" rx="${rx - 26}" ry="${ry - 24}" fill="${grass}" stroke="#3f8818" stroke-width="5"/>` : ""}`;
-  }
+  function worldSVG({ regions, current, buddy }) {
+    const region = (id) => regions.find((r) => r.id === id) || { caught: 0, total: 0, pals: [] };
 
-  // Rope-and-plank bridges between the islands.
-  function bridges() {
-    const paths = [
-      "M845 250 Q900 215 950 190",
-      "M1150 282 Q1160 305 1150 330",
-      "M300 552 Q300 590 320 628",
-      "M612 750 Q645 740 680 748",
-      "M1150 562 Q1135 595 1110 624"
-    ];
-    return paths.map((d) => `<path d="${d}" fill="none" stroke="#8a5a2b" stroke-width="16" stroke-linecap="round"/>
-      <path d="${d}" fill="none" stroke="#d9a465" stroke-width="12" stroke-dasharray="7 5"/>`).join("");
-  }
+    const images = (extra = "") => PANELS.map((p, i) =>
+      `<image href="${p.href}" x="${p.x}" y="0" width="${PANEL_W}" height="${PANEL_H}" preserveAspectRatio="xMidYMid slice" ${i ? 'mask="url(#seam-fade)"' : ""} ${extra}/>`).join("");
 
-  function reefIslet(r) {
-    const paints = [["#9a5b2e", -48, -6], ["#2a2833", -26, -22], ["#ffffff", 0, -28], ["#9ea3ad", 26, -22], ["#17b3a9", 46, -4], ["#ffbf9e", 30, 16]];
-    const coral = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke="${c}" stroke-width="9" stroke-linecap="round">
-      <path d="M0 30 V0 M0 12 Q-14 4 -16 -12 M0 6 Q12 -2 14 -18 M-16 -12 V-20 M14 -18 Q20 -26 18 -32"/></g>`;
-    return `<g class="zone open" data-region="reef" role="button" tabindex="0" aria-label="Rainbow Reef: More Colors">
-      ${islet(1150, 160, 205, 118)}
-      <ellipse cx="1150" cy="168" rx="150" ry="70" fill="#7fe3f0" stroke="#37b5c9" stroke-width="4"/>
-      <ellipse cx="1120" cy="155" rx="60" ry="18" fill="#c6f7ff" opacity=".7"/>
-      <g pointer-events="none">
-        ${coral(1240, 150, "#c4a8ff")}${coral(1268, 162, "#8a1f3b", 0.8)}${coral(1218, 172, "#e9b824", 0.7)}
-        ${coral(1035, 168, "#a3d930", 0.75)}${coral(1060, 178, "#26388a", 0.6)}
-        <!-- Artist's paint palette -->
-        <g transform="translate(1138 140)">
-          <path d="M-70 4 C-74 -40 10 -56 60 -30 C88 -14 78 20 44 18 C26 16 24 34 4 40 C-36 50 -66 34 -70 4 Z" fill="#f3d7a8" stroke="${INK}" stroke-width="4"/>
-          <ellipse cx="-6" cy="18" rx="9" ry="7" fill="#7fe3f0" stroke="${INK}" stroke-width="3"/>
-          ${paints.map(([c, x, y]) => `<circle cx="${x}" cy="${y}" r="11" fill="${c}" stroke="${INK}" stroke-width="2.5"/>`).join("")}
-          <g transform="rotate(-35 70 -10)">
-            <rect x="60" y="-60" width="8" height="56" rx="3" fill="#9c6634" stroke="${INK}" stroke-width="2.5"/>
-            <path d="M58 -60 Q64 -80 70 -60 Z" fill="#8338ec" stroke="${INK}" stroke-width="2.5"/>
-          </g>
-        </g>
-        <!-- Shells -->
-        <path d="M985 200 a12 12 0 0 1 24 0 Z" fill="#ffbf9e" stroke="${INK}" stroke-width="2.5"/>
-        <path d="M1300 205 a10 10 0 0 1 20 0 Z" fill="#c4a8ff" stroke="${INK}" stroke-width="2.5"/>
-      </g>
-      ${ART.sign(1150, 238, "Rainbow Reef", "More Colors", r.caught, r.total, "#0d8a84")}
-    </g>`;
-  }
+    const defs = `<defs>
+      <linearGradient id="seam-grad" x1="${OX}" x2="${OX + OVERLAP}" y1="0" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="1"/>
+      </linearGradient>
+      <mask id="seam-fade" maskUnits="userSpaceOnUse" x="${OX}" y="0" width="${PANEL_W}" height="${PANEL_H}">
+        <rect x="${OX}" y="0" width="${PANEL_W}" height="${PANEL_H}" fill="url(#seam-grad)"/>
+      </mask>
+      ${LANDMARKS.map((l) => `<clipPath id="clip-${l.id}"><ellipse cx="${l.hit[0]}" cy="${l.hit[1]}" rx="${l.hit[2]}" ry="${l.hit[3]}"/></clipPath>`).join("")}
+    </defs>`;
 
-  function castleIslet(r) {
-    return `<g class="zone open" data-region="castle" role="button" tabindex="0" aria-label="Shape Castle: Tricky Shapes">
-      ${islet(1150, 445, 205, 112, "#9fe05a")}
-      <g pointer-events="none">
-        <!-- Trapezoid hill under the castle -->
-        <polygon points="1070,452 1230,452 1250,478 1050,478" fill="#c9a46b" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
-        <!-- Towers -->
-        <rect x="1048" y="372" width="48" height="82" rx="4" fill="#ffd9b0" stroke="${INK}" stroke-width="3.5"/>
-        <rect x="1204" y="372" width="48" height="82" rx="4" fill="#ffd9b0" stroke="${INK}" stroke-width="3.5"/>
-        <polygon points="1042,374 1072,330 1102,374" fill="#ff70a6" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
-        <polygon points="1198,374 1228,330 1258,374" fill="#3a86ff" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
-        <!-- Main wall with battlements -->
-        <path d="M1096 452 V388 h14 v-12 h14 v12 h14 v-12 h14 v12 h14 v-12 h14 v12 h14 V452 Z" fill="#ffe7c9" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
-        <!-- Hexagon window, octagon shield, semicircle door, pentagon window -->
-        <polygon points="1162,410 1155,422 1141,422 1134,410 1141,398 1155,398" fill="#ffd23f" stroke="${INK}" stroke-width="3"/>
-        <polygon points="1066,404 1078,404 1086,412 1086,424 1078,432 1066,432 1058,424 1058,412" fill="#e63946" stroke="${INK}" stroke-width="3"/>
-        <polygon points="1228,398 1240,407 1235,421 1221,421 1216,407" fill="#8338ec" stroke="${INK}" stroke-width="3"/>
-        <path d="M1132 452 V440 A16 16 0 0 1 1164 440 V452 Z" fill="#9c6634" stroke="${INK}" stroke-width="3"/>
-        <!-- Flags: crescent and parallelogram -->
-        <line x1="1072" y1="332" x2="1072" y2="286" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-        <path d="M1092 288 A14 14 0 1 0 1092 312 A16 16 0 0 1 1092 288 Z" fill="#ffd23f" stroke="${INK}" stroke-width="2.5"/>
-        <line x1="1228" y1="332" x2="1228" y2="286" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-        <polygon points="1229,306 1257,306 1265,288 1237,288" fill="#19c3b3" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
-      </g>
-      ${ART.sign(1150, 505, "Shape Castle", "Tricky Shapes", r.caught, r.total, "#c2410c")}
-    </g>`;
-  }
+    const hand = `<g class="tap-hand" transform="translate(-78 48)"><text font-size="54" text-anchor="middle" dominant-baseline="central">&#x1F446;</text></g>`;
 
-  function gardenIslet(r) {
-    const sunflower = (x, base, top, rad) => `<path d="M${x} ${base} V${top}" stroke="#3f8818" stroke-width="${Math.max(4, rad / 3)}" stroke-linecap="round"/>
-      <ellipse cx="${x - rad * 0.7}" cy="${(base + top) / 2}" rx="${rad * 0.5}" ry="${rad * 0.22}" fill="#5fb32e" stroke="${INK}" stroke-width="2"/>
-      <g transform="translate(${x} ${top})">
-        ${Array.from({ length: 10 }, (_, i) => `<ellipse cx="0" cy="${-rad * 0.95}" rx="${rad * 0.32}" ry="${rad * 0.55}" fill="#ffd23f" stroke="${INK}" stroke-width="2" transform="rotate(${i * 36})"/>`).join("")}
-        <circle r="${rad * 0.6}" fill="#8b5a2b" stroke="${INK}" stroke-width="2.5"/>
-        <circle cx="${-rad * 0.2}" cy="${-rad * 0.12}" r="${Math.max(1.5, rad * 0.09)}" fill="#fff"/><circle cx="${rad * 0.2}" cy="${-rad * 0.12}" r="${Math.max(1.5, rad * 0.09)}" fill="#fff"/>
-        <path d="M${-rad * 0.2} ${rad * 0.15} Q0 ${rad * 0.32} ${rad * 0.2} ${rad * 0.15}" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-      </g>`;
-    const pumpkin = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">
-      <path d="M0 -30 q4 -12 12 -14" stroke="#3f8818" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <ellipse cx="-14" cy="0" rx="18" ry="28" fill="#ff8c1a" stroke="${INK}" stroke-width="3"/>
-      <ellipse cx="14" cy="0" rx="18" ry="28" fill="#ff8c1a" stroke="${INK}" stroke-width="3"/>
-      <ellipse cx="0" cy="0" rx="16" ry="30" fill="#ffa53d" stroke="${INK}" stroke-width="3"/></g>`;
-    return `<g class="zone open" data-region="garden" role="button" tabindex="0" aria-label="Giant's Garden: Big and Small">
-      ${islet(330, 748, 270, 118, "#8ee249")}
-      <g pointer-events="none">
-        <!-- Garden rows -->
-        <path d="M150 790 Q330 770 510 790" stroke="#a4703c" stroke-width="10" fill="none" stroke-linecap="round" opacity=".5"/>
-        ${sunflower(160, 790, 668, 30)}
-        ${sunflower(222, 790, 766, 11)}
-        ${pumpkin(420, 752, 1.25)}
-        ${pumpkin(492, 778, 0.45)}
-        <!-- Tall and short fence posts -->
-        <rect x="282" y="680" width="14" height="70" rx="4" fill="#d9a465" stroke="${INK}" stroke-width="3"/>
-        <rect x="304" y="724" width="14" height="26" rx="4" fill="#d9a465" stroke="${INK}" stroke-width="3"/>
-        <!-- Giant's boot print -->
-        <ellipse cx="350" cy="705" rx="22" ry="12" fill="#6b9e2f" opacity=".5"/>
-      </g>
-      ${ART.sign(330, 815, "Giant's Garden", "Big & Small", r.caught, r.total, "#b45309")}
-    </g>`;
-  }
-
-  function lagoonIslet(r) {
-    const bubble = (x, y, ch, c) => `<g class="map-shape-bounce" style="animation-delay:${-(x % 7) / 3}s"><circle cx="${x}" cy="${y}" r="17" fill="#ffffff" stroke="${INK}" stroke-width="3"/>
-      <text x="${x}" y="${y + 7}" text-anchor="middle" font-size="22" font-weight="900" fill="${c}">${ch}</text></g>`;
-    return `<g class="zone open" data-region="lagoon" role="button" tabindex="0" aria-label="Echo Lagoon: Letter Sounds">
-      ${islet(1010, 752, 320, 118, "#8ee249")}
-      <ellipse cx="1030" cy="735" rx="130" ry="52" fill="#38b6ff" stroke="${INK}" stroke-width="3.5"/>
-      <ellipse cx="1000" cy="725" rx="60" ry="16" fill="#9ee2ff" opacity=".7"/>
-      <g pointer-events="none">
-        <!-- Palm tree -->
-        <path d="M790 800 C788 760 796 720 812 690" stroke="#9c6634" stroke-width="14" fill="none" stroke-linecap="round"/>
-        <path d="M790 800 C788 760 796 720 812 690" stroke="#c48a48" stroke-width="6" stroke-dasharray="4 8" fill="none"/>
-        ${[-150, -100, -40, 20, 70].map((a) => `<path d="M812 690 q30 -18 58 6 q-30 -6 -58 -6 Z" fill="#2fbf5f" stroke="${INK}" stroke-width="2.5" transform="rotate(${a + 60} 812 690)"/>`).join("")}
-        <circle cx="806" cy="698" r="6" fill="#8b5a2b"/><circle cx="818" cy="700" r="6" fill="#8b5a2b"/>
-        <!-- Lily pads -->
-        <path d="M960 752 a14 9 0 1 0 1 -1 Z" fill="#27ae60" stroke="${INK}" stroke-width="2"/>
-        <path d="M1110 745 a12 8 0 1 0 1 -1 Z" fill="#27ae60" stroke="${INK}" stroke-width="2"/>
-        <!-- Echo conch shell with sound waves -->
-        <g transform="translate(1225 735)">
-          <path d="M-30 18 C-36 -10 -6 -30 22 -18 C34 -12 34 6 20 12 C8 18 -10 26 -30 18 Z" fill="#ffbf9e" stroke="${INK}" stroke-width="3.5"/>
-          <path d="M-18 10 C-14 -6 2 -14 16 -8" stroke="#e07a4f" stroke-width="3" fill="none"/>
-          <path d="M38 -22 q12 14 0 30 M50 -32 q20 24 0 50" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
-        </g>
-        <!-- Floating letter bubbles -->
-        ${bubble(890, 690, "s", "#27ae60")}${bubble(1005, 662, "m", "#9a5b2e")}${bubble(1120, 680, "b", "#f4a100")}
-      </g>
-      ${ART.sign(1010, 812, "Echo Lagoon", "Letter Sounds", r.caught, r.total, "#0369a1")}
-    </g>`;
-  }
-
-  function mapSVG({ regions, current, buddy }) {
-    const rMeadow = regions.find((r) => r.id === "meadow") || { caught: 0, total: 14 };
-    const rWoods = regions.find((r) => r.id === "woods") || { caught: 0, total: 10 };
-    const rCave = regions.find((r) => r.id === "cave") || { caught: 0, total: 26 };
-
-    const R = (id) => regions.find((r) => r.id === id) || { caught: 0, total: 0 };
-
-    // Buddy position for each zone (outer map coordinates)
-    const BUDDY_POS = {
-      meadow: [288, 442],
-      woods: [459, 176],
-      cave: [617, 433],
-      reef: [990, 205],
-      castle: [1290, 480],
-      garden: [565, 770],
-      lagoon: [1275, 800]
-    };
-    const bPos = BUDDY_POS[current] || BUDDY_POS.meadow;
-
-    return `<svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
-      <defs>
-        <!-- Ocean gradient -->
-        <linearGradient id="oceanGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#72e2ff"/>
-          <stop offset="45%" stop-color="#46c8fc"/>
-          <stop offset="100%" stop-color="#1ea8f0"/>
-        </linearGradient>
-
-        <!-- Island Grass Gradient -->
-        <linearGradient id="grassGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#b8f26a"/>
-          <stop offset="40%" stop-color="#8ee249"/>
-          <stop offset="100%" stop-color="#5fb32e"/>
-        </linearGradient>
-
-        <!-- Meadow Hill Gradient -->
-        <linearGradient id="meadowGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#c9f87a"/>
-          <stop offset="100%" stop-color="#8ad840"/>
-        </linearGradient>
-
-        <!-- Mountain Rock Gradient -->
-        <linearGradient id="rockGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#bca8f5"/>
-          <stop offset="50%" stop-color="#8e74db"/>
-          <stop offset="100%" stop-color="#5a42a8"/>
-        </linearGradient>
-
-        <!-- Sand Beach Gradient -->
-        <linearGradient id="sandGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#ffeaa7"/>
-          <stop offset="100%" stop-color="#f4c865"/>
-        </linearGradient>
-      </defs>
-
-      <!-- Open sea behind every island -->
-      <g pointer-events="none">
-        <rect x="0" y="0" width="1400" height="900" rx="40" fill="url(#oceanGrad)"/>
-        <g stroke="#ffffff" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".7">
-          <path class="map-wave" d="M640 610 Q655 598 670 610 T700 610"/>
-          <path class="map-wave" style="animation-delay:-1s" d="M1320 300 Q1335 288 1350 300 T1380 300"/>
-          <path class="map-wave" style="animation-delay:-1.8s" d="M40 860 Q55 848 70 860 T100 860"/>
-          <path class="map-wave" style="animation-delay:-.5s" d="M1250 590 Q1265 578 1280 590 T1310 590"/>
-          <path class="map-wave" style="animation-delay:-1.4s" d="M900 28 Q915 16 930 28 T960 28"/>
-        </g>
-        ${bridges()}
-      </g>
-
-      <!-- ==================== THE BIG ISLAND (starter lands) ==================== -->
-      <g transform="translate(0 10) scale(0.9)">
-      <g pointer-events="none">
-
-        <!-- Shallow Water Coral / Sandbar Glows -->
-        <path d="M120 480 C60 380 90 260 210 220 C320 100 480 60 640 80 C800 50 960 120 950 300 C990 420 900 560 760 600 C580 660 260 630 120 480 Z"
-              fill="#a6f1ff" opacity=".5"/>
-
-        <!-- Gentle Water Waves -->
-        <g stroke="#ffffff" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".75">
-          <path class="map-wave" d="M70 120 Q85 108 100 120 T130 120"/>
-          <path class="map-wave" style="animation-delay:-0.8s" d="M850 90 Q865 78 880 90 T910 90"/>
-          <path class="map-wave" style="animation-delay:-1.6s" d="M90 560 Q105 548 120 560 T150 560"/>
-          <path class="map-wave" style="animation-delay:-0.4s" d="M880 580 Q895 568 910 580 T940 580"/>
-          <path class="map-wave" style="animation-delay:-1.2s" d="M490 35 Q505 23 520 35 T550 35"/>
-          <path class="map-wave" style="animation-delay:-2.0s" d="M920 330 Q935 318 950 330 T980 330"/>
-          <path class="map-wave" style="animation-delay:-0.6s" d="M40 320 Q55 308 70 320 T100 320"/>
-        </g>
-
-        <!-- Cartoon Sailboat in Sea -->
-        <g class="map-boat" transform="translate(110 185) scale(0.92)">
-          <!-- Wooden Hull -->
-          <path d="M-28 14 C-18 26 18 26 28 14 L24 2 L-24 2 Z" fill="#8e5828" stroke="${INK}" stroke-width="2.5"/>
-          <!-- Mast -->
-          <line x1="0" y1="2" x2="0" y2="-36" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-          <!-- Main Sail (Pink & White Stripes) -->
-          <path d="M2 -34 L2 0 L24 0 Z" fill="#ff70a6" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
-          <path d="M2 -22 L14 0 L2 0 Z" fill="#ffffff"/>
-          <!-- Jib Sail -->
-          <path d="M-2 -30 L-2 -2 L-20 -2 Z" fill="#ffffff" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
-          <!-- Pennant Flag -->
-          <polygon points="0,-36 12,-32 0,-28" fill="#ffd23f"/>
-          <!-- Ripple -->
-          <path d="M-32 20 Q0 24 32 20" stroke="#ffffff" stroke-width="3" fill="none" opacity=".8"/>
-        </g>
-
-        <!-- Friendly Jumping Baby Whale / Dolphin -->
-        <g class="map-whale" transform="translate(900 230)">
-          <path d="M-16 10 C-16 -12 12 -12 16 6 C10 12 -10 16 -16 10 Z" fill="#3a86ff" stroke="${INK}" stroke-width="2.5"/>
-          <path d="M-16 10 L-26 4 L-24 14 Z" fill="#3a86ff" stroke="${INK}" stroke-width="2.5"/>
-          <circle cx="8" cy="0" r="2.5" fill="${INK}"/>
-          <circle cx="9" cy="-1" r="1" fill="#fff"/>
-          <ellipse cx="6" cy="4" rx="3" ry="1.5" fill="#ff70a6" opacity=".7"/>
-          <!-- Water Spout -->
-          <path d="M0 -10 Q-4 -20 -8 -22 M0 -10 Q0 -22 0 -25 M0 -10 Q4 -20 8 -22" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>
-        </g>
-
-        <!-- Cartoon Compass Rose -->
-        <g class="map-compass" transform="translate(895 85) scale(0.85)">
-          <circle cx="0" cy="0" r="30" fill="#fffef8" stroke="${INK}" stroke-width="4"/>
-          <circle cx="0" cy="0" r="25" fill="#ffeaa7" stroke="${INK}" stroke-width="1.5"/>
-          <!-- Star points -->
-          <polygon points="0,-22 5,-5 22,0 5,5 0,22 -5,5 -22,0 -5,-5" fill="#ff70a6" stroke="${INK}" stroke-width="1.5"/>
-          <polygon points="0,-22 5,-5 0,0 -5,-5" fill="#e63946"/>
-          <polygon points="22,0 5,5 0,0 5,-5" fill="#ffd23f"/>
-          <circle cx="0" cy="0" r="5" fill="#ffffff" stroke="${INK}" stroke-width="2"/>
-          <text y="-25" text-anchor="middle" font-size="12" font-weight="900" fill="${INK}">N</text>
-        </g>
-
-        <!-- ==================== 2. MAIN ISLAND (NON-INTERACTIVE BASE) ==================== -->
-        <!-- Sandy Shore (Broad golden beach border) -->
-        <path d="M140 480 C70 390 100 280 230 240 C330 130 490 85 640 105 C790 75 940 140 925 290 C965 410 885 545 745 580 C585 635 285 610 140 480 Z"
-              fill="url(#sandGrad)" stroke="#d99f32" stroke-width="14" stroke-linejoin="round"/>
-
-        <!-- Beach Shells & Starfish on the shoreline -->
-        <g fill="#ff70a6" stroke="${INK}" stroke-width="1.5">
-          <polygon points="120,380 123,387 130,387 125,392 127,399 120,395 113,399 115,392 110,387 117,387" transform="scale(0.8)"/>
-          <polygon points="760,570 763,575 770,575 765,580 767,586 760,582 753,586 755,580 750,575 757,575" transform="scale(0.8)"/>
-        </g>
-
-        <!-- Lush Island Grass Interior -->
-        <path d="M165 460 C105 380 130 285 245 250 C340 150 485 110 625 125 C765 100 895 160 885 285 C920 390 850 515 725 545 C580 595 295 575 165 460 Z"
-              fill="url(#grassGrad)" stroke="#3f8818" stroke-width="6" stroke-linejoin="round"/>
-
-        <!-- ==================== 3. WINDING EXPEDITION TRAIL ==================== -->
-        <path class="map-trail"
-              d="M260 410 C320 330 380 290 440 270 C520 250 580 280 650 330 C710 375 740 400 780 410"
-              fill="none" stroke="#d4944c" stroke-width="14" stroke-linecap="round"/>
-        <path class="map-trail"
-              d="M260 410 C320 330 380 290 440 270 C520 250 580 280 650 330 C710 375 740 400 780 410"
-              fill="none" stroke="#fff4cf" stroke-width="8" stroke-dasharray="2 18" stroke-linecap="round"/>
-      </g>
-
-      <!-- ==================== 4. REGION 1: GIGGLE MEADOW (Colors & Shapes) ==================== -->
-      <g class="zone open" data-region="meadow" role="button" tabindex="0" aria-label="Giggle Meadow: Colors and Shapes" pointer-events="auto">
-        <!-- Meadow Rolling Knolls -->
-        <path d="M160 450 C180 340 280 320 360 370 C420 410 400 520 330 550 C240 580 150 530 160 450 Z"
-              fill="url(#meadowGrad)" stroke="#67b824" stroke-width="4"/>
-        <ellipse cx="260" cy="440" rx="95" ry="60" fill="#d8ff8a" opacity=".5"/>
-
-        <!-- Whimsical Cartoon Rainbow Arching Over Meadow -->
-        <g class="map-rainbow" opacity=".92">
-          <path d="M160 370 C200 240 330 240 380 360" stroke="#ff70a6" stroke-width="9" fill="none" stroke-linecap="round"/>
-          <path d="M166 370 C204 249 326 249 374 360" stroke="#ffd23f" stroke-width="8" fill="none" stroke-linecap="round"/>
-          <path d="M172 370 C208 258 322 258 368 360" stroke="#06d6a0" stroke-width="8" fill="none" stroke-linecap="round"/>
-          <path d="M178 370 C212 267 318 267 362 360" stroke="#3a86ff" stroke-width="7" fill="none" stroke-linecap="round"/>
-          <path d="M183 370 C215 275 315 275 357 360" stroke="#8338ec" stroke-width="6" fill="none" stroke-linecap="round"/>
-        </g>
-
-        <!-- Cute Toadstool Mushroom Cottage -->
-        <g transform="translate(205 385)" pointer-events="none">
-          <!-- Stem / House walls -->
-          <rect x="-18" y="10" width="36" height="30" rx="10" fill="#fff9ee" stroke="${INK}" stroke-width="3"/>
-          <!-- Arched Wooden Door -->
-          <path d="M-8 40 L-8 24 C-8 18 8 18 8 24 L8 40 Z" fill="#9c6634" stroke="${INK}" stroke-width="2.5"/>
-          <circle cx="5" cy="30" r="2" fill="#ffd23f"/>
-          <!-- Round Window -->
-          <circle cx="-1" cy="18" r="5" fill="#72e2ff" stroke="${INK}" stroke-width="2"/>
-          <!-- Mushroom Cap Roof (Red with white spots) -->
-          <path d="M-34 14 C-34 -18 34 -18 34 14 C20 18 -20 18 -34 14 Z" fill="#ff3b5c" stroke="${INK}" stroke-width="3.5"/>
-          <circle cx="-16" cy="0" r="5" fill="#ffffff"/>
-          <circle cx="12" cy="-4" r="6" fill="#ffffff"/>
-          <circle cx="-2" cy="7" r="4" fill="#ffffff"/>
-          <circle cx="20" cy="8" r="3" fill="#ffffff"/>
-          <!-- Tiny Chimney -->
-          <rect x="14" y="-22" width="8" height="12" rx="2" fill="#e63946" stroke="${INK}" stroke-width="2"/>
-          <ellipse cx="22" cy="-26" rx="4" ry="2.5" fill="#ffffff" opacity=".7"/>
-        </g>
-
-        <!-- Giant Illustrated Shapes in the Meadow -->
-        <!-- Giant Heart -->
-        <g transform="translate(165 470) scale(0.9)" class="map-shape-bounce" pointer-events="none">
-          <path d="M0 8 C-18 -18 -32 4 0 28 C32 4 18 -18 0 8 Z" fill="#ff70a6" stroke="${INK}" stroke-width="3"/>
-          <ellipse cx="-7" cy="4" rx="4" ry="2.5" fill="#ffffff" opacity=".6"/>
-        </g>
-        <!-- Giant Star -->
-        <g transform="translate(355 410) scale(0.95)" class="map-shape-bounce" style="animation-delay:-0.5s" pointer-events="none">
-          <polygon points="0,-24 7,-7 24,-7 11,4 16,21 0,11 -16,21 -11,4 -24,-7 -7,-7" fill="#ffd23f" stroke="${INK}" stroke-width="3"/>
-          <circle cx="-4" cy="2" r="2" fill="${INK}"/><circle cx="4" cy="2" r="2" fill="${INK}"/>
-          <path d="M-3 6 Q0 8 3 6" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/>
-        </g>
-        <!-- Giant Round Circle Pond -->
-        <g transform="translate(265 490)" pointer-events="none">
-          <ellipse cx="0" cy="0" rx="34" ry="20" fill="#38b6ff" stroke="${INK}" stroke-width="3"/>
-          <ellipse cx="-8" cy="-3" rx="14" ry="7" fill="#88dcff" opacity=".6"/>
-          <!-- Lily pad -->
-          <circle cx="14" cy="2" r="6" fill="#27ae60" stroke="${INK}" stroke-width="1.5"/>
-        </g>
-        <!-- Giant Triangle Sculpture -->
-        <g transform="translate(320 355) scale(0.85)" pointer-events="none">
-          <polygon points="0,-24 22,14 -22,14" fill="#27ae60" stroke="${INK}" stroke-width="3"/>
-          <polygon points="0,-18 16,10 -16,10" fill="#70e000" opacity=".6"/>
-        </g>
-
-        <!-- Cheerful Flowers & Toadstools -->
-        ${ART.flower(180, 520, "#ffffff", "#ffd23f", 0.9)}
-        ${ART.flower(345, 475, "#ff70a6", "#ffffff", 0.85)}
-        ${ART.flower(220, 480, "#ffd23f", "#ff3b5c", 0.8)}
-        ${ART.mushroom(295, 440, "#fb5607", 0.9)}
-        ${ART.mushroom(150, 420, "#ff3b5c", 0.75)}
-
-        <!-- Illustrated Wooden Sign: Giggle Meadow -->
-        ${ART.sign(255, 545, "Giggle Meadow", "Colors & Shapes", rMeadow.caught, rMeadow.total, "#2e8b22")}
-      </g>
-
-      <!-- ==================== 5. REGION 2: WOBBLE WOODS (Numbers 1-10) ==================== -->
-      <g class="zone open" data-region="woods" role="button" tabindex="0" aria-label="Wobble Woods: Numbers 1 to 10" pointer-events="auto">
-        <!-- Forest Clearing Base -->
-        <ellipse cx="520" cy="240" rx="170" ry="115" fill="#4ea93b" stroke="#2f7820" stroke-width="4"/>
-        <ellipse cx="480" cy="225" rx="100" ry="55" fill="#6bc256" opacity=".5"/>
-
-        <!-- Cozy Giant Oak Treehouse -->
-        <g transform="translate(520 220)" pointer-events="none">
-          <!-- Giant Trunk -->
-          <path d="M-22 40 C-26 10 -24 -10 0 -20 C24 -10 26 10 22 40 Z" fill="#8b5a2b" stroke="${INK}" stroke-width="3.5"/>
-          <path d="M-10 18 Q0 22 10 18" stroke="#5c3818" stroke-width="2.5" fill="none"/>
-          <!-- Treehouse Door -->
-          <path d="M-8 38 L-8 22 C-8 17 8 17 8 22 L8 38 Z" fill="#ffd23f" stroke="${INK}" stroke-width="2.5"/>
-          <!-- Glowing Round Window -->
-          <circle cx="0" cy="2" r="7" fill="#ffd23f" stroke="${INK}" stroke-width="2"/>
-          <line x1="0" y1="-5" x2="0" y2="9" stroke="${INK}" stroke-width="1.5"/>
-          <line x1="-7" y1="2" x2="7" y2="2" stroke="${INK}" stroke-width="1.5"/>
-          <!-- Hanging Lantern -->
-          <line x1="22" y1="-2" x2="22" y2="12" stroke="${INK}" stroke-width="2"/>
-          <circle cx="22" cy="16" r="5" fill="#ffeaa7" stroke="${INK}" stroke-width="2"/>
-          <!-- Huge Foliage Canopies (Three Layered Green Puffs) -->
-          <circle cx="-32" cy="-28" r="28" fill="#2d8048" stroke="${INK}" stroke-width="3.5"/>
-          <circle cx="32" cy="-28" r="28" fill="#2d8048" stroke="${INK}" stroke-width="3.5"/>
-          <circle cx="0" cy="-48" r="34" fill="#389b58" stroke="${INK}" stroke-width="3.5"/>
-          <circle cx="-16" cy="-36" r="26" fill="#42b86c" stroke="${INK}" stroke-width="3"/>
-          <circle cx="16" cy="-36" r="26" fill="#42b86c" stroke="${INK}" stroke-width="3"/>
-          <!-- Cute Owl in Tree -->
-          <g transform="translate(-18 -42) scale(0.7)">
-            <ellipse cx="0" cy="0" rx="8" ry="10" fill="#9c6634" stroke="${INK}" stroke-width="2"/>
-            <circle cx="-3" cy="-3" r="3" fill="#fff" stroke="${INK}" stroke-width="1.5"/>
-            <circle cx="3" cy="-3" r="3" fill="#fff" stroke="${INK}" stroke-width="1.5"/>
-            <circle cx="-3" cy="-3" r="1.5" fill="${INK}"/>
-            <circle cx="3" cy="-3" r="1.5" fill="${INK}"/>
-            <polygon points="0,0 -2,-2 2,-2" fill="#ffd23f"/>
-          </g>
-        </g>
-
-        <!-- Surrounding Forest Pine & Round Trees -->
-        ${ART.pineTree(410, 190, "#1f683a", 1.15)}
-        ${ART.roundTree(375, 260, "#389b58", 1.05)}
-        ${ART.pineTree(445, 280, "#2d8048", 0.95)}
-        ${ART.roundTree(615, 200, "#42b86c", 1.15)}
-        ${ART.pineTree(645, 265, "#1f683a", 1.1)}
-        ${ART.roundTree(590, 275, "#389b58", 0.95)}
-
-        <!-- Wooden Stepping Stumps with Numbers (1, 2, 3) -->
-        <g transform="translate(450 325)" pointer-events="none">
-          <ellipse cx="0" cy="0" rx="14" ry="9" fill="#c48a48" stroke="${INK}" stroke-width="2.5"/>
-          <text y="5" text-anchor="middle" font-size="14" font-weight="900" fill="${INK}">1</text>
-        </g>
-        <g transform="translate(490 335)" pointer-events="none">
-          <ellipse cx="0" cy="0" rx="14" ry="9" fill="#c48a48" stroke="${INK}" stroke-width="2.5"/>
-          <text y="5" text-anchor="middle" font-size="14" font-weight="900" fill="${INK}">2</text>
-        </g>
-        <g transform="translate(535 330)" pointer-events="none">
-          <ellipse cx="0" cy="0" rx="14" ry="9" fill="#c48a48" stroke="${INK}" stroke-width="2.5"/>
-          <text y="5" text-anchor="middle" font-size="14" font-weight="900" fill="${INK}">3</text>
-        </g>
-
-        <!-- Forest Floor Mushrooms -->
-        ${ART.mushroom(400, 310, "#ff3b5c", 1)}
-        ${ART.mushroom(420, 325, "#fb5607", 0.75)}
-        ${ART.mushroom(610, 320, "#ff3b5c", 0.9)}
-
-        <!-- Illustrated Wooden Sign: Wobble Woods -->
-        ${ART.sign(520, 365, "Wobble Woods", "Numbers 1 to 10", rWoods.caught, rWoods.total, "#1e7232")}
-      </g>
-
-      <!-- ==================== 6. REGION 3: SPARKLE CAVE (Letters A-Z) ==================== -->
-      <g class="zone open" data-region="cave" role="button" tabindex="0" aria-label="Sparkle Cave: Letters A to Z" pointer-events="auto">
-        <!-- Mountain Range Silhouette / Base -->
-        <path d="M630 520 L710 310 L765 370 L830 230 L895 330 L965 520 Z"
-              fill="url(#rockGrad)" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
-
-        <!-- Mountain Peak Highlights & Facets -->
-        <!-- Center Tall Peak -->
-        <polygon points="830,230 805,280 825,270 840,290 855,265" fill="#ffffff" opacity=".9"/>
-        <polygon points="830,230 895,330 850,390 830,310" fill="#4f3596" opacity=".5"/>
-        <!-- Left Peak -->
-        <polygon points="710,310 695,345 710,340 722,352" fill="#ffffff" opacity=".85"/>
-        <polygon points="710,310 765,370 735,410" fill="#4f3596" opacity=".5"/>
-
-        <!-- Big Inviting Arched Cave Mouth -->
-        <g transform="translate(795 480)" pointer-events="none">
-          <!-- Outer Stone Archway -->
-          <path d="M-52 35 C-52 -45 52 -45 52 35 Z" fill="#432c7e" stroke="${INK}" stroke-width="4.5"/>
-          <!-- Glowing Deep Cave Interior -->
-          <path d="M-40 35 C-40 -30 40 -30 40 35 Z" fill="#201044"/>
-          <!-- Warm Glowing Light from inside -->
-          <ellipse cx="0" cy="20" rx="26" ry="14" fill="#ff70a6" opacity=".55"/>
-          <!-- Stalactites hanging down -->
-          <polygon points="-24,-24 -18,-10 -12,-24" fill="#a491e0"/>
-          <polygon points="12,-24 18,-8 24,-24" fill="#a491e0"/>
-          <polygon points="-4,-28 0,-14 4,-28" fill="#ffffff"/>
-          <!-- Friendly Glowing Eyes inside cave -->
-          <circle cx="-10" cy="8" r="3.5" fill="#ffd23f"/><circle cx="10" cy="8" r="3.5" fill="#ffd23f"/>
-        </g>
-
-        <!-- Giant Glowing Crystals Sprouting from Mountains -->
-        ${ART.crystal(660, 475, -25, "#00f0ff", 1.25)}
-        ${ART.crystal(675, 500, -10, "#ff70a6", 1)}
-        ${ART.crystal(910, 480, 20, "#ffd23f", 1.3)}
-        ${ART.crystal(930, 450, 35, "#00f0ff", 1)}
-        ${ART.crystal(735, 360, 15, "#ff70a6", 0.9)}
-        ${ART.crystal(875, 305, -30, "#ffd23f", 0.85)}
-
-        <!-- Cute Cartoon Bat hanging upside-down -->
-        <g transform="translate(730 440)" pointer-events="none">
-          <path d="M-14 8 C-10 -2 -2 2 0 6 C2 2 10 -2 14 8 C6 4 2 12 0 16 C-2 12 -6 4 -14 8 Z" fill="#6d58b0" stroke="${INK}" stroke-width="2"/>
-          <ellipse cx="0" cy="10" rx="4" ry="6" fill="#8e74db"/>
-          <circle cx="-2" cy="9" r="1.5" fill="#fff"/><circle cx="2" cy="9" r="1.5" fill="#fff"/>
-        </g>
-
-        <!-- Floating Magic Sparkles -->
-        <g class="map-sparkles" fill="#ffd23f" pointer-events="none">
-          <polygon points="695,405 698,414 707,414 700,419 702,428 695,423 688,428 690,419 683,414 692,414"/>
-          <polygon points="885,390 887,396 893,396 888,400 890,406 885,402 880,406 882,400 877,396 883,396" transform="scale(0.85) translate(110 50)"/>
-          <polygon points="760,285 762,291 768,291 763,295 765,301 760,297 755,301 757,295 752,291 758,291"/>
-        </g>
-
-        <!-- Illustrated Wooden Sign: Sparkle Cave -->
-        ${ART.sign(795, 545, "Sparkle Cave", "Letters A to Z", rCave.caught, rCave.total, "#613bbd")}
-      </g>
-      </g>
-
-      ${reefIslet(R("reef"))}
-      ${castleIslet(R("castle"))}
-      ${gardenIslet(R("garden"))}
-      ${lagoonIslet(R("lagoon"))}
-
-      <!-- ==================== 7. THE BUDDY MONSTER ==================== -->
-      <g class="map-buddy">
-        ${nested(buddy, 2, bPos[0], bPos[1], 106, "buddy")}
-      </g>
-    </svg>`;
-  }
-
-  const MAP_W = 1024;
-  const MAP_H = 576;
-  const ZONES = [
-    ["meadow", "M35 98 L505 90 L500 225 L350 278 L48 254 Z", 305, 158],
-    ["woods", "M10 230 L275 210 L270 495 L18 474 Z", 135, 292],
-    ["cave", "M245 226 L505 215 L515 520 L245 520 Z", 378, 341],
-    ["reef", "M505 138 L960 118 L962 288 L515 300 Z", 744, 224],
-    ["castle", "M555 18 L840 18 L850 145 L548 150 Z", 690, 112],
-    ["garden", "M468 280 L785 266 L817 548 L475 552 Z", 626, 347],
-    ["lagoon", "M770 270 L1018 248 L1018 545 L760 552 Z", 885, 352]
-  ];
-
-  // Interactive overlay for the hand-painted treasure map. Region text and
-  // progress stay as SVG so they remain crisp, readable, and update live.
-  function illustratedMapSVG({ regions, current, buddy }) {
-    const region = (id) => regions.find((r) => r.id === id) || { caught: 0, total: 0 };
-    const info = {
-      meadow: ["Giggle Meadow", "Colors & Shapes", "#2e8b22"],
-      woods: ["Wobble Woods", "Numbers 1&#8211;10", "#1e7232"],
-      cave: ["Sparkle Cave", "Letters A&#8211;Z", "#613bbd"],
-      reef: ["Rainbow Reef", "More Colors", "#0d8a84"],
-      castle: ["Shape Castle", "Tricky Shapes", "#c2410c"],
-      garden: ["Giant's Garden", "Big & Small", "#b45309"],
-      lagoon: ["Echo Lagoon", "Letter Sounds", "#0369a1"]
-    };
-    const zones = ZONES;
-    const buddyPos = {
-      meadow: [430, 210],
-      woods: [220, 355],
-      cave: [470, 420],
-      reef: [920, 205],
-      castle: [830, 102],
-      garden: [760, 455],
-      lagoon: [970, 440]
-    };
-
-    const label = (id, x, y) => {
-      const r = region(id);
-      const [title, subtitle, color] = info[id];
-      return `<g class="map-sign" transform="translate(${x} ${y})" pointer-events="none"><g class="illustrated-sign">
-        <rect class="sign-board-bg" x="-86" y="-29" width="172" height="58" rx="15" fill="#fffdf6" stroke="${color}" stroke-width="4"/>
-        <text y="-7" text-anchor="middle" font-size="17" font-weight="900" fill="${color}">${title}</text>
-        <text y="10" text-anchor="middle" font-size="10.5" font-weight="700" fill="#665b78">${subtitle}</text>
+    const tag = (l) => {
+      const r = region(l.id);
+      const [x, y] = l.tag;
+      return `<g class="map-sign" transform="translate(${x} ${y})" pointer-events="none"><g class="sign-scale"><g class="illustrated-sign">
+        <rect class="sign-board-bg" x="-86" y="-29" width="172" height="58" rx="15" fill="#fffdf6" stroke="${l.color}" stroke-width="4"/>
+        <text y="-7" text-anchor="middle" font-size="17" font-weight="900" fill="${l.color}">${l.title}</text>
+        <text y="10" text-anchor="middle" font-size="10.5" font-weight="700" fill="#665b78">${l.sub}</text>
         <g transform="translate(0 24)">
           <rect x="-35" y="-9" width="70" height="18" rx="9" fill="#ffd23f" stroke="#2b2440" stroke-width="1.5"/>
           <polygon points="-23,-4 -21,-1 -17,-1 -20,1 -19,5 -23,3 -27,5 -26,1 -29,-1 -25,-1" fill="#2b2440"/>
           <text x="7" y="4" text-anchor="middle" font-size="10.5" font-weight="900" fill="#2b2440">${r.caught} / ${r.total}</text>
         </g>
-      </g></g>`;
+      </g>${current === l.id ? hand : ""}</g></g>`;
     };
 
-    const zoneMarkup = zones.map(([id, path, x, y]) => {
-      const [title, subtitle] = info[id];
-      return `<g class="zone open illustrated-zone ${current === id ? "current" : ""}" data-region="${id}" role="button" tabindex="0" aria-label="${title}: ${subtitle}">
-        <path class="zone-hit" d="${path}" fill="#ffffff" fill-opacity=".001"/>
-        ${label(id, x, y)}
+    const zones = LANDMARKS.map((l) => {
+      const [cx, cy, rx, ry] = l.hit;
+      return `<g class="zone open illustrated-zone ${current === l.id ? "current" : ""}" data-region="${l.id}" role="button" tabindex="0" aria-label="${l.title}: ${l.sub}">
+        <ellipse class="zone-hit" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#ffffff" fill-opacity=".001"/>
+        <g class="landmark-pop" clip-path="url(#clip-${l.id})" style="transform-origin:${cx}px ${cy + ry * 0.8}px" pointer-events="none">${images()}</g>
+        ${tag(l)}
       </g>`;
     }).join("");
 
-    const [bx, by] = buddyPos[current] || buddyPos.meadow;
-    return `<svg class="illustrated-map" viewBox="0 0 1024 576" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
-      <image href="images/monster-hunt-treasure-map.jpg" x="0" y="0" width="1024" height="576" preserveAspectRatio="xMidYMid slice" pointer-events="none"/>
-      ${zoneMarkup}
-      <rect class="grownup-hit" x="85" y="10" width="370" height="80" fill="#ffffff" fill-opacity=".001" pointer-events="all"/>
-      <g class="map-buddy">${nested(buddy, 2, bx, by, 68, "buddy")}</g>
+    const pals = LANDMARKS.map((l) => region(l.id).pals.slice(0, l.pals.length).map((p, i) => {
+      const [x, y] = l.pals[i];
+      return `<g class="pal-idle" style="animation-delay:${-((x * 7) % 23) / 10}s">${nested(p.w, p.stage, x, y, 50, "map-mon")}</g>`;
+    }).join("")).join("");
+
+    const [bx, by] = landmark(current).buddy;
+    return `<svg class="illustrated-map" viewBox="0 0 ${WORLD_W} ${WORLD_H}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
+      ${defs}
+      <g pointer-events="none">${images()}</g>
+      ${zones}
+      ${pals}
+      <g class="buddy-travel"><g class="map-buddy">${nested(buddy, 2, bx, by, 72, "buddy")}</g></g>
     </svg>`;
   }
 
-  // Full-screen pan & zoom viewport for the map. The map always covers the
-  // whole screen (no empty edges), so the smallest zoom is "cover".
+  // ---------------------------------------------------------------- clouds
+
+  function cloudShape(x, y, size, delay) {
+    return `<g transform="translate(${x} ${y}) scale(${size})"><g class="fg-cloud" style="animation-delay:${delay}s">
+      <ellipse cx="0" cy="16" rx="72" ry="16" fill="#d7e6f4"/>
+      <ellipse cx="0" cy="10" rx="70" ry="20" fill="#ffffff"/>
+      <circle cx="-34" cy="0" r="24" fill="#ffffff"/>
+      <circle cx="4" cy="-12" r="34" fill="#ffffff"/>
+      <circle cx="40" cy="0" r="24" fill="#ffffff"/>
+      <ellipse cx="-6" cy="-24" rx="14" ry="7" fill="#ffffff" opacity=".9"/>
+    </g></g>`;
+  }
+
+  // A few clouds float in the sky in front of the painting.
+  const FG_CLOUDS = `<svg viewBox="0 0 ${WORLD_W} ${WORLD_H}" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+    ${cloudShape(260, 40, 0.7, 0)}
+    ${cloudShape(820, 70, 0.6, -6)}
+    ${cloudShape(OX + 20, 30, 0.9, -11)}
+    ${cloudShape(1500, 60, 0.65, -3)}
+    ${cloudShape(1900, 35, 0.8, -8)}
+  </svg>`;
+
+  // Two big cloud banks that cover the screen and slide apart on first open.
+  function curtainSVG(flip) {
+    const puffs = [[60, 20, 90], [40, 160, 110], [70, 300, 100], [30, 440, 120], [80, 580, 95], [50, 720, 110], [70, 860, 100],
+      [170, 90, 80], [190, 250, 90], [160, 400, 85], [185, 540, 90], [170, 690, 85], [190, 830, 80]];
+    return `<svg class="curtain-half ${flip ? "right" : "left"}" viewBox="0 0 260 900" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <g ${flip ? 'transform="translate(260 0) scale(-1 1)"' : ""}>
+        <rect x="0" y="0" width="120" height="900" fill="#ffffff"/>
+        ${puffs.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffffff"/>`).join("")}
+      </g>
+    </svg>`;
+  }
+
+  // ---------------------------------------------------------------- camera
+
+  // Full-screen pan & zoom viewport. The world always covers the whole
+  // screen (no empty edges), so the smallest zoom is "cover".
   function panZoom(viewport, { zoomIn, zoomOut } = {}) {
-    const MAX_ZOOM = 3;
+    const MAX_ZOOM = 2.5;
+    const FOCUS_ZOOM = 1;
     const TAP_SLOP = 10;
+    const PARALLAX = 1.35;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const world = document.createElement("div");
     world.className = "map-world";
-    viewport.replaceChildren(world);
+    const fg = document.createElement("div");
+    fg.className = "map-fg";
+    fg.innerHTML = FG_CLOUDS;
+    for (const el of [world, fg]) {
+      el.style.width = `${WORLD_W}px`;
+      el.style.height = `${WORLD_H}px`;
+    }
+    viewport.replaceChildren(world, fg);
 
     let s = 1, tx = 0, ty = 0, minS = 1, vw = 0, vh = 0;
     let glideTimer = 0, raf = 0;
 
     const maxS = () => minS * MAX_ZOOM;
     const clampScale = (v) => Math.min(Math.max(v, minS), maxS());
+    const lowX = () => vw - WORLD_W * s;
+    const lowY = () => vh - WORLD_H * s;
     const clamp = () => {
       s = clampScale(s);
-      tx = Math.min(0, Math.max(vw - MAP_W * s, tx));
-      ty = Math.min(0, Math.max(vh - MAP_H * s, ty));
+      tx = Math.min(0, Math.max(lowX(), tx));
+      ty = Math.min(0, Math.max(lowY(), ty));
     };
+    const inBounds = () => tx <= 0 && ty <= 0 && tx >= lowX() - 0.5 && ty >= lowY() - 0.5;
+
+    // Name tags keep a steady on-screen size: they grow a little when zooming
+    // in so the art can take over, and size themselves to the screen.
+    const labelScale = () => {
+      const base = Math.min(1.3, Math.max(0.8, Math.min(vw, vh) / 700));
+      return (base / s) * Math.pow(s / minS, 0.4);
+    };
+
     const apply = () => {
       world.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+      world.style.setProperty("--label-k", labelScale().toFixed(4));
+      const fx = tx + (PARALLAX - 1) * (tx - lowX() / 2);
+      const fy = ty + (PARALLAX - 1) * (ty - lowY() / 2);
+      fg.style.transform = `translate(${fx}px, ${fy}px) scale(${s})`;
       if (zoomIn) zoomIn.disabled = s >= maxS() - 1e-3;
       if (zoomOut) zoomOut.disabled = s <= minS + 1e-3;
     };
@@ -699,7 +194,7 @@
       vw = viewport.clientWidth;
       vh = viewport.clientHeight;
       if (!vw || !vh) return false;
-      minS = Math.max(vw / MAP_W, vh / MAP_H);
+      minS = Math.max(vw / WORLD_W, vh / WORLD_H);
       return true;
     };
     const local = (e) => {
@@ -711,11 +206,15 @@
       cancelAnimationFrame(raf);
       clearTimeout(glideTimer);
       world.classList.remove("glide");
+      fg.classList.remove("glide");
     };
-    const glide = () => {
+    const glide = (ms = 450) => {
       stopMotion();
-      world.classList.add("glide");
-      glideTimer = setTimeout(() => world.classList.remove("glide"), 500);
+      for (const el of [world, fg]) {
+        el.style.setProperty("--glide", `${reduceMotion ? 0 : ms}ms`);
+        el.classList.add("glide");
+      }
+      glideTimer = setTimeout(() => { world.classList.remove("glide"); fg.classList.remove("glide"); }, ms + 50);
     };
 
     function zoomAt(target, cx, cy) {
@@ -733,22 +232,69 @@
       zoomAt(s * factor, vw / 2, vh / 2);
     }
 
-    // Center the screen on a region at the full-screen ("cover") zoom.
-    function focus(regionId, animate = false) {
-      if (!measure()) return;
-      const z = ZONES.find(([id]) => id === regionId) || ZONES[0];
-      if (animate) glide(); else stopMotion();
-      s = minS;
-      tx = vw / 2 - z[2] * s;
-      ty = vh / 2 - z[3] * s;
+    function centerOn(x, y) {
+      tx = vw / 2 - x * s;
+      ty = vh / 2 - y * s;
       clamp();
       apply();
+    }
+    const viewCenter = (l) => [(l.hit[0] + l.tag[0]) / 2, (l.hit[1] + l.tag[1]) / 2];
+
+    // Center the screen on a landmark. `animate` is false or a glide time in ms.
+    function focus(regionId, { animate = false, zoom = FOCUS_ZOOM } = {}) {
+      if (!measure()) return;
+      if (animate) glide(animate === true ? 600 : animate); else stopMotion();
+      if (zoom) s = clampScale(minS * zoom);
+      centerOn(...viewCenter(landmark(regionId)));
+    }
+
+    // First open: clouds part, then the camera pans in from the start of the world.
+    function intro(regionId) {
+      if (!measure()) return;
+      stopMotion();
+      s = clampScale(minS * FOCUS_ZOOM);
+      centerOn(0, WORLD_H / 2);
+      if (reduceMotion) { focus(regionId); return; }
+      const curtain = document.createElement("div");
+      curtain.className = "cloud-curtain";
+      curtain.innerHTML = curtainSVG(false) + curtainSVG(true);
+      viewport.appendChild(curtain);
+      setTimeout(() => curtain.remove(), 2200);
+      setTimeout(() => { if (!pts.size) focus(regionId, { animate: 1500 }); }, 700);
+    }
+
+    // The buddy hops along to the tapped landmark while the camera follows.
+    function travelTo(fromId, toId) {
+      return new Promise((resolve) => {
+        if (!measure()) return resolve();
+        const from = landmark(fromId), to = landmark(toId);
+        const dx = to.buddy[0] - from.buddy[0], dy = to.buddy[1] - from.buddy[1];
+        const dist = Math.hypot(dx, dy);
+        const dur = Math.min(1500, 450 + dist * 0.9);
+        glide(Math.max(600, dur));
+        centerOn(...viewCenter(to));
+        const el = world.querySelector(".buddy-travel");
+        if (!el || reduceMotion) { setTimeout(resolve, 300); return; }
+        const hops = Math.max(1, Math.round(dist / 110));
+        const t0 = performance.now();
+        const step = (now) => {
+          const t = Math.min(1, (now - t0) / dur);
+          const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          const hop = Math.abs(Math.sin(Math.PI * hops * t)) * 28;
+          el.setAttribute("transform", `translate(${dx * e} ${dy * e - hop})`);
+          if (t < 1) requestAnimationFrame(step); else resolve();
+        };
+        requestAnimationFrame(step);
+      });
     }
 
     // ---- touch / mouse: one finger drags, two fingers pinch
     const pts = new Map();
     let prev = null, travel = 0, dragged = false;
-    let vx = 0, vy = 0, lastT = 0;
+    let vx = 0, vy = 0, lastT = 0, rawX = 0, rawY = 0;
+
+    // Past the edge the world stretches a little, then springs back on release.
+    const rubber = (v, lo) => (v > 0 ? v * 0.3 : v < lo ? lo + (v - lo) * 0.3 : v);
 
     const gesture = () => {
       const p = [...pts.values()].slice(0, 2);
@@ -757,6 +303,7 @@
       const d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0;
       return { cx, cy, d, n: p.length };
     };
+    const syncRaw = () => { rawX = tx; rawY = ty; };
 
     viewport.addEventListener("pointerdown", (e) => {
       if (e.button > 0) return;
@@ -765,6 +312,7 @@
       if (!pts.size) { travel = 0; dragged = false; vx = vy = 0; }
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       prev = gesture();
+      syncRaw();
       viewport.classList.add("grabbing");
     });
 
@@ -777,13 +325,17 @@
         const dy = g.cy - prev.cy;
         travel += Math.hypot(dx, dy);
         if (g.n > 1 || travel > TAP_SLOP) dragged = true;
-        tx += dx;
-        ty += dy;
         if (g.n > 1 && prev.d > 0) {
+          tx += dx;
+          ty += dy;
           const r = viewport.getBoundingClientRect();
           zoomAt(s * (g.d / prev.d), g.cx - r.left, g.cy - r.top);
+          syncRaw();
         } else {
-          clamp();
+          rawX += dx;
+          rawY += dy;
+          tx = rubber(rawX, lowX());
+          ty = rubber(rawY, lowY());
           apply();
         }
         const now = performance.now();
@@ -797,10 +349,16 @@
 
     const release = (e) => {
       if (!pts.delete(e.pointerId)) return;
-      if (pts.size) { prev = gesture(); vx = vy = 0; return; }
+      if (pts.size) { prev = gesture(); syncRaw(); vx = vy = 0; return; }
       prev = null;
       viewport.classList.remove("grabbing");
-      if (dragged && performance.now() - lastT < 80) coast();
+      if (!inBounds()) {
+        glide(350);
+        clamp();
+        apply();
+      } else if (dragged && performance.now() - lastT < 80) {
+        coast();
+      }
     };
     window.addEventListener("pointerup", release);
     window.addEventListener("pointercancel", release);
@@ -816,7 +374,7 @@
         if (tx !== bx) vx = 0;
         if (ty !== by) vy = 0;
         apply();
-        const f = Math.pow(0.94, dt / 16);
+        const f = Math.pow(0.95, dt / 16);
         vx *= f;
         vy *= f;
         if (Math.hypot(vx, vy) > 0.02) raf = requestAnimationFrame(step);
@@ -824,7 +382,7 @@
       raf = requestAnimationFrame(step);
     }
 
-    // A drag that ends over a place shouldn't count as tapping it.
+    // A drag that ends over a landmark shouldn't count as tapping it.
     viewport.addEventListener("click", (e) => {
       if (!dragged) return;
       e.stopImmediatePropagation();
@@ -832,7 +390,8 @@
       dragged = false;
     }, true);
 
-    // ---- mouse wheel / trackpad: scroll pans, pinch (ctrl+wheel) zooms
+    // ---- mouse wheel / trackpad: scroll pans (sideways when there's no room
+    // to go up or down), pinch (ctrl+wheel) zooms
     viewport.addEventListener("wheel", (e) => {
       e.preventDefault();
       stopMotion();
@@ -841,12 +400,14 @@
       if (e.ctrlKey) {
         const [x, y] = local(e);
         zoomAt(s * Math.exp(-e.deltaY * unit * 0.01), x, y);
-      } else {
-        tx -= e.deltaX * unit;
-        ty -= e.deltaY * unit;
-        clamp();
-        apply();
+        return;
       }
+      let dx = e.deltaX * unit, dy = e.deltaY * unit;
+      if (lowY() > -1 && Math.abs(dy) > Math.abs(dx)) { dx = dy; dy = 0; }
+      tx -= dx;
+      ty -= dy;
+      clamp();
+      apply();
     }, { passive: false });
 
     // Safari on Mac sends trackpad pinches as gesture events instead of ctrl+wheel.
@@ -872,18 +433,17 @@
       const my = (vh / 2 - ty) / s;
       if (!measure()) return;
       s = minS * rel;
-      tx = vw / 2 - mx * s;
-      ty = vh / 2 - my * s;
-      clamp();
-      apply();
+      centerOn(mx, my);
     }).observe(viewport);
 
     return {
       setContent(html) { world.innerHTML = html; },
       focus,
+      intro,
+      travelTo,
       zoomBy
     };
   }
 
-  window.WM_MAP = { mapSVG: illustratedMapSVG, panZoom };
+  window.WM_MAP = { mapSVG: worldSVG, panZoom, WORLD_W, WORLD_H };
 })();

@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "wm-v19";
+const VERSION = "wm-v21";
 const CORE = [
   "./",
   "index.html",
@@ -10,14 +10,17 @@ const CORE = [
   "map.js",
   "fx.js",
   "manifest.webmanifest",
-  "images/monster-hunt-treasure-map.jpg",
+  "images/world-1.jpg",
+  "images/world-2.jpg",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "audio/bouncy-monster-loop.m4a"
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(VERSION)
+    .then((c) => c.addAll(CORE.map((u) => new Request(u, { cache: "reload" }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -37,7 +40,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin === location.origin) {
     // Network first so updates show up; cache keeps it working offline.
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-cache" })
         .then((res) => {
           // Audio is fetched in partial (206) chunks, which the cache can't store.
           if (res.status === 200) {

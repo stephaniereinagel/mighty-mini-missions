@@ -448,25 +448,31 @@
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === `screen-${name}`));
     if (name === "home") {
       renderHome();
-      mapView.focus(currentRegion().id);
+      if (homeShown) mapView.focus(currentRegion().id);
+      else mapView.intro(currentRegion().id);
+      homeShown = true;
     }
     if (name === "dex") renderDex();
   }
 
+  let homeShown = false;
   const mapView = window.WM_MAP.panZoom($("map"), { zoomIn: $("btn-zoom-in"), zoomOut: $("btn-zoom-out") });
+  $("btn-recenter").addEventListener("click", () => {
+    Sfx.pop();
+    mapView.focus(currentRegion().id, { animate: true });
+  });
 
   function renderHome() {
-    const regions = REGIONS.map((r, ri) => {
-      const caughtCount = caughtIn(r);
-      return {
-        id: r.id,
-        name: r.name,
-        color: r.labelColor,
-        open: true,
-        caught: caughtCount,
-        total: r.words.length
-      };
-    });
+    const regions = REGIONS.map((r) => ({
+      id: r.id,
+      caught: caughtIn(r),
+      total: r.words.length,
+      pals: r.words
+        .filter((e) => isCaught(e.w))
+        .sort((a, b) => pts(b.w) - pts(a.w))
+        .slice(0, 2)
+        .map((e) => ({ w: e.w, stage: Math.max(1, stageOf(pts(e.w))) }))
+    }));
     mapView.setContent(window.WM_MAP.mapSVG({ regions, current: currentRegion().id, buddy: "Connor" }));
     $("dex-count").textContent = totalCaught();
   }
@@ -490,15 +496,18 @@
 
     mapBusy = true;
     Sfx.pop();
+    const from = currentRegion().id;
     state.region = REGIONS[ri].id;
     save();
-    renderHome();
-    const picked = $("map").querySelector(`.zone[data-region="${REGIONS[ri].id}"]`);
-    if (picked) {
-      picked.classList.add("chosen");
-      FX.burstAt(picked, 30, { symbols: ["⭐️", "✨", "🌟"], power: 240 });
-    }
-    setTimeout(() => { mapBusy = false; startTrip(); }, 650);
+    mapView.travelTo(from, state.region).then(() => {
+      renderHome();
+      const picked = $("map").querySelector(`.zone[data-region="${state.region}"]`);
+      if (picked) {
+        picked.classList.add("chosen");
+        FX.burstAt(picked.querySelector(".illustrated-sign") || picked, 30, { symbols: ["⭐️", "✨", "🌟"], power: 240 });
+      }
+      setTimeout(() => { mapBusy = false; startTrip(); }, 650);
+    });
   });
 
   // ---------------------------------------------------------------- trip planning
@@ -828,7 +837,7 @@
   $("btn-dex").addEventListener("click", () => { Sfx.pop(); show("dex"); });
   $("btn-dex-home").addEventListener("click", () => show("home"));
 
-  // ---------------------------------------------------------------- grown-up corner (long-press the title or the map's banner)
+  // ---------------------------------------------------------------- grown-up corner (long-press the title)
 
   (function setupLongPress() {
     const el = $("title");
@@ -838,18 +847,6 @@
     ["pointerup", "pointerleave", "pointercancel"].forEach((t) => el.addEventListener(t, cancel));
     el.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
-    // The banner can be dragged with the map, so any real movement cancels the hold.
-    let start = null;
-    $("map").addEventListener("pointerdown", (ev) => {
-      cancel();
-      if (!ev.target.closest(".grownup-hit")) return;
-      start = [ev.clientX, ev.clientY];
-      timer = setTimeout(openParent, 1500);
-    });
-    window.addEventListener("pointermove", (ev) => {
-      if (timer && start && Math.hypot(ev.clientX - start[0], ev.clientY - start[1]) > 10) cancel();
-    });
-    ["pointerup", "pointercancel"].forEach((t) => window.addEventListener(t, cancel));
     $("map").addEventListener("contextmenu", (ev) => ev.preventDefault());
   })();
 
@@ -883,8 +880,8 @@
     $("parent-body").innerHTML = `
       <p>Expeditions played: <b>${state.trips}</b> &middot; Monsters caught: <b>${totalCaught()}</b> / ${ALL.length}</p>
       <p class="muted">Toddler &amp; Preschool Edition for Connor (3), Kyler (almost 3), and Ethan (2).
-        Single-tap matching. The three lands on the big island are the starter level: colors, shapes, numbers 1–10, and letters A–Z.
-        The four small islands are the next level up: more colors, tricky shapes, big/small comparisons, and letter sounds
+        Single-tap matching. The first three places on the map (Giggle Meadow, Wobble Woods, Sparkle Cave) are the starter level: colors, shapes, numbers 1–10, and letters A–Z.
+        The four places further along (Shape Castle, Giant's Garden, Rainbow Reef, Echo Lagoon) are the next level up: more colors, tricky shapes, big/small comparisons, and letter sounds
         (he sees a picture, hears the word, and taps the letter it starts with). Look-alike letters like b/d/p are mixed in on purpose.
         If the robot voice says a sound oddly, record your own for that row.
         Caught = ${STAGE_AT[0]} catch, evolved = ${STAGE_AT[1]}, mega = ${STAGE_AT[2]}.</p>
