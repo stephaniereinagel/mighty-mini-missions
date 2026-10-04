@@ -1,5 +1,8 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "wm-v21";
+const VERSION = "wm-v29";
+const PLACES = ["meadow", "woods", "cave", "castle", "garden", "reef", "lagoon"];
+const SPRITES = [];
+for (let s = 1; s <= 10; s++) for (let st = 1; st <= 3; st++) SPRITES.push(`images/monsters/m${s}-${st}b.webp`, `images/monsters/m${s}-${st}f.webp`);
 const CORE = [
   "./",
   "index.html",
@@ -12,6 +15,10 @@ const CORE = [
   "manifest.webmanifest",
   "images/world-1.jpg",
   "images/world-2.jpg",
+  "images/logo.webp",
+  "images/net.webp",
+  ...PLACES.map((p) => `images/bg-${p}.webp`),
+  ...SPRITES,
   "icons/icon-192.png",
   "icons/icon-512.png",
   "audio/bouncy-monster-loop.m4a"

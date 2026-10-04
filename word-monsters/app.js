@@ -269,15 +269,21 @@
       return v.find((x) => /en[-_]US/i.test(x.lang) && /google/i.test(x.name)) ||
         v.find((x) => /en[-_]US/i.test(x.lang)) || v[0] || null;
     },
+    // Resolves when the line finishes (or is cut off). Some browsers never fire onend,
+    // so a length-based cap keeps callers from waiting forever.
     say(text) {
-      if (!("speechSynthesis" in window)) return;
+      if (!("speechSynthesis" in window)) return Promise.resolve();
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       const v = this.pickVoice();
       if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = "en-US"; }
       u.rate = state.settings.rate;
       u.pitch = 1.1; // slightly higher, friendlier tone for toddlers
-      setTimeout(() => speechSynthesis.speak(u), 60);
+      return new Promise((resolve) => {
+        const cap = setTimeout(resolve, 1500 + (String(text).length * 110) / (u.rate || 1));
+        u.onend = u.onerror = () => { clearTimeout(cap); resolve(); };
+        setTimeout(() => speechSynthesis.speak(u), 60);
+      });
     }
   };
 
@@ -379,9 +385,10 @@
     }
   };
 
-  const sayItemSuccess = (e) => {
-    Music.duck(2200);
-    Speech.say(e.successSay || e.label || e.w);
+  const sayItemSuccess = async (e) => {
+    Music.duck(60000);
+    await Speech.say(e.successSay || e.label || e.w);
+    Music.duck(300);
   };
 
   const sayWord = (w) => {
@@ -552,8 +559,7 @@
     save();
     $("screen-play").style.setProperty("--sky1", region.sky[0]);
     $("screen-play").style.setProperty("--sky2", region.sky[1]);
-    $("screen-play").style.setProperty("--ground", region.ground);
-    FX.scenery($("stage"), region.id);
+    $("screen-play").style.setProperty("--bg", `url("images/bg-${region.id}.webp")`);
     show("play");
     nextEncounter();
   }
@@ -581,6 +587,7 @@
   function renderEncounter() {
     const { e } = enc;
     const mon = $("monster");
+    resetCatchFx();
     mon.className = "monster";
     mon.innerHTML = monsterSVG(e.w, Math.max(1, stageOf(pts(e.w))), false, e.regionIndex >= HARD_FROM);
     void mon.offsetWidth;
@@ -601,8 +608,8 @@
       sign.className = "sign word-sign";
       sign.textContent = e.label;
     } else {
-      sign.className = "sign mystery";
-      sign.innerHTML = `<span class="sign-icon">✨</span>`;
+      sign.className = "sign hidden";
+      sign.innerHTML = "";
     }
 
     let cards;
@@ -709,17 +716,11 @@
     trip.results[trip.i] = { e, before, after, award };
     btn.classList.add("right");
 
-    const net = $("net");
-    net.className = "net";
-    void net.offsetWidth;
-    net.classList.add("drop");
-    await sleep(450);
-
     const mon = $("monster");
+    await netCatch(mon);
+    if (trip !== t) return;
     FX.burstAt(mon, 28, { symbols: ["⭐️", "✨", "🌟"], power: 220 });
-    mon.className = "monster caught";
-    await sleep(450);
-    net.className = "net";
+    await sleep(350);
     if (trip !== t) return;
 
     const evolved = after > before && before >= 1;
@@ -744,16 +745,81 @@
       FX.burstAt(cardEl, 36);
     }
     Sfx.sparkle();
-    setTimeout(() => sayItemSuccess(e), evolved ? 650 : 380);
+    const spoken = sleep(evolved ? 650 : 380).then(() => (trip === t ? sayItemSuccess(e) : null));
 
-    await waitForTapOrTimeout(card, 2600);
+    await waitForTapOrTimeout(card, 2600, spoken.then(() => sleep(400)));
     card.classList.add("hidden");
     if (trip !== t) return;
     trip.i++;
     nextEncounter();
   }
 
-  function waitForTapOrTimeout(el, ms) {
+  // The net flicks down so its ring lands over the monster, then the monster bounces
+  // and shrinks into the ring (drawn above the net so it sits "inside").
+  const NET_ANGLE = 84;
+  const NET_GRIP = "88% 81%"; // the handle grip in images/net.webp
+  const center = (r, fy = 0.5) => [r.left + r.width / 2, r.top + r.height * fy];
+
+  async function netCatch(mon) {
+    const net = $("net");
+    const hoop = net.querySelector(".net-hoop");
+    resetCatchFx();
+    mon.className = "monster";
+
+    net.style.transformOrigin = NET_GRIP;
+    net.style.transform = `translateX(-50%) rotate(${NET_ANGLE}deg) scaleX(-1)`;
+    const [hx, hy] = center(hoop.getBoundingClientRect());
+    const monBox = mon.getBoundingClientRect();
+    const [mx, my] = center(monBox, 0.62);
+    const dx = mx - hx, dy = my - hy;
+    const at = (deg) => `translate(calc(-50% + ${dx}px), ${dy}px) rotate(${deg}deg) scaleX(-1)`;
+
+    // Pivots around the grip, like a wrist flicking the net down over the monster.
+    await animateTo(net, [
+      { transform: at(NET_ANGLE - 115), opacity: 0 },
+      { transform: at(NET_ANGLE - 95), opacity: 1, offset: 0.15 },
+      { transform: at(NET_ANGLE + 10), opacity: 1, offset: 0.7, easing: "ease-out" },
+      { transform: at(NET_ANGLE - 3), opacity: 1, offset: 0.88 },
+      { transform: at(NET_ANGLE), opacity: 1 }
+    ], { duration: 560, easing: "ease-in" });
+
+    Sfx.pop();
+    const ring = hoop.getBoundingClientRect();
+    const s = Math.min(0.6, (ring.width * 0.95) / (monBox.width * 0.78));
+    mon.style.zIndex = 4;
+    mon.style.transformOrigin = "50% 62%";
+    await animateTo(mon, [
+      { transform: "none" },
+      { transform: "translateY(-16%) scale(1.06, .94)", offset: 0.22 },
+      { transform: `translateY(-10%) scale(${(1 + s) / 2})`, offset: 0.5 },
+      { transform: `scale(${s * 1.15}, ${s * 0.85})`, offset: 0.76 },
+      { transform: `translateY(-4%) scale(${s * 0.95}, ${s * 1.05})`, offset: 0.9 },
+      { transform: `scale(${s})` }
+    ], { duration: 720, easing: "ease-out" });
+  }
+
+  // Browsers can silently drop finished fill-forwards animations from getAnimations() while
+  // still showing their last frame, so bake the end state into inline styles that reset can clear.
+  async function animateTo(el, frames, opts) {
+    const a = el.animate(frames, { ...opts, fill: "forwards" });
+    await a.finished.catch(() => {});
+    if (a.playState === "finished") a.commitStyles();
+    a.cancel();
+  }
+
+  function resetCatchFx() {
+    const net = $("net"), mon = $("monster");
+    for (const el of [net, mon]) {
+      el.getAnimations().forEach((a) => { if (!(a instanceof CSSAnimation)) a.cancel(); });
+      el.style.transform = "";
+      el.style.opacity = "";
+      el.style.zIndex = "";
+      el.style.transformOrigin = "";
+    }
+  }
+
+  // Ends on a tap, or once at least `ms` has passed and `until` (e.g. the spoken line) is done.
+  function waitForTapOrTimeout(el, ms, until = Promise.resolve()) {
     return new Promise((resolve) => {
       let done = false;
       const finish = () => {
@@ -763,7 +829,7 @@
         resolve();
       };
       setTimeout(() => el.addEventListener("pointerdown", finish), 600);
-      setTimeout(finish, ms);
+      Promise.all([sleep(ms), until]).then(finish);
     });
   }
 
@@ -1020,6 +1086,5 @@
   }
 
   FX.floaties($("screen-home"));
-  FX.bouncyTitle($("title"));
   show("home");
 })();

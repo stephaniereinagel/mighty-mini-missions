@@ -35,7 +35,7 @@
     { id: "reef", title: "Rainbow Reef", sub: "More Colors", color: "#0d8a84",
       hit: [OX + 650, 360, 125, 165], tag: [OX + 650, 478], buddy: [OX + 760, 505], pals: [[OX + 545, 470], [OX + 745, 420]] },
     { id: "lagoon", title: "Echo Lagoon", sub: "Letter Sounds", color: "#0369a1",
-      hit: [OX + 885, 380, 130, 170], tag: [OX + 885, 478], buddy: [OX + 985, 505], pals: [[OX + 790, 300], [OX + 1000, 400]] }
+      hit: [OX + 885, 380, 130, 170], tag: [OX + 885, 478], buddy: [OX + 835, 425], pals: [[OX + 790, 300], [OX + 1000, 400]] }
   ];
   const landmark = (id) => LANDMARKS.find((l) => l.id === id) || LANDMARKS[0];
 
@@ -100,8 +100,41 @@
       <g pointer-events="none">${images()}</g>
       ${zones}
       ${pals}
-      <g class="buddy-travel"><g class="map-buddy">${nested(buddy, 2, bx, by, 72, "buddy")}</g></g>
+      <g class="buddy-travel">${buddyArt(buddy, bx, by)}</g>
     </svg>`;
+  }
+
+  const BUDDY_SIZE = 108;
+  const star = (s) => {
+    const pts = [];
+    for (let i = 0; i < 8; i++) {
+      const r = i % 2 ? s * 0.32 : s, a = (Math.PI / 4) * i - Math.PI / 2;
+      pts.push(`${(Math.cos(a) * r).toFixed(1)},${(Math.sin(a) * r).toFixed(1)}`);
+    }
+    return pts.join(" ");
+  };
+
+  // The child's own monster: golden spotlight, glowing outline and sparkles.
+  function buddyArt(word, x, y) {
+    const sparkles = [[-62, -70, 13, 0], [58, -88, 10, 0.5], [70, -30, 14, 1], [-70, -18, 9, 0.3], [4, -118, 11, 0.8], [-36, -108, 8, 1.2]]
+      .map(([dx, dy, s, d]) => `<g transform="translate(${x + dx} ${y + dy})"><polygon class="buddy-sparkle" style="animation-delay:${d}s" points="${star(s)}" fill="${s > 10 ? "#fff6b0" : "#ffffff"}" stroke="#ffb400" stroke-width="1.5" stroke-linejoin="round"/></g>`).join("");
+    return `<defs>
+        <radialGradient id="buddy-spot-grad"><stop offset="0" stop-color="#fffbe0"/><stop offset=".45" stop-color="#ffe066" stop-opacity=".9"/><stop offset="1" stop-color="#ffb400" stop-opacity="0"/></radialGradient>
+        <filter id="buddy-glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feMorphology in="SourceAlpha" operator="dilate" radius="3.5" result="fat"/>
+          <feFlood flood-color="#ffffff"/><feComposite in2="fat" operator="in" result="outline"/>
+          <feMorphology in="SourceAlpha" operator="dilate" radius="6" result="fatter"/>
+          <feGaussianBlur in="fatter" stdDeviation="8" result="blur"/>
+          <feFlood flood-color="#ffcc00"/><feComposite in2="blur" operator="in" result="halo"/>
+          <feMerge><feMergeNode in="halo"/><feMergeNode in="halo"/><feMergeNode in="halo"/><feMergeNode in="outline"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g pointer-events="none">
+        <ellipse class="buddy-spot" cx="${x}" cy="${y + 6}" rx="${BUDDY_SIZE * 0.8}" ry="${BUDDY_SIZE * 0.26}" fill="url(#buddy-spot-grad)"/>
+        <ellipse class="buddy-ring" cx="${x}" cy="${y + 6}" rx="${BUDDY_SIZE * 0.55}" ry="${BUDDY_SIZE * 0.16}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="10 8"/>
+      </g>
+      <g class="map-buddy"><g filter="url(#buddy-glow)">${nested(word, 2, x, y, BUDDY_SIZE, "buddy")}</g></g>
+      <g class="buddy-sparkles" pointer-events="none">${sparkles}</g>`;
   }
 
   // ---------------------------------------------------------------- clouds

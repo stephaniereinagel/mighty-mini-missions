@@ -1,4 +1,4 @@
-// Visual sparkle: confetti, floating background bits, bouncy title, scenery, speech bubbles.
+// Visual sparkle: confetti, floating background bits, speech bubbles.
 (() => {
   "use strict";
 
@@ -74,53 +74,6 @@
     container.prepend(box);
   }
 
-  function bouncyTitle(el) {
-    if (!el || el.dataset.bouncy) return;
-    el.dataset.bouncy = "1";
-    let i = 0;
-    el.querySelectorAll("span.word-part").forEach((part) => {
-      const text = part.textContent;
-      part.textContent = "";
-      [...text].forEach((ch) => {
-        const s = document.createElement("span");
-        s.className = "ltr";
-        s.textContent = ch;
-        s.style.setProperty("--i", i++);
-        part.appendChild(s);
-      });
-    });
-  }
-
-  const SCENERY = {
-    meadow: { ground: ["\u{1F337}", "\u{1F33C}", "\u{1F338}", "\u{1F33B}", "\u{1F340}"], air: ["\u{1F98B}", "\u{1F41D}"] },
-    woods: { ground: ["\u{1F333}", "\u{1F344}", "\u{1F332}", "\u{1F33F}", "\u{1F344}"], air: ["\u{1F426}", "\u{1F343}"] },
-    cave: { ground: ["\u{1F48E}", "\u{1F52E}", "\u{1FAA8}", "\u{1F48E}", "\u{1F344}"], air: ["\u{1F987}", "\u2728"] },
-    reef: { ground: ["\u{1F41A}", "\u{1FAB8}", "\u{1F980}", "\u{1F41A}", "\u{1FAB8}"], air: ["\u{1F420}", "\u{1FAE7}"] },
-    castle: { ground: ["\u{1F3F0}", "\u{1F6A9}", "\u{1F33A}", "\u{1F3F0}", "\u{1F6A9}"], air: ["\u{1F409}", "\u2B50"] },
-    garden: { ground: ["\u{1F33B}", "\u{1F955}", "\u{1F33B}", "\u{1F33D}", "\u{1F33B}"], air: ["\u{1F41D}", "\u{1F98B}"] },
-    lagoon: { ground: ["\u{1F334}", "\u{1F438}", "\u{1FAB7}", "\u{1F334}", "\u{1F438}"], air: ["\u{1F99C}", "\u{1F3B5}"] }
-  };
-
-  function scenery(stage, regionId) {
-    stage.querySelectorAll(".scenery").forEach((s) => s.remove());
-    const set = SCENERY[regionId] || SCENERY.meadow;
-    const box = document.createElement("div");
-    box.className = `scenery scenery-${regionId}`;
-    let html = "";
-    for (let i = 0; i < 3; i++) {
-      html += `<span class="cloud" style="top:${6 + i * 13}%;--dur:${rand(40, 70)}s;--delay:${-rand(0, 60)}s;--scale:${rand(0.6, 1.2)}"></span>`;
-    }
-    const spots = [3, 13, 24, 76, 87, 95];
-    spots.forEach((left, i) => {
-      html += `<span class="deco ground-deco" style="left:${left}%;--size:${rand(34, 58)}px;--delay:${i * 0.3}s">${set.ground[i % set.ground.length]}</span>`;
-    });
-    set.air.forEach((sym, i) => {
-      html += `<span class="deco air-deco" style="top:${18 + i * 22}%;--dur:${rand(9, 14)}s;--delay:${-rand(0, 10)}s">${sym}</span>`;
-    });
-    box.innerHTML = html;
-    stage.prepend(box);
-  }
-
   const LINES = {
     hello: ["Catch me!", "Hee hee!", "Boop!", "Wanna play?", "I'm sneaky!", "Wiggle wiggle!", "Peekaboo!", "Bet you can't!", "Yoo-hoo!"],
     hear: ["Find me!", "Which one is me?", "Listen close!"],
@@ -159,5 +112,5 @@
     setTimeout(() => f.remove(), 600);
   }
 
-  window.WM_FX = { confetti, burstAt, rain, floaties, bouncyTitle, scenery, say, shake, flash };
+  window.WM_FX = { confetti, burstAt, rain, floaties, say, shake, flash };
 })();
