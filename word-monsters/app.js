@@ -446,9 +446,14 @@
 
   function show(name) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === `screen-${name}`));
-    if (name === "home") renderHome();
+    if (name === "home") {
+      renderHome();
+      mapView.focus(currentRegion().id);
+    }
     if (name === "dex") renderDex();
   }
+
+  const mapView = window.WM_MAP.panZoom($("map"), { zoomIn: $("btn-zoom-in"), zoomOut: $("btn-zoom-out") });
 
   function renderHome() {
     const regions = REGIONS.map((r, ri) => {
@@ -462,7 +467,7 @@
         total: r.words.length
       };
     });
-    $("map").innerHTML = window.WM_MAP.mapSVG({ regions, current: currentRegion().id, buddy: "Connor" });
+    mapView.setContent(window.WM_MAP.mapSVG({ regions, current: currentRegion().id, buddy: "Connor" }));
     $("dex-count").textContent = totalCaught();
   }
 
@@ -823,7 +828,7 @@
   $("btn-dex").addEventListener("click", () => { Sfx.pop(); show("dex"); });
   $("btn-dex-home").addEventListener("click", () => show("home"));
 
-  // ---------------------------------------------------------------- grown-up corner (long-press the title)
+  // ---------------------------------------------------------------- grown-up corner (long-press the title or the map's banner)
 
   (function setupLongPress() {
     const el = $("title");
@@ -832,6 +837,20 @@
     el.addEventListener("pointerdown", () => { cancel(); timer = setTimeout(openParent, 1500); });
     ["pointerup", "pointerleave", "pointercancel"].forEach((t) => el.addEventListener(t, cancel));
     el.addEventListener("contextmenu", (ev) => ev.preventDefault());
+
+    // The banner can be dragged with the map, so any real movement cancels the hold.
+    let start = null;
+    $("map").addEventListener("pointerdown", (ev) => {
+      cancel();
+      if (!ev.target.closest(".grownup-hit")) return;
+      start = [ev.clientX, ev.clientY];
+      timer = setTimeout(openParent, 1500);
+    });
+    window.addEventListener("pointermove", (ev) => {
+      if (timer && start && Math.hypot(ev.clientX - start[0], ev.clientY - start[1]) > 10) cancel();
+    });
+    ["pointerup", "pointercancel"].forEach((t) => window.addEventListener(t, cancel));
+    $("map").addEventListener("contextmenu", (ev) => ev.preventDefault());
   })();
 
   function openParent() {

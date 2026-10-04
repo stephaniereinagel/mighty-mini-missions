@@ -1,5 +1,5 @@
 // Hand-crafted Cartoon Storybook Island Map for Monster Hunt.
-// 100% pure SVG vector illustration  NO emojis.
+// 100% pure SVG vector illustration - NO emojis.
 // Designed for Connor (3), Kyler (almost 3), and Ethan (2).
 
 (() => {
@@ -603,28 +603,32 @@
     </svg>`;
   }
 
+  const MAP_W = 1024;
+  const MAP_H = 576;
+  const ZONES = [
+    ["meadow", "M35 98 L505 90 L500 225 L350 278 L48 254 Z", 305, 158],
+    ["woods", "M10 230 L275 210 L270 495 L18 474 Z", 135, 292],
+    ["cave", "M245 226 L505 215 L515 520 L245 520 Z", 378, 341],
+    ["reef", "M505 138 L960 118 L962 288 L515 300 Z", 744, 224],
+    ["castle", "M555 18 L840 18 L850 145 L548 150 Z", 690, 112],
+    ["garden", "M468 280 L785 266 L817 548 L475 552 Z", 626, 347],
+    ["lagoon", "M770 270 L1018 248 L1018 545 L760 552 Z", 885, 352]
+  ];
+
   // Interactive overlay for the hand-painted treasure map. Region text and
   // progress stay as SVG so they remain crisp, readable, and update live.
   function illustratedMapSVG({ regions, current, buddy }) {
     const region = (id) => regions.find((r) => r.id === id) || { caught: 0, total: 0 };
     const info = {
       meadow: ["Giggle Meadow", "Colors & Shapes", "#2e8b22"],
-      woods: ["Wobble Woods", "Numbers 1–10", "#1e7232"],
-      cave: ["Sparkle Cave", "Letters A–Z", "#613bbd"],
+      woods: ["Wobble Woods", "Numbers 1&#8211;10", "#1e7232"],
+      cave: ["Sparkle Cave", "Letters A&#8211;Z", "#613bbd"],
       reef: ["Rainbow Reef", "More Colors", "#0d8a84"],
       castle: ["Shape Castle", "Tricky Shapes", "#c2410c"],
       garden: ["Giant's Garden", "Big & Small", "#b45309"],
       lagoon: ["Echo Lagoon", "Letter Sounds", "#0369a1"]
     };
-    const zones = [
-      ["meadow", "M35 98 L505 90 L500 225 L350 278 L48 254 Z", 305, 158],
-      ["woods", "M10 230 L275 210 L270 495 L18 474 Z", 135, 292],
-      ["cave", "M245 226 L505 215 L515 520 L245 520 Z", 378, 341],
-      ["reef", "M505 138 L960 118 L962 288 L515 300 Z", 744, 224],
-      ["castle", "M555 18 L840 18 L850 145 L548 150 Z", 690, 112],
-      ["garden", "M468 280 L785 266 L817 548 L475 552 Z", 626, 347],
-      ["lagoon", "M770 270 L1018 248 L1018 545 L760 552 Z", 885, 352]
-    ];
+    const zones = ZONES;
     const buddyPos = {
       meadow: [430, 210],
       woods: [220, 355],
@@ -638,7 +642,7 @@
     const label = (id, x, y) => {
       const r = region(id);
       const [title, subtitle, color] = info[id];
-      return `<g class="map-sign illustrated-sign" transform="translate(${x} ${y})" pointer-events="none">
+      return `<g class="map-sign" transform="translate(${x} ${y})" pointer-events="none"><g class="illustrated-sign">
         <rect class="sign-board-bg" x="-86" y="-29" width="172" height="58" rx="15" fill="#fffdf6" stroke="${color}" stroke-width="4"/>
         <text y="-7" text-anchor="middle" font-size="17" font-weight="900" fill="${color}">${title}</text>
         <text y="10" text-anchor="middle" font-size="10.5" font-weight="700" fill="#665b78">${subtitle}</text>
@@ -647,7 +651,7 @@
           <polygon points="-23,-4 -21,-1 -17,-1 -20,1 -19,5 -23,3 -27,5 -26,1 -29,-1 -25,-1" fill="#2b2440"/>
           <text x="7" y="4" text-anchor="middle" font-size="10.5" font-weight="900" fill="#2b2440">${r.caught} / ${r.total}</text>
         </g>
-      </g>`;
+      </g></g>`;
     };
 
     const zoneMarkup = zones.map(([id, path, x, y]) => {
@@ -662,9 +666,224 @@
     return `<svg class="illustrated-map" viewBox="0 0 1024 576" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="Andika, sans-serif">
       <image href="images/monster-hunt-treasure-map.jpg" x="0" y="0" width="1024" height="576" preserveAspectRatio="xMidYMid slice" pointer-events="none"/>
       ${zoneMarkup}
+      <rect class="grownup-hit" x="85" y="10" width="370" height="80" fill="#ffffff" fill-opacity=".001" pointer-events="all"/>
       <g class="map-buddy">${nested(buddy, 2, bx, by, 68, "buddy")}</g>
     </svg>`;
   }
 
-  window.WM_MAP = { mapSVG: illustratedMapSVG };
+  // Full-screen pan & zoom viewport for the map. The map always covers the
+  // whole screen (no empty edges), so the smallest zoom is "cover".
+  function panZoom(viewport, { zoomIn, zoomOut } = {}) {
+    const MAX_ZOOM = 3;
+    const TAP_SLOP = 10;
+    const world = document.createElement("div");
+    world.className = "map-world";
+    viewport.replaceChildren(world);
+
+    let s = 1, tx = 0, ty = 0, minS = 1, vw = 0, vh = 0;
+    let glideTimer = 0, raf = 0;
+
+    const maxS = () => minS * MAX_ZOOM;
+    const clampScale = (v) => Math.min(Math.max(v, minS), maxS());
+    const clamp = () => {
+      s = clampScale(s);
+      tx = Math.min(0, Math.max(vw - MAP_W * s, tx));
+      ty = Math.min(0, Math.max(vh - MAP_H * s, ty));
+    };
+    const apply = () => {
+      world.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+      if (zoomIn) zoomIn.disabled = s >= maxS() - 1e-3;
+      if (zoomOut) zoomOut.disabled = s <= minS + 1e-3;
+    };
+    const measure = () => {
+      vw = viewport.clientWidth;
+      vh = viewport.clientHeight;
+      if (!vw || !vh) return false;
+      minS = Math.max(vw / MAP_W, vh / MAP_H);
+      return true;
+    };
+    const local = (e) => {
+      const r = viewport.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top];
+    };
+
+    const stopMotion = () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(glideTimer);
+      world.classList.remove("glide");
+    };
+    const glide = () => {
+      stopMotion();
+      world.classList.add("glide");
+      glideTimer = setTimeout(() => world.classList.remove("glide"), 500);
+    };
+
+    function zoomAt(target, cx, cy) {
+      const k = clampScale(target) / s;
+      tx = cx - (cx - tx) * k;
+      ty = cy - (cy - ty) * k;
+      s *= k;
+      clamp();
+      apply();
+    }
+
+    function zoomBy(factor) {
+      if (!measure()) return;
+      glide();
+      zoomAt(s * factor, vw / 2, vh / 2);
+    }
+
+    // Center the screen on a region at the full-screen ("cover") zoom.
+    function focus(regionId, animate = false) {
+      if (!measure()) return;
+      const z = ZONES.find(([id]) => id === regionId) || ZONES[0];
+      if (animate) glide(); else stopMotion();
+      s = minS;
+      tx = vw / 2 - z[2] * s;
+      ty = vh / 2 - z[3] * s;
+      clamp();
+      apply();
+    }
+
+    // ---- touch / mouse: one finger drags, two fingers pinch
+    const pts = new Map();
+    let prev = null, travel = 0, dragged = false;
+    let vx = 0, vy = 0, lastT = 0;
+
+    const gesture = () => {
+      const p = [...pts.values()].slice(0, 2);
+      const cx = p.reduce((a, q) => a + q.x, 0) / p.length;
+      const cy = p.reduce((a, q) => a + q.y, 0) / p.length;
+      const d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0;
+      return { cx, cy, d, n: p.length };
+    };
+
+    viewport.addEventListener("pointerdown", (e) => {
+      if (e.button > 0) return;
+      stopMotion();
+      measure();
+      if (!pts.size) { travel = 0; dragged = false; vx = vy = 0; }
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      prev = gesture();
+      viewport.classList.add("grabbing");
+    });
+
+    window.addEventListener("pointermove", (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const g = gesture();
+      if (prev && prev.n === g.n) {
+        const dx = g.cx - prev.cx;
+        const dy = g.cy - prev.cy;
+        travel += Math.hypot(dx, dy);
+        if (g.n > 1 || travel > TAP_SLOP) dragged = true;
+        tx += dx;
+        ty += dy;
+        if (g.n > 1 && prev.d > 0) {
+          const r = viewport.getBoundingClientRect();
+          zoomAt(s * (g.d / prev.d), g.cx - r.left, g.cy - r.top);
+        } else {
+          clamp();
+          apply();
+        }
+        const now = performance.now();
+        const dt = Math.max(1, now - lastT);
+        vx = vx * 0.6 + (dx / dt) * 0.4;
+        vy = vy * 0.6 + (dy / dt) * 0.4;
+        lastT = now;
+      }
+      prev = g;
+    });
+
+    const release = (e) => {
+      if (!pts.delete(e.pointerId)) return;
+      if (pts.size) { prev = gesture(); vx = vy = 0; return; }
+      prev = null;
+      viewport.classList.remove("grabbing");
+      if (dragged && performance.now() - lastT < 80) coast();
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+
+    // Keep the swipe gliding a little after the finger lifts.
+    function coast() {
+      let t0 = performance.now();
+      const step = (now) => {
+        const dt = Math.min(32, now - t0);
+        t0 = now;
+        const bx = (tx += vx * dt), by = (ty += vy * dt);
+        clamp();
+        if (tx !== bx) vx = 0;
+        if (ty !== by) vy = 0;
+        apply();
+        const f = Math.pow(0.94, dt / 16);
+        vx *= f;
+        vy *= f;
+        if (Math.hypot(vx, vy) > 0.02) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }
+
+    // A drag that ends over a place shouldn't count as tapping it.
+    viewport.addEventListener("click", (e) => {
+      if (!dragged) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      dragged = false;
+    }, true);
+
+    // ---- mouse wheel / trackpad: scroll pans, pinch (ctrl+wheel) zooms
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      stopMotion();
+      measure();
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vh : 1;
+      if (e.ctrlKey) {
+        const [x, y] = local(e);
+        zoomAt(s * Math.exp(-e.deltaY * unit * 0.01), x, y);
+      } else {
+        tx -= e.deltaX * unit;
+        ty -= e.deltaY * unit;
+        clamp();
+        apply();
+      }
+    }, { passive: false });
+
+    // Safari on Mac sends trackpad pinches as gesture events instead of ctrl+wheel.
+    let gestureStart = 1;
+    viewport.addEventListener("gesturestart", (e) => { e.preventDefault(); gestureStart = s; });
+    viewport.addEventListener("gesturechange", (e) => {
+      e.preventDefault();
+      if (pts.size) return;
+      const [x, y] = local(e);
+      zoomAt(gestureStart * e.scale, x, y);
+    });
+    viewport.addEventListener("gestureend", (e) => e.preventDefault());
+    viewport.addEventListener("dragstart", (e) => e.preventDefault());
+
+    if (zoomIn) zoomIn.addEventListener("click", () => zoomBy(1.6));
+    if (zoomOut) zoomOut.addEventListener("click", () => zoomBy(1 / 1.6));
+
+    // Keep the same spot centered when the screen rotates or resizes.
+    new ResizeObserver(() => {
+      if (!vw || !vh) { if (measure()) { clamp(); apply(); } return; }
+      const rel = s / minS;
+      const mx = (vw / 2 - tx) / s;
+      const my = (vh / 2 - ty) / s;
+      if (!measure()) return;
+      s = minS * rel;
+      tx = vw / 2 - mx * s;
+      ty = vh / 2 - my * s;
+      clamp();
+      apply();
+    }).observe(viewport);
+
+    return {
+      setContent(html) { world.innerHTML = html; },
+      focus,
+      zoomBy
+    };
+  }
+
+  window.WM_MAP = { mapSVG: illustratedMapSVG, panZoom };
 })();
