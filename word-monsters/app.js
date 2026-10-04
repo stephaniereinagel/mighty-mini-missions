@@ -259,6 +259,15 @@
       const load = () => { this.voices = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)); };
       load();
       speechSynthesis.onvoiceschanged = load;
+      // Safari drops speech that doesn't start inside a tap until one utterance has, and the
+      // first question is spoken well after the map tap, so warm it up on the first touch.
+      const unlock = () => {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        speechSynthesis.speak(u);
+        ["touchend", "click", "keydown"].forEach((t) => document.removeEventListener(t, unlock, true));
+      };
+      ["touchend", "click", "keydown"].forEach((t) => document.addEventListener(t, unlock, true));
     },
     pickVoice() {
       const v = this.voices;
