@@ -51,7 +51,7 @@
     }
     return reach.has(amount);
   }
-  const fmt = (c) => (c < 100 ? `${c}${CENT}` : `$${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}`);
+  const fmt = (c) => `$${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}`;
   function sayMoney(c) {
     if (c < 100) return `${c} ${c === 1 ? "cent" : "cents"}`;
     const d = Math.floor(c / 100);
@@ -204,14 +204,9 @@
     return entry;
   }
 
-  // dollars: digits fill in like a cash register, so typing 1 3 5 shows $1.35.
-  function showDisplay(el, entry, dollars = false) {
-    if (dollars) {
-      const c = entry ? parseInt(entry, 10) : 0;
-      el.innerHTML = `<span class="entry ${entry ? "" : "dim"}">$${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}</span>`;
-      return;
-    }
-    el.innerHTML = `<span class="entry">${entry || "&nbsp;&nbsp;"}</span><span class="unit">${CENT}</span>`;
+  // Digits fill in like a cash register, so typing 4 7 shows $0.47 and 1 3 5 shows $1.35.
+  function showDisplay(el, entry) {
+    el.innerHTML = `<span class="entry ${entry ? "" : "dim"}">${fmt(entry ? parseInt(entry, 10) : 0)}</span>`;
   }
 
   function flash(el, cls) {
@@ -847,23 +842,23 @@
     if (!count || count.locked) return;
     if (k === "ok") return submitCount();
     count.entry = padInput(count.entry, k);
-    showDisplay($("countDisplay"), count.entry, count.dollars);
+    showDisplay($("countDisplay"), count.entry);
   });
 
   function startCount() {
     const haul = shuffle(run.haul.slice());
     const total = haul.reduce((s, d) => s + d, 0);
     count = {
-      haul, total, dollars: total >= 100, rots: haul.map(() => Math.round(Math.random() * 40 - 20)),
+      haul, total, rots: haul.map(() => Math.round(Math.random() * 40 - 20)),
       attempts: 0, mode: "spread", entry: "", tapped: 0, running: 0, locked: false, newLevel: null
     };
     show("count");
-    const prompt = count.dollars ? "How much did you collect? It's more than a dollar!" : "How much did you collect?";
+    const prompt = "How much did you collect?";
     $("countPrompt").textContent = prompt;
     $("countHelp").textContent = "";
-    showDisplay($("countDisplay"), "", count.dollars);
+    showDisplay($("countDisplay"), "");
     renderCountTable();
-    Voice.say(count.dollars ? `${prompt} Type the dollars, then the cents.` : prompt);
+    Voice.say(prompt);
   }
 
   function renderCountTable() {
@@ -902,11 +897,11 @@
     count.tapped += 1;
     Sfx.drop();
     renderCountTable();
-    $("countHelp").textContent = `Counting up: ${count.running}`;
+    $("countHelp").textContent = `Counting up: ${fmt(count.running)}`;
     if (count.tapped >= sorted.length) {
       count.locked = false;
       Voice.say(`${count.running}. Now type the total.`);
-      $("countHelp").textContent = `Counting up: ${count.running}. Now type the total!`;
+      $("countHelp").textContent = `Counting up: ${fmt(count.running)}. Now type the total!`;
     } else {
       Voice.say(String(count.running));
     }
@@ -1012,7 +1007,7 @@
 
     count.attempts += 1;
     count.entry = "";
-    showDisplay($("countDisplay"), "", count.dollars);
+    showDisplay($("countDisplay"), "");
     flash($("countDisplay"), "wrong");
     Sfx.oops();
     const help = (msg) => { $("countHelp").textContent = msg; Voice.say(msg); };
@@ -1660,7 +1655,7 @@
     if (!pay || !pay.changeMode) return;
     if (k === "ok") return submitChange();
     pay.changeEntry = padInput(pay.changeEntry, k, 4);
-    showDisplay($("changeDisplay"), pay.changeEntry, changeInDollars());
+    showDisplay($("changeDisplay"), pay.changeEntry);
   });
 
   function openPay(item) {
@@ -1745,7 +1740,7 @@
       $("changeAsk").classList.remove("hidden");
       const msg = `You paid ${fmt(paid)}. It costs ${fmt(price)}. How much change do you get back?`;
       $("changePrompt").textContent = msg;
-      showDisplay($("changeDisplay"), "", changeInDollars());
+      showDisplay($("changeDisplay"), "");
       renderPay();
       Voice.say(msg);
       return;
@@ -1769,7 +1764,7 @@
     }
     pay.changeAttempts += 1;
     pay.changeEntry = "";
-    showDisplay($("changeDisplay"), "", changeInDollars());
+    showDisplay($("changeDisplay"), "");
     flash($("changeDisplay"), "wrong");
     Sfx.oops();
     if (pay.changeAttempts === 1) {
@@ -1784,8 +1779,6 @@
       setTimeout(() => finishPurchase(change), 1800);
     }
   }
-
-  const changeInDollars = () => !!pay && purseTotal(pay.counter) - pay.item.price >= 100;
 
   function finishPurchase(change = 0) {
     const p = P();

@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "crr-v6";
+const VERSION = "crr-v7";
 const CORE = [
   "./",
   "index.html",
