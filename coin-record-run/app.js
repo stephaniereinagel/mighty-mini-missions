@@ -422,7 +422,10 @@
       </button>`;
     }).join("") + (() => {
       const [x, y] = MAP_SPOTS[p.level] || [50, 50];
-      return `<img src="${runnerImg()}" class="map-runner" alt="" draggable="false" style="left:${x}%;top:${y}%" />`;
+      const next = MAP_SPOTS[p.level + 1];
+      const prev = MAP_SPOTS[p.level - 1];
+      const right = next ? next[0] > x : prev ? x > prev[0] : true;
+      return `<img src="${runnerImg()}" class="map-runner" alt="" draggable="false" style="left:${x}%;top:${y}%;--flip:${right ? -1 : 1}" />`;
     })();
     requestAnimationFrame(() => {
       const box = $("levelMapScroll");
@@ -611,7 +614,7 @@
       case "magnet": return "Nearby coins fly to you.";
       case "shield": return `Bounce off ${v} rock${s} without tripping.`;
       case "time": return `${v} more seconds to run.`;
-      case "bag": return `Carry ${v} more coins.`;
+      case "bag": return level().maxCoins ? `Carry ${v} more coins.` : `${v} more seconds to run.`;
       case "slow": return "Coins fall slower.";
       case "rain": return `${v} coin shower${s} during the run.`;
       case "lucky": return "More big coins fall.";
@@ -690,14 +693,15 @@
       .filter((i) => i && i.power && S.powers[i.power] && p.owned.includes(i.id))
       .slice(0, S.powerSlots)
       .forEach((i) => { pw[i.power] = { item: i, v: powerVal(i) }; });
-    const dur = G.runSeconds + (pw.time ? pw.time.v : 0);
+    const timed = !L.maxCoins;
+    const dur = (L.seconds || G.runSeconds) + (pw.time ? pw.time.v : 0) + (timed && pw.bag ? pw.bag.v : 0);
     const showers = pw.rain ? Array.from({ length: pw.rain.v }, (_, k) => (dur * (k + 1)) / (pw.rain.v + 1)) : [];
     run = {
       L, t: 0, dur, items: [], haul: [],
       spawnT: 0.2, obsT: 3, trailT: 0, x: 0, targetX: 0, stumble: 0,
       last: 0, running: false, lastLane: -1, ended: false,
       pw,
-      maxCoins: L.maxCoins + (pw.bag ? pw.bag.v : 0),
+      maxCoins: timed ? Infinity : L.maxCoins + (pw.bag ? pw.bag.v : 0),
       weights: luckyWeights(L.weights, pw.lucky ? pw.lucky.v : 0),
       shields: pw.shield ? pw.shield.v : 0,
       slow: pw.slow ? pw.slow.v : 1,
@@ -920,7 +924,8 @@
 
   function updateRunHud() {
     $("timerFill").style.width = `${Math.max(0, 100 - (run.t / run.dur) * 100)}%`;
-    $("trayCount").textContent = `${run.haul.length} / ${run.maxCoins} coins`;
+    const n = run.haul.length;
+    $("trayCount").textContent = run.maxCoins === Infinity ? `${n} coin${n === 1 ? "" : "s"}` : `${n} / ${run.maxCoins} coins`;
   }
 
   function endRun(msg) {

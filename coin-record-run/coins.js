@@ -26,10 +26,11 @@ window.CRR_COINS = {
 };
 
 // weights: how often each coin shows up during a run.
+// maxCoins: null means the run only ends when time runs out, so the haul size varies.
 window.CRR_LEVELS = [
   {
     id: 0, name: "Little Counters", short: "Pennies",
-    weights: { 1: 1 }, maxCoins: 10, speed: 170, obstacles: false,
+    weights: { 1: 1 }, maxCoins: null, seconds: 20, speed: 170, obstacles: false,
     labels: true, titheShown: true,
     note: "Pennies only. Great for Gabi and Connor."
   },

@@ -143,10 +143,10 @@ button:disabled { cursor: default; }
 }
 .node-stars i.on { color: #ffd54a; }
 .map-runner {
-  position: absolute; width: 12%; transform: translate(-50%, -112%); pointer-events: none; z-index: 2;
+  position: absolute; width: 12%; transform: translate(-50%, -112%) scaleX(var(--flip, 1)); pointer-events: none; z-index: 2;
   filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.35)); animation: mapHop 0.9s ease-in-out infinite alternate;
 }
-@keyframes mapHop { to { transform: translate(-50%, -124%); } }
+@keyframes mapHop { to { transform: translate(-50%, -124%) scaleX(var(--flip, 1)); } }
 /* Jars */
 .jar-shelf { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .jar { display: flex; flex-direction: column; align-items: center; border: 0; background: none; padding: 0; }
