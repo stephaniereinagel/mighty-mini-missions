@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <main id="app">
@@ -75,7 +75,7 @@
         <div id="world" class="world">
           <div class="road" aria-hidden="true"></div>
           <div id="entities"></div>
-          <div id="runner" class="runner"><img id="runnerImg" alt="" draggable="false" /></div>
+          <div id="runner" class="runner"><img id="runnerImg" alt="" draggable="false" /><img class="dizzy" src="assets/stars.png" alt="" draggable="false" /></div>
           <div id="runBanner" class="run-banner hidden"></div>
           <p id="dragHint" class="drag-hint">Drag to move</p>
         </div>
@@ -89,6 +89,7 @@
           <button id="countHear" class="round-btn" type="button" aria-label="Hear it again">&#128264;</button>
         </header>
         <div id="countTable" class="coin-table"></div>
+        <p id="countTip" class="tray-label">Tip: drag the coins to put the same kinds together</p>
         <p id="countHelp" class="help-line"></p>
         <div class="answer">
           <div id="countDisplay" class="answer-display"></div>
@@ -192,9 +193,9 @@
         </div>
       </div>
     </main>
-    <script src="coins.js?v=4"></script>
-    <script src="jars.js?v=4"></script>
-    <script src="store.js?v=4"></script>
-    <script src="app.js?v=4"></script>
+    <script src="coins.js?v=6"></script>
+    <script src="jars.js?v=6"></script>
+    <script src="store.js?v=6"></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>

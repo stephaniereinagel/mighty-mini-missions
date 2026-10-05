@@ -77,6 +77,7 @@
       bestHaul: 0,
       runs: 0,
       investRuns: 0,
+      investLots: [],
       jars: { tithe: emptyPurse(), invest: emptyPurse(), save: emptyPurse(), spend: emptyPurse() },
       given: 0,
       gifts: 0,
@@ -203,7 +204,13 @@
     return entry;
   }
 
-  function showDisplay(el, entry) {
+  // dollars: digits fill in like a cash register, so typing 1 3 5 shows $1.35.
+  function showDisplay(el, entry, dollars = false) {
+    if (dollars) {
+      const c = entry ? parseInt(entry, 10) : 0;
+      el.innerHTML = `<span class="entry ${entry ? "" : "dim"}">$${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}</span>`;
+      return;
+    }
     el.innerHTML = `<span class="entry">${entry || "&nbsp;&nbsp;"}</span><span class="unit">${CENT}</span>`;
   }
 
@@ -381,7 +388,7 @@
   $("helpBtn").addEventListener("click", () => {
     openGeneric(`<h2>How to play</h2>
       <ol class="how">
-        <li><b>Run!</b> Drag your runner side to side to grab coins. Dodge the rocks and cactus.</li>
+        <li><b>Run!</b> Drag your runner side to side to grab coins. Dodge the rocks and cactus: bumping one makes you dizzy, and you can't grab coins until it wears off.</li>
         <li><b>Count.</b> Add up your coins and type the total.</li>
         <li><b>Give first.</b> 1 cent of every 10 goes in the Tithe jar for God.</li>
         <li><b>Split the rest.</b> Drag coins into Invest (it grows!), Save (for a big goal), and Spend (for the store).</li>
@@ -451,8 +458,15 @@
     }
     const cause = t.closest("[data-cause]");
     if (cause) return giveTo(cause.dataset.cause);
-    const move = t.closest("[data-move]");
-    if (move) return moveInvest(move.dataset.move);
+    if (t.closest("[data-wd-open]")) return openWithdraw();
+    if (t.closest("[data-wd-cancel]")) { wd = null; return openInvest(); }
+    if (t.closest("[data-wd-exchange]")) return withdrawExchange();
+    const take = t.closest("[data-wd-take]");
+    if (take) return withdrawPick(Number(take.dataset.wdTake), 1);
+    const back = t.closest("[data-wd-back]");
+    if (back) return withdrawPick(Number(back.dataset.wdBack), -1);
+    const wto = t.closest("[data-wd-to]");
+    if (wto && !wto.disabled) return withdrawTo(wto.dataset.wdTo);
   });
 
   // ---------- Powers ----------
@@ -709,6 +723,7 @@
       const near = Math.abs(it.x - run.x) < it.r + reach && Math.abs(it.y - run.runnerY) < it.r + reach;
       if (near) {
         if (it.kind === "coin" && run.stumble <= 0) collect(it);
+        else if (it.kind === "coin" && !it.missed) { it.missed = true; it.el.classList.add("missed"); }
         else if (it.kind === "obstacle") hitObstacle(it);
       } else if (it.y > run.H + 60) {
         it.gone = true;
@@ -745,8 +760,14 @@
       return;
     }
     it.el.remove();
-    run.stumble = 0.8;
+    run.stumble = 1.2;
     runnerEl.classList.add("stumble");
+    const pop = document.createElement("div");
+    pop.className = "bonk-pop";
+    pop.textContent = "Dizzy!";
+    pop.style.transform = `translate(${run.x}px, ${run.runnerY - 70 * run.scale}px) translate(-50%, -50%)`;
+    entities.appendChild(pop);
+    setTimeout(() => pop.remove(), 1100);
     Sfx.bonk();
   }
 
@@ -826,29 +847,34 @@
     if (!count || count.locked) return;
     if (k === "ok") return submitCount();
     count.entry = padInput(count.entry, k);
-    showDisplay($("countDisplay"), count.entry);
+    showDisplay($("countDisplay"), count.entry, count.dollars);
   });
 
   function startCount() {
     const haul = shuffle(run.haul.slice());
-    count = { haul, total: haul.reduce((s, d) => s + d, 0), attempts: 0, mode: "spread", entry: "", tapped: 0, running: 0, locked: false, newLevel: null };
+    const total = haul.reduce((s, d) => s + d, 0);
+    count = {
+      haul, total, dollars: total >= 100, rots: haul.map(() => Math.round(Math.random() * 40 - 20)),
+      attempts: 0, mode: "spread", entry: "", tapped: 0, running: 0, locked: false, newLevel: null
+    };
     show("count");
-    $("countPrompt").textContent = "How much did you collect?";
+    const prompt = count.dollars ? "How much did you collect? It's more than a dollar!" : "How much did you collect?";
+    $("countPrompt").textContent = prompt;
     $("countHelp").textContent = "";
-    showDisplay($("countDisplay"), "");
+    showDisplay($("countDisplay"), "", count.dollars);
     renderCountTable();
-    Voice.say("How much did you collect?");
+    Voice.say(count.dollars ? `${prompt} Type the dollars, then the cents.` : prompt);
   }
 
   function renderCountTable() {
     const L = level();
     const table = $("countTable");
+    $("countTip").classList.toggle("hidden", count.mode !== "spread");
     if (count.mode === "spread") {
-      table.className = "coin-table";
-      table.innerHTML = count.haul.map((d) => {
-        const rot = Math.round(Math.random() * 40 - 20);
-        return `<span class="spread" style="transform:rotate(${rot}deg)">${coinHTML(d, { size: 1.25, label: L.labels })}</span>`;
-      }).join("");
+      table.className = "coin-table movable";
+      table.innerHTML = count.haul.map((d, i) =>
+        `<span class="spread" data-idx="${i}" style="transform:rotate(${count.rots[i]}deg)">${coinHTML(d, { size: 1.25, label: L.labels })}</span>`
+      ).join("");
       return;
     }
     const sorted = count.haul.slice().sort((a, b) => b - a);
@@ -885,6 +911,65 @@
       Voice.say(String(count.running));
     }
   });
+
+  // Drag coins around the counting table to put the same kinds together.
+  let cdrag = null;
+  function clearCountMarks() {
+    document.querySelectorAll("#countTable .drop-before, #countTable .drop-after").forEach((el) => el.classList.remove("drop-before", "drop-after"));
+  }
+  function countDropAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (!el || !el.closest("#countTable")) return null;
+    const sp = el.closest(".spread[data-idx]");
+    if (!sp) return { el: null, at: count.haul.length };
+    const r = sp.getBoundingClientRect();
+    const after = x > r.left + r.width / 2;
+    return { el: sp, after, at: Number(sp.dataset.idx) + (after ? 1 : 0) };
+  }
+  $("countTable").addEventListener("pointerdown", (e) => {
+    if (!count || count.mode !== "spread" || count.locked || cdrag) return;
+    const sp = e.target.closest(".spread[data-idx]");
+    if (!sp) return;
+    e.preventDefault();
+    const idx = Number(sp.dataset.idx);
+    const ghost = document.createElement("div");
+    ghost.className = "drag-ghost";
+    ghost.innerHTML = coinHTML(count.haul[idx], { size: 1.35, label: level().labels });
+    document.body.appendChild(ghost);
+    sp.classList.add("dragging");
+    cdrag = { idx, ghost, el: sp };
+    ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+    Sfx.get();
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!cdrag) return;
+    e.preventDefault();
+    cdrag.ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+    clearCountMarks();
+    const t = countDropAt(e.clientX, e.clientY);
+    if (t && t.el && t.el !== cdrag.el) t.el.classList.add(t.after ? "drop-after" : "drop-before");
+  }, { passive: false });
+  function endCountDrag(e, drop) {
+    if (!cdrag) return;
+    const d = cdrag;
+    cdrag = null;
+    d.ghost.remove();
+    d.el.classList.remove("dragging");
+    clearCountMarks();
+    const t = drop && countDropAt(e.clientX, e.clientY);
+    if (!t || !count || count.mode !== "spread") return;
+    let at = t.at;
+    if (at === d.idx || at === d.idx + 1) return;
+    const [coin] = count.haul.splice(d.idx, 1);
+    const [rot] = count.rots.splice(d.idx, 1);
+    if (at > d.idx) at -= 1;
+    count.haul.splice(at, 0, coin);
+    count.rots.splice(at, 0, rot);
+    Sfx.drop();
+    renderCountTable();
+  }
+  window.addEventListener("pointerup", (e) => endCountDrag(e, true));
+  window.addEventListener("pointercancel", (e) => endCountDrag(e, false));
 
   $("countHear").addEventListener("click", () => Voice.say($("countPrompt").textContent));
 
@@ -927,7 +1012,7 @@
 
     count.attempts += 1;
     count.entry = "";
-    showDisplay($("countDisplay"), "");
+    showDisplay($("countDisplay"), "", count.dollars);
     flash($("countDisplay"), "wrong");
     Sfx.oops();
     const help = (msg) => { $("countHelp").textContent = msg; Voice.say(msg); };
@@ -1210,6 +1295,8 @@
     p.runs += 1;
     p.investRuns += 1;
     if (count.newLevel != null) p.level = count.newLevel;
+    const invested = purseTotal(sort.added.invest);
+    if (invested) investLots().push({ cents: invested, run: p.runs });
 
     if (p.investRuns % J.invest.everyRuns === 0) {
       const bonus = Math.floor(jarTotal("invest") / 10) * J.invest.centsPer10;
@@ -1345,28 +1432,117 @@
     const total = jarTotal("invest");
     const left = J.invest.everyRuns - (p.investRuns % J.invest.everyRuns);
     const next = Math.floor(total / 10) * J.invest.centsPer10;
+    const lots = investLots();
+    const ready = investReady();
     openGeneric(`${art(J.jars.invest.img, "modal-art")}<h2>Invest Jar</h2>
       <p class="big-total">${fmt(total)}</p>
       <div class="grow-bar"><i style="width:${((J.invest.everyRuns - left) / J.invest.everyRuns) * 100}%"></i></div>
       <p>${left} more run${left === 1 ? "" : "s"} until your money grows!</p>
       <p class="note">Every ${J.invest.everyRuns} runs, your Invest jar earns 1 cent for every 10 cents inside. Right now it would earn ${fmt(next)}.</p>
-      ${total ? `<p class="note">Moving money out means it stops growing.</p>
+      ${total ? `<div class="invest-split">
+        <div class="invest-box ready"><small>Ready to take out</small><b>${fmt(ready)}</b></div>
+        <div class="invest-box locked"><small>${ICON.lock} Still locked</small><b>${fmt(total - ready)}</b></div>
+      </div>
+      ${lots.length ? `<ul class="lot-list">${lots.map((l) => {
+        const n = lockRuns() - (p.runs - l.run);
+        return `<li><span>${fmt(l.cents)}</span><b>ready in ${n} run${n === 1 ? "" : "s"}</b></li>`;
+      }).join("")}</ul>` : ""}
+      <p class="note">Money you put in Invest stays for ${lockRuns()} runs. Money you take out stops growing.</p>` : ""}
       <div class="row">
-        <button type="button" class="secondary-btn" data-move="save">Move all to Save</button>
-        <button type="button" class="secondary-btn" data-move="spend">Move all to Spend</button>
-      </div>` : ""}
-      <button type="button" class="primary-btn" data-close>Keep growing</button>`);
-    Voice.say(`Your Invest jar has ${fmt(total)}. ${left} more runs until your money grows!`);
+        ${ready ? `<button type="button" class="secondary-btn" data-wd-open>Take some out</button>` : ""}
+        <button type="button" class="primary-btn" data-close>Keep growing</button>
+      </div>`);
+    const lockedSay = total - ready ? ` ${fmt(total - ready)} is still locked.` : "";
+    Voice.say(`Your Invest jar has ${fmt(total)}. ${left} more runs until your money grows!${lockedSay}`);
   }
 
-  function moveInvest(to) {
-    if (!window.confirm(`Move all your Invest money to ${J.jars[to].name}? It will stop growing.`)) return;
+  // Each deposit stays locked for lockRuns runs. Older deposits drop off the list once they're ready.
+  const lockRuns = () => J.invest.lockRuns || 5;
+  function investLots() {
     const p = P();
-    mergeInto(p.jars[to], p.jars.invest);
-    p.jars.invest = emptyPurse();
+    p.investLots = (p.investLots || []).filter((l) => p.runs - l.run < lockRuns());
+    return p.investLots;
+  }
+  const investReady = () => Math.max(0, jarTotal("invest") - investLots().reduce((s, l) => s + l.cents, 0));
+
+  let wd = null;
+  function openWithdraw() {
+    wd = { pick: emptyPurse() };
+    renderWithdraw();
+    Voice.say(`You can take out up to ${fmt(investReady())}. Tap the coins you want to take.`);
+  }
+
+  function renderWithdraw(msg = "") {
+    const p = P();
+    const ready = investReady();
+    const picked = purseTotal(wd.pick);
+    const inJar = clonePurse(p.jars.invest);
+    removeFrom(inJar, wd.pick);
+    const coins = (purse, attr) => purseList(purse).map((d) => coinHTML(d, { size: 0.8, label: true, attrs: `${attr}="${d}"` })).join("");
+    openGeneric(`<h2>Take money out</h2>
+      <p>Ready to take out: <b>${fmt(ready)}</b></p>
+      <p class="tray-label">In your Invest jar ${ICON.dot} tap the coins you want</p>
+      <div class="coin-table compact wd-table">${coins(inJar, "data-wd-take") || `<p class="note">No coins left.</p>`}</div>
+      <p class="tray-label">Taking out: <b>${fmt(picked)}</b> ${ICON.dot} tap a coin to put it back</p>
+      <div class="coin-table compact wd-table wd-pick">${coins(wd.pick, "data-wd-back") || `<p class="note">Nothing yet.</p>`}</div>
+      <p class="help-line">${msg}</p>
+      <div class="row">
+        <button type="button" class="secondary-btn" data-wd-exchange>Exchange coins</button>
+        <button type="button" class="primary-btn" data-wd-to="save" ${picked ? "" : "disabled"}>Move ${fmt(picked)} to Save</button>
+        <button type="button" class="primary-btn" data-wd-to="spend" ${picked ? "" : "disabled"}>Move ${fmt(picked)} to Spend</button>
+      </div>
+      <button type="button" class="text-btn" data-wd-cancel>Never mind</button>`);
+  }
+
+  function withdrawPick(d, dir) {
+    if (!wd) return;
+    if (dir > 0) {
+      const inJar = (P().jars.invest[d] || 0) - wd.pick[d];
+      if (inJar <= 0) return;
+      const ready = investReady();
+      if (purseTotal(wd.pick) + d > ready) {
+        Sfx.oops();
+        const msg = `That's too much! Only ${fmt(ready)} is ready. The rest is still growing.`;
+        renderWithdraw(msg);
+        Voice.say(msg);
+        return;
+      }
+      wd.pick[d] += 1;
+    } else {
+      if (!wd.pick[d]) return;
+      wd.pick[d] -= 1;
+    }
+    Sfx.drop();
+    renderWithdraw();
+    if (dir > 0) Voice.say(fmt(purseTotal(wd.pick)));
+  }
+
+  function withdrawExchange() {
+    if (!wd) return;
+    wd.pick = emptyPurse();
+    closeGeneric(false);
+    openExchange(P().jars.invest, () => {
+      if (!$("exchangeModal").classList.contains("hidden")) return;
+      save();
+      renderWithdraw();
+    });
+  }
+
+  function withdrawTo(to) {
+    if (!wd) return;
+    const p = P();
+    const amount = purseTotal(wd.pick);
+    if (!amount || amount > investReady()) return;
+    removeFrom(p.jars.invest, wd.pick);
+    mergeInto(p.jars[to], wd.pick);
+    wd = null;
+    const pending = checkTrophies();
     save();
     closeGeneric(false);
+    Sfx.ching();
+    Voice.say(`You moved ${fmt(amount)} to ${J.jars[to].name}.`);
     renderHome();
+    if (pending.length) celebrate(pending, renderHome);
   }
 
   function openSave() {
@@ -1483,8 +1659,8 @@
   makeNumpad($("changePad"), (k) => {
     if (!pay || !pay.changeMode) return;
     if (k === "ok") return submitChange();
-    pay.changeEntry = padInput(pay.changeEntry, k, 3);
-    showDisplay($("changeDisplay"), pay.changeEntry);
+    pay.changeEntry = padInput(pay.changeEntry, k, 4);
+    showDisplay($("changeDisplay"), pay.changeEntry, changeInDollars());
   });
 
   function openPay(item) {
@@ -1569,7 +1745,7 @@
       $("changeAsk").classList.remove("hidden");
       const msg = `You paid ${fmt(paid)}. It costs ${fmt(price)}. How much change do you get back?`;
       $("changePrompt").textContent = msg;
-      showDisplay($("changeDisplay"), "");
+      showDisplay($("changeDisplay"), "", changeInDollars());
       renderPay();
       Voice.say(msg);
       return;
@@ -1593,7 +1769,7 @@
     }
     pay.changeAttempts += 1;
     pay.changeEntry = "";
-    showDisplay($("changeDisplay"), "");
+    showDisplay($("changeDisplay"), "", changeInDollars());
     flash($("changeDisplay"), "wrong");
     Sfx.oops();
     if (pay.changeAttempts === 1) {
@@ -1608,6 +1784,8 @@
       setTimeout(() => finishPurchase(change), 1800);
     }
   }
+
+  const changeInDollars = () => !!pay && purseTotal(pay.counter) - pay.item.price >= 100;
 
   function finishPurchase(change = 0) {
     const p = P();

@@ -241,6 +241,20 @@ button:disabled { cursor: default; }
 @keyframes bob { to { transform: translateY(-6px); } }
 .runner.stumble img { animation: stumble 0.2s linear infinite; filter: grayscale(0.6); }
 @keyframes stumble { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+.runner img.dizzy {
+  display: none; position: absolute; left: 50%; top: -14%; width: 60%; height: auto;
+  margin-left: -30%; filter: none; animation: dizzySpin 0.8s linear infinite;
+}
+.runner.stumble img.dizzy { display: block; animation: dizzySpin 0.8s linear infinite; filter: none; }
+@keyframes dizzySpin { to { transform: rotate(360deg); } }
+.bonk-pop {
+  position: absolute; left: 0; top: 0; pointer-events: none; z-index: 5;
+  font-family: "Fredoka", sans-serif; font-size: 1.6rem; font-weight: 700; color: #fff;
+  padding: 2px 12px; border-radius: 999px; background: var(--bad); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  animation: bonkPop 1.1s ease-out forwards;
+}
+@keyframes bonkPop { 0% { opacity: 0; margin-top: 10px; } 15% { opacity: 1; margin-top: 0; } 75% { opacity: 1; } 100% { opacity: 0; margin-top: -24px; } }
+.falling.missed { opacity: 0.3; filter: grayscale(1); }
 .run-banner {
   position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%);
   font-size: clamp(2.4rem, 9vw, 4rem); font-weight: 700; color: var(--gold);
@@ -268,6 +282,16 @@ button:disabled { cursor: default; }
 .coin-table.compact { gap: 8px; min-height: 70px; padding: 12px; }
 .coin-table.rows { flex-direction: column; align-items: stretch; }
 .spread { display: inline-block; }
+.coin-table.movable { touch-action: none; }
+.coin-table.movable .spread { cursor: grab; position: relative; }
+.spread.dragging { opacity: 0.25; }
+.spread.drop-before::before, .spread.drop-after::after {
+  content: ""; position: absolute; top: 5%; bottom: 5%; width: 6px; border-radius: 3px;
+  background: var(--gold); box-shadow: 0 0 10px var(--gold);
+}
+.spread.drop-before::before { left: -8px; }
+.spread.drop-after::after { right: -8px; }
+.answer-display .entry.dim { opacity: 0.35; }
 .coin-row { display: flex; align-items: center; gap: 12px; }
 .coin-row.small { justify-content: center; }
 .row-label { min-width: 90px; font-weight: 700; font-size: 0.95rem; }
@@ -402,6 +426,19 @@ button:disabled { cursor: default; }
 .grow-bar.save i { background: #58a6ff; }
 .goal-show { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
 .goal-show img { width: 110px; height: 110px; object-fit: contain; }
+.invest-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 8px; }
+.invest-box { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px; border-radius: 16px; border: 2px solid var(--line); }
+.invest-box small { color: var(--muted); }
+.invest-box b { font-family: "Fredoka", sans-serif; font-size: 1.6rem; }
+.invest-box.ready { border-color: var(--good); background: rgba(76, 195, 138, 0.15); }
+.invest-box.ready b { color: var(--good); }
+.invest-box.locked { background: rgba(255, 255, 255, 0.05); }
+.lot-list { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; font-size: 0.95rem; }
+.lot-list li { display: flex; justify-content: space-between; padding: 6px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
+.lot-list b { color: var(--muted); font-weight: 400; }
+.wd-table { min-height: 76px; max-height: 30vh; overflow-y: auto; margin: 4px 0 10px; }
+.wd-table .coin { cursor: pointer; }
+.wd-pick { border-color: var(--good); }
 .deposit-list { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; }
 .deposit-list li { display: flex; justify-content: space-between; padding: 10px 16px; border-radius: 14px; border: 2px solid var(--jar); background: color-mix(in srgb, var(--jar) 18%, transparent); font-size: 1.15rem; }
 

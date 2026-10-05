@@ -12,7 +12,8 @@ window.CRR_JARS = {
   titheEvery: 10,
 
   // Every 5 runs, Invest earns 1 cent for every 10 cents inside.
-  invest: { everyRuns: 5, centsPer10: 1 },
+  // Money put in has to stay lockRuns runs before it can be taken out. Growth is ready right away.
+  invest: { everyRuns: 5, centsPer10: 1, lockRuns: 5 },
 
   causes: [
     {
