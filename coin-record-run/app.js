@@ -13,7 +13,7 @@
   const CENT = "\u00a2";
   const ICON = {
     sound: "\u{1F50A}", mute: "\u{1F507}", lock: "\u{1F512}", check: "\u2713", back: "\u232B",
-    arrow: "\u279C", person: "\u{1F464}", down: "\u25BE", heart: "\u{1F49B}", dot: "\u00b7", times: "\u00d7"
+    arrow: "\u279C", person: "\u{1F464}", down: "\u25BE", heart: "\u{1F49B}", dot: "\u00b7", times: "\u00d7", star: "\u2605"
   };
 
   const $ = (id) => document.getElementById(id);
@@ -162,6 +162,28 @@
       o.stop(t + dur + 0.02);
     },
     blip() { this.tone(988, 0.07, { type: "square", vol: 0.05 }); this.tone(1319, 0.12, { type: "square", vol: 0.05, delay: 0.06 }); },
+    coinBuf: null,
+    coinLoading: null,
+    loadCoin() {
+      const c = this.get();
+      if (!c || this.coinLoading) return;
+      this.coinLoading = fetch("assets/audio/coin.m4a")
+        .then((r) => r.arrayBuffer())
+        .then((b) => new Promise((res, rej) => c.decodeAudioData(b, res, rej)))
+        .then((buf) => { this.coinBuf = buf; })
+        .catch(() => { this.coinLoading = null; });
+    },
+    coin() {
+      const c = this.get();
+      if (!c || muted) return;
+      if (!this.coinBuf) { this.loadCoin(); this.blip(); return; }
+      const s = c.createBufferSource();
+      const g = c.createGain();
+      s.buffer = this.coinBuf;
+      g.gain.value = 0.6;
+      s.connect(g).connect(c.destination);
+      s.start();
+    },
     ching() { [1568, 2093, 2637].forEach((f, i) => this.tone(f, 0.28, { type: "triangle", vol: 0.12, delay: i * 0.07 })); },
     oops() { this.tone(330, 0.28, { vol: 0.12, slide: 0.6 }); },
     bonk() { this.tone(140, 0.2, { type: "square", vol: 0.07, slide: 0.5 }); },
@@ -169,11 +191,107 @@
     fanfare() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, 0.24, { type: "square", vol: 0.06, delay: i * 0.13 })); }
   };
 
+  // Background music. Each pass starts `overlap` seconds before the last one ends, crossfading over that time.
+  const Music = {
+    src: "assets/audio/music.m4a",
+    vol: 0.3,
+    overlap: 0.5,
+    buffer: null,
+    loading: null,
+    out: null,
+    nextAt: 0,
+    timer: null,
+    playing: false,
+    sources: [],
+    load() {
+      if (!this.loading) {
+        const c = Sfx.get();
+        this.loading = fetch(this.src)
+          .then((r) => r.arrayBuffer())
+          .then((b) => new Promise((res, rej) => c.decodeAudioData(b, res, rej)))
+          .then((buf) => { this.buffer = buf; return buf; });
+        this.loading.catch(() => { this.loading = null; });
+      }
+      return this.loading;
+    },
+    async start() {
+      if (muted || this.playing) return;
+      const c = Sfx.get();
+      if (!c) return;
+      this.playing = true;
+      try { await this.load(); } catch (e) { this.playing = false; return; }
+      if (!this.playing) return;
+      if (!this.out) {
+        this.out = c.createGain();
+        this.out.connect(c.destination);
+      }
+      const t = c.currentTime;
+      this.out.gain.cancelScheduledValues(t);
+      this.out.gain.setValueAtTime(0.0001, t);
+      this.out.gain.exponentialRampToValueAtTime(this.vol, t + 1.5);
+      this.nextAt = t + 0.05;
+      this.first = true;
+      this.schedule();
+    },
+    schedule() {
+      if (!this.playing) return;
+      const c = Sfx.ctx;
+      const dur = this.buffer.duration;
+      const x = Math.min(this.overlap, dur / 4);
+      while (this.nextAt < c.currentTime + 3) {
+        const t = this.nextAt;
+        const s = c.createBufferSource();
+        const g = c.createGain();
+        s.buffer = this.buffer;
+        if (this.first) g.gain.setValueAtTime(1, t);
+        else {
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(1, t + x);
+        }
+        g.gain.setValueAtTime(1, t + dur - x);
+        g.gain.linearRampToValueAtTime(0, t + dur);
+        s.connect(g).connect(this.out);
+        s.start(t);
+        s.onended = () => { this.sources = this.sources.filter((o) => o !== s); };
+        this.sources.push(s);
+        this.first = false;
+        this.nextAt = t + dur - x;
+      }
+      this.timer = setTimeout(() => this.schedule(), 1000);
+    },
+    stop() {
+      this.playing = false;
+      clearTimeout(this.timer);
+      this.sources.forEach((s) => { try { s.stop(); } catch (e) { /* already stopped */ } });
+      this.sources = [];
+    }
+  };
+  // Browsers only allow audio after the first tap.
+  window.addEventListener("pointerdown", () => { Sfx.loadCoin(); Music.start(); }, { once: true });
+  document.addEventListener("visibilitychange", () => {
+    const c = Sfx.ctx;
+    if (!c) return;
+    if (document.hidden) c.suspend();
+    else c.resume();
+  });
+
   // ---------- Shared UI ----------
   function show(name) {
     Object.entries(screens).forEach(([k, el]) => el.classList.toggle("hidden", k !== name));
+    if (name !== "home") closeSheets();
     window.scrollTo(0, 0);
   }
+
+  function openSheet(id) {
+    closeSheets();
+    $(id).classList.remove("hidden");
+  }
+  function closeSheets() {
+    document.querySelectorAll(".sheet").forEach((s) => s.classList.add("hidden"));
+  }
+  document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => {
+    if (e.target === s || e.target.closest("[data-close-sheet]")) closeSheets();
+  }));
 
   function coinHTML(d, { size = 1, label = true, cls = "", attrs = "" } = {}) {
     const c = COINS[d];
@@ -276,6 +394,9 @@
   }
 
   // ---------- Home ----------
+  // Where each level's pad sits on assets/level_map.jpg, as % of its width and height (level 0 at the bottom).
+  const MAP_SPOTS = [[29.3, 87.2], [72.4, 71.8], [27.7, 57.9], [70.2, 44.6], [29.9, 32.1], [63.0, 21.0]];
+
   function runnerImg() {
     const item = P().equipped.runner && itemById(P().equipped.runner);
     return item ? item.img : G.runner;
@@ -285,26 +406,32 @@
     const p = P();
     document.title = G.name;
     $("gameTitle").textContent = G.name;
-    $("tagline").textContent = G.tagline;
     $("playerChip").textContent = `${ICON.person} ${p.name} ${ICON.down}`;
     $("soundBtn").textContent = muted ? ICON.mute : ICON.sound;
     $("runBtnRunner").src = runnerImg();
 
-    $("levelMap").innerHTML = LEVELS.map((L) => {
+    $("levelMap").innerHTML = `<img src="assets/level_map.jpg" class="map-img" alt="" draggable="false" />` + LEVELS.map((L) => {
+      const [x, y] = MAP_SPOTS[L.id] || [50, 50];
       const locked = L.id > p.unlocked;
       const sel = L.id === p.level;
-      const done = p.perfect[L.id] || 0;
-      const frontier = L.id === p.unlocked && L.id < LEVELS.length - 1;
-      const dots = frontier
-        ? `<span class="dots">${Array.from({ length: G.unlockPerfectCounts }, (_, i) => `<i class="${i < done ? "on" : ""}"></i>`).join("")}</span>`
-        : "";
-      return `<button type="button" class="level-btn ${sel ? "selected" : ""} ${locked ? "locked" : ""}" data-level="${L.id}" ${locked ? "disabled" : ""}>
-        <span class="level-num">${locked ? ICON.lock : L.id}</span>
-        <span class="level-name">${L.name}</span>
-        <span class="level-short">${L.short}</span>
-        ${dots}
+      const earned = L.id < p.unlocked ? G.unlockPerfectCounts : Math.min(G.unlockPerfectCounts, p.perfect[L.id] || 0);
+      const stars = locked ? "" : `<span class="node-stars">${Array.from({ length: G.unlockPerfectCounts }, (_, i) => `<i class="${i < earned ? "on" : ""}">${ICON.star}</i>`).join("")}</span>`;
+      return `<button type="button" class="map-node level-btn ${sel ? "selected" : ""} ${locked ? "locked" : ""}" data-level="${L.id}" ${locked ? "disabled" : ""} style="left:${x}%;top:${y}%" aria-label="Level ${L.id}: ${L.name}">
+        <span class="node-label">${locked ? `<i class="node-lock">${ICON.lock}</i>` : ""}${L.name}<small>${L.short}</small></span>
+        ${stars}
       </button>`;
-    }).join("");
+    }).join("") + (() => {
+      const [x, y] = MAP_SPOTS[p.level] || [50, 50];
+      return `<img src="${runnerImg()}" class="map-runner" alt="" draggable="false" style="left:${x}%;top:${y}%" />`;
+    })();
+    requestAnimationFrame(() => {
+      const box = $("levelMapScroll");
+      const node = $("levelMap").querySelector(".map-node.selected");
+      if (box && node && !box.dataset.scrolled) {
+        box.scrollTop = node.offsetTop - box.clientHeight / 2;
+        box.dataset.scrolled = "1";
+      }
+    });
     const need = Math.max(0, G.unlockPerfectCounts - (p.perfect[p.unlocked] || 0));
     $("levelNote").textContent = `${level().note}${p.unlocked < LEVELS.length - 1 ? ` ${ICON.dot} ${need} more Perfect Count${need === 1 ? "" : "s"} on Level ${p.unlocked} unlocks the next level.` : ""}`;
 
@@ -374,10 +501,15 @@
 
   $("runBtn").addEventListener("click", beginRun);
   $("storeBtn").addEventListener("click", openStore);
+  $("bankBtn").addEventListener("click", () => openSheet("bankSheet"));
+  $("recordsBtn").addEventListener("click", () => openSheet("recordsSheet"));
+  $("roomBtn").addEventListener("click", () => openSheet("roomSheet"));
   $("soundBtn").addEventListener("click", () => {
     muted = !muted;
     localStorage.setItem(SOUND_KEY, muted ? "1" : "0");
     if (muted && "speechSynthesis" in window) speechSynthesis.cancel();
+    if (muted) Music.stop();
+    else Music.start();
     renderHome();
   });
   $("helpBtn").addEventListener("click", () => {
@@ -738,7 +870,7 @@
     it.el.classList.add("grab");
     setTimeout(() => it.el.remove(), 250);
     run.haul.push(it.d);
-    Sfx.blip();
+    Sfx.coin();
     $("tray").insertAdjacentHTML("beforeend", coinHTML(it.d, { size: 0.8, label: run.L.labels, cls: "pop-in" }));
   }
 

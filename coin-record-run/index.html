@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=13" />
   </head>
   <body>
     <main id="app">
@@ -24,46 +24,50 @@
           <button id="helpBtn" class="round-btn" type="button" aria-label="How to play">?</button>
         </header>
 
-        <div class="marquee">
-          <div class="lights" aria-hidden="true"></div>
-          <div class="marquee-coins" aria-hidden="true">
-            <img src="assets/coin_25.png" alt="" class="mc mc1" />
-            <img src="assets/coin_1.png" alt="" class="mc mc2" />
-            <img src="assets/coin_10.png" alt="" class="mc mc3" />
-            <img src="assets/coin_5.png" alt="" class="mc mc4" />
-          </div>
-          <p class="eyebrow">A Mighty Mini Game</p>
+        <div class="title-strip">
+          <img src="assets/coin_25.png" alt="" class="ts-coin" />
           <h1 id="gameTitle"></h1>
-          <p id="tagline" class="tagline"></p>
+          <img src="assets/coin_10.png" alt="" class="ts-coin" />
         </div>
 
-        <div class="home-actions">
-          <button id="runBtn" class="big-btn run-btn" type="button"><img id="runBtnRunner" class="btn-art" alt="" /> Start Run</button>
-          <button id="storeBtn" class="big-btn store-btn" type="button"><img src="assets/owl.png" class="btn-art" alt="" /> Store</button>
-        </div>
-
-        <section class="card">
-          <h2>Levels</h2>
-          <div id="levelMap" class="level-map"></div>
-          <p id="levelNote" class="note"></p>
+        <section class="map-card">
+          <div id="levelMapScroll" class="map-scroll"><div id="levelMap" class="level-map"></div></div>
+          <p id="levelNote" class="map-note"></p>
         </section>
 
-        <section class="card">
-          <h2>My Jars</h2>
+        <nav class="dock" aria-label="Main menu">
+          <button id="storeBtn" class="dock-btn" type="button"><img src="assets/icon_store.png" alt="" /><span>Store</span></button>
+          <button id="bankBtn" class="dock-btn" type="button"><img src="assets/icon_bank.png" alt="" /><span>Bank</span></button>
+          <button id="runBtn" class="dock-btn dock-run" type="button"><img id="runBtnRunner" alt="" /><span>Start Run</span></button>
+          <button id="recordsBtn" class="dock-btn" type="button"><img src="assets/icon_records.png" alt="" /><span>Records</span></button>
+          <button id="roomBtn" class="dock-btn" type="button"><img src="assets/icon_room.png" alt="" /><span>Record Room</span></button>
+        </nav>
+      </section>
+
+      <div id="bankSheet" class="modal sheet hidden" role="dialog" aria-modal="true" aria-label="Bank">
+        <div class="modal-card">
+          <button class="modal-close" type="button" data-close-sheet aria-label="Close">&times;</button>
+          <h2><img src="assets/icon_bank.png" alt="" class="sheet-icon" /> My Bank</h2>
           <div id="jarShelf" class="jar-shelf"></div>
           <p class="note">Tap a jar to give, grow, save, or spend.</p>
-        </section>
+        </div>
+      </div>
 
-        <section class="card">
-          <h2>Records Board</h2>
+      <div id="recordsSheet" class="modal sheet hidden" role="dialog" aria-modal="true" aria-label="Records Board">
+        <div class="modal-card">
+          <button class="modal-close" type="button" data-close-sheet aria-label="Close">&times;</button>
+          <h2><img src="assets/icon_records.png" alt="" class="sheet-icon" /> Records Board</h2>
           <div id="recordsBoard" class="records"></div>
-        </section>
+        </div>
+      </div>
 
-        <section class="card">
-          <h2>Record Room</h2>
+      <div id="roomSheet" class="modal sheet hidden" role="dialog" aria-modal="true" aria-label="Record Room">
+        <div class="modal-card">
+          <button class="modal-close" type="button" data-close-sheet aria-label="Close">&times;</button>
+          <h2><img src="assets/icon_room.png" alt="" class="sheet-icon" /> Record Room</h2>
           <div id="recordRoom" class="record-room"></div>
-        </section>
-      </section>
+        </div>
+      </div>
 
       <section id="runScreen" class="screen run-screen hidden" aria-label="Coin run">
         <header class="run-hud">
@@ -73,7 +77,6 @@
           <span id="trayCount" class="tray-count"></span>
         </header>
         <div id="world" class="world">
-          <div class="road" aria-hidden="true"></div>
           <div id="entities"></div>
           <div id="runner" class="runner"><img id="runnerImg" alt="" draggable="false" /><img class="dizzy" src="assets/stars.png" alt="" draggable="false" /></div>
           <div id="runBanner" class="run-banner hidden"></div>
@@ -193,9 +196,9 @@
         </div>
       </div>
     </main>
-    <script src="coins.js?v=7"></script>
-    <script src="jars.js?v=7"></script>
-    <script src="store.js?v=7"></script>
-    <script src="app.js?v=7"></script>
+    <script src="coins.js?v=13"></script>
+    <script src="jars.js?v=13"></script>
+    <script src="store.js?v=13"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>

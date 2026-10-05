@@ -37,6 +37,10 @@ SINGLES = {
     "goal_racecar": ("racecar", 300),
     "goal_ufo": ("ufo", 300),
     "goal_dragon": ("dragon", 300),
+    "icon_store": ("icon_store", 256),
+    "icon_bank": ("icon_bank", 256),
+    "icon_records": ("icon_records", 256),
+    "icon_room": ("icon_room", 256),
 }
 
 SHEETS = {
@@ -47,7 +51,7 @@ SHEETS = {
     "sheet_awards": (["giver1", "giver5", "giver10", "invest100", "invest500", "save100", "save500", "save1000"], 220, 25),
 }
 
-GLASS = {"jar_tithe", "jar_invest", "jar_save", "jar_spend"}
+GLASS = {"jar_tithe", "jar_invest", "jar_save", "jar_spend", "icon_bank"}
 
 
 def background_mask(rgb: np.ndarray, threshold: int) -> np.ndarray:
