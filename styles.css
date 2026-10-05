@@ -1268,3 +1268,18 @@ button.small {
   box-shadow: 0 5px 0 #a74325;
 }
 .ghost-run-link:active { transform: translateY(4px); box-shadow: 0 1px 0 #a74325; }
+
+.coin-run-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #3a2400;
+  text-decoration: none;
+  background: linear-gradient(180deg, #ffe17a, #f5c542);
+  box-shadow: 0 5px 0 #c9971a;
+}
+.coin-run-link:active { transform: translateY(4px); box-shadow: 0 1px 0 #c9971a; }
