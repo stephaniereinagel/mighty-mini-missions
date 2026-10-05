@@ -8,6 +8,8 @@ window.CRR_GAME = {
   runSeconds: 40,
   fanfare: "NEW WORLD RECORD!",
   unlockPerfectCounts: 3,
+  // Levels with inARow need that many Perfect Counts in a row; a miss starts the count over.
+  champion: { level: 5, inARow: 5, name: "Summit Champion", img: "assets/badge_champion.png" },
   players: [
     { name: "Max", startLevel: 1 },
     { name: "Gabi", startLevel: 0 },
@@ -55,13 +57,20 @@ window.CRR_LEVELS = [
   {
     id: 4, name: "Mystery Mountain", short: "No labels",
     weights: { 1: 3, 5: 2, 10: 2, 25: 1 }, maxCoins: 12, speed: 225, obstacles: true,
-    labels: false, titheShown: false,
+    labels: false, titheShown: false, inARow: 3,
     note: "Coin labels disappear, and you figure out God's part yourself."
   },
   {
     id: 5, name: "Dollar Summit", short: "$1+",
-    weights: { 1: 2, 5: 2, 10: 3, 25: 3 }, maxCoins: 15, speed: 235, obstacles: true,
+    weights: { 1: 2, 5: 2, 10: 3, 25: 3, 100: 1 }, maxCoins: 15, speed: 235, obstacles: true,
+    labels: false, titheShown: false, inARow: 3,
+    note: "Dollar bills drop too! Big hauls past one dollar."
+  },
+  {
+    // Unlocks when Dollar Summit is cleared. No timer: coins speed up until you miss `lives` of them.
+    id: 6, name: "Endless Castle", short: "Miss 5 = out",
+    weights: { 1: 2, 5: 2, 10: 3, 25: 3, 100: 1 }, maxCoins: null, endless: true, lives: 5, speed: 200, obstacles: true,
     labels: false, titheShown: false,
-    note: "Big hauls past one dollar."
+    note: "Coins fall faster and faster. Keep running until you miss 5 coins!"
   }
 ];

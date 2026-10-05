@@ -41,6 +41,7 @@ SINGLES = {
     "icon_bank": ("icon_bank", 256),
     "icon_records": ("icon_records", 256),
     "icon_room": ("icon_room", 256),
+    "badge_champion": ("badge_champion", 300),
 }
 
 SHEETS = {

@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so tablets pick up the new copy.
-const VERSION = "crr-v15";
+const VERSION = "crr-v22";
 const CORE = [
   "./",
   "index.html",
@@ -8,6 +8,8 @@ const CORE = [
   "coins.js",
   "jars.js",
   "store.js",
+  "path3d.js",
+  "vendor/three.min.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -18,6 +20,7 @@ const CORE = [
   "assets/icon_bank.png",
   "assets/icon_records.png",
   "assets/icon_room.png",
+  "assets/badge_champion.png",
   "assets/scene_run.jpg",
   "assets/audio/music.m4a",
   "assets/bill_100.png",

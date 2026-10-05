@@ -13,7 +13,7 @@
   const CENT = "\u00a2";
   const ICON = {
     sound: "\u{1F50A}", mute: "\u{1F507}", lock: "\u{1F512}", check: "\u2713", back: "\u232B",
-    arrow: "\u279C", person: "\u{1F464}", down: "\u25BE", heart: "\u{1F49B}", dot: "\u00b7", times: "\u00d7", star: "\u2605"
+    arrow: "\u279C", person: "\u{1F464}", down: "\u25BE", heart: "\u{1F49B}", dot: "\u00b7", times: "\u00d7", star: "\u2605", life: "\u2665"
   };
 
   const $ = (id) => document.getElementById(id);
@@ -72,6 +72,10 @@
       unlocked: startLevel,
       level: startLevel,
       perfect: {},
+      levelStreak: {},
+      summit: false,
+      champion: false,
+      endlessBest: 0,
       streak: 0,
       bestStreak: 0,
       bestHaul: 0,
@@ -107,6 +111,11 @@
   const P = () => data.players[data.current];
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) { /* storage full or blocked */ } }
   const level = () => LEVELS[P().level];
+  const SUMMIT = G.champion.level;
+  const ENDLESS = LEVELS.findIndex((L) => L.endless);
+  const goalFor = (L) => L.inARow || G.unlockPerfectCounts;
+  const progressFor = (p, L) => (L.inARow ? p.levelStreak[L.id] : p.perfect[L.id]) || 0;
+  const levelCleared = (p, L) => L.id < p.unlocked || (L.id === SUMMIT && p.summit);
   const jarTotal = (k) => purseTotal(P().jars[k]);
   const itemById = (id) => S.items.find((i) => i.id === id);
 
@@ -395,7 +404,9 @@
 
   // ---------- Home ----------
   // Where each level's pad sits on assets/level_map.jpg, as % of its width and height (level 0 at the bottom).
-  const MAP_SPOTS = [[29.3, 87.2], [72.4, 71.8], [27.7, 57.9], [70.2, 44.6], [29.9, 32.1], [63.0, 21.0]];
+  // The Endless Castle label sits below the castle art, and the runner waits beside the castle there.
+  const MAP_SPOTS = [[29.3, 87.2], [72.4, 71.8], [27.7, 57.9], [70.2, 44.6], [29.9, 32.1], [65.1, 21.4], [50.0, 16.2]];
+  const CASTLE_RUNNER_SPOT = [34, 18];
 
   function runnerImg() {
     const item = P().equipped.runner && itemById(P().equipped.runner);
@@ -414,17 +425,20 @@
       const [x, y] = MAP_SPOTS[L.id] || [50, 50];
       const locked = L.id > p.unlocked;
       const sel = L.id === p.level;
-      const earned = L.id < p.unlocked ? G.unlockPerfectCounts : Math.min(G.unlockPerfectCounts, p.perfect[L.id] || 0);
-      const stars = locked ? "" : `<span class="node-stars">${Array.from({ length: G.unlockPerfectCounts }, (_, i) => `<i class="${i < earned ? "on" : ""}">${ICON.star}</i>`).join("")}</span>`;
-      return `<button type="button" class="map-node level-btn ${sel ? "selected" : ""} ${locked ? "locked" : ""}" data-level="${L.id}" ${locked ? "disabled" : ""} style="left:${x}%;top:${y}%" aria-label="Level ${L.id}: ${L.name}">
-        <span class="node-label">${locked ? `<i class="node-lock">${ICON.lock}</i>` : ""}${L.name}<small>${L.short}</small></span>
+      const goal = goalFor(L);
+      const earned = levelCleared(p, L) ? goal : Math.min(goal, progressFor(p, L));
+      const stars = locked || L.endless ? "" : `<span class="node-stars">${Array.from({ length: goal }, (_, i) => `<i class="${i < earned ? "on" : ""}">${ICON.star}</i>`).join("")}</span>`;
+      const sub = L.endless && !locked && p.endlessBest ? `Best: ${p.endlessBest} coins` : L.short;
+      return `<button type="button" class="map-node level-btn ${sel ? "selected" : ""} ${locked ? "locked" : ""} ${L.endless ? "endless" : ""}" data-level="${L.id}" ${locked ? "disabled" : ""} style="left:${x}%;top:${y}%" aria-label="Level ${L.id}: ${L.name}">
+        <span class="node-label">${locked ? `<i class="node-lock">${ICON.lock}</i>` : ""}${L.name}<small>${sub}</small></span>
         ${stars}
       </button>`;
     }).join("") + (() => {
-      const [x, y] = MAP_SPOTS[p.level] || [50, 50];
+      const atCastle = p.level === ENDLESS;
+      const [x, y] = atCastle ? CASTLE_RUNNER_SPOT : MAP_SPOTS[p.level] || [50, 50];
       const next = MAP_SPOTS[p.level + 1];
       const prev = MAP_SPOTS[p.level - 1];
-      const right = next ? next[0] > x : prev ? x > prev[0] : true;
+      const right = atCastle || (next ? next[0] > x : prev ? x > prev[0] : true);
       return `<img src="${runnerImg()}" class="map-runner" alt="" draggable="false" style="left:${x}%;top:${y}%;--flip:${right ? -1 : 1}" />`;
     })();
     requestAnimationFrame(() => {
@@ -435,8 +449,7 @@
         box.dataset.scrolled = "1";
       }
     });
-    const need = Math.max(0, G.unlockPerfectCounts - (p.perfect[p.unlocked] || 0));
-    $("levelNote").textContent = `${level().note}${p.unlocked < LEVELS.length - 1 ? ` ${ICON.dot} ${need} more Perfect Count${need === 1 ? "" : "s"} on Level ${p.unlocked} unlocks the next level.` : ""}`;
+    $("levelNote").textContent = `${level().note} ${ICON.dot} ${goalNote(p)}`;
 
     $("jarShelf").innerHTML = J.order.map((k) => jarHTML(k, jarTotal(k), extraJarLine(k))).join("");
 
@@ -447,11 +460,13 @@
       ["assets/fire.png", "Current streak", p.streak || "-"],
       ["assets/chest.png", "All four jars", fmt(all)],
       ["assets/giver1.png", "Given to God", p.given ? fmt(p.given) : "-"],
-      [G.runner, "Runs", p.runs]
+      [G.runner, "Runs", p.runs],
+      ...(p.unlocked >= ENDLESS ? [["assets/castle.png", "Endless Castle: most coins caught", p.endlessBest || "-"]] : [])
     ].map(([src, label, val]) => `<div class="record">${art(src, "record-art")}<span class="record-label">${label}</span><strong class="record-val">${val}</strong></div>`).join("");
 
     const items = p.owned.map(itemById).filter((i) => i && (i.cat === "room" || i.cat === "goal"));
     const shelf = [
+      ...(p.champion ? [{ img: G.champion.img, name: G.champion.name, cls: "trophy" }] : []),
       ...J.trophies.filter((t) => p.trophies.includes(t.id)).map((t) => ({ img: t.img, name: t.name, cls: "trophy" })),
       ...J.giverBadges.filter((b) => p.badges.includes(b.id)).map((b) => ({ img: b.img, name: b.name, cls: "badge" })),
       ...items.map((i) => ({ img: i.img, name: i.name, cls: i.cat === "goal" ? "goal" : "" }))
@@ -459,6 +474,22 @@
     $("recordRoom").innerHTML = shelf.length
       ? shelf.map((s) => `<div class="shelf-item ${s.cls}">${art(s.img)}<small>${s.name}</small></div>`).join("")
       : `<p class="note">Trophies, badges, and things you buy show up here.</p>`;
+  }
+
+  function goalNote(p) {
+    if (level().endless) return p.endlessBest ? `Your record: ${p.endlessBest} coins. Can you beat it?` : "How far can you go?";
+    const L = LEVELS[Math.min(p.unlocked, SUMMIT)];
+    const plural = (n) => `${n} more Perfect Count${n === 1 ? "" : "s"}`;
+    if (p.unlocked < SUMMIT) {
+      const need = Math.max(0, goalFor(L) - progressFor(p, L));
+      return L.inARow
+        ? `${plural(need)} in a row on Level ${L.id} unlocks the next level. A miss starts over.`
+        : `${plural(need)} on Level ${L.id} unlocks the next level.`;
+    }
+    const streak = p.levelStreak[SUMMIT] || 0;
+    if (!p.summit) return `${plural(Math.max(0, goalFor(L) - streak))} in a row on Dollar Summit unlocks Endless Castle. A miss starts over.`;
+    if (!p.champion) return `${plural(Math.max(0, G.champion.inARow - streak))} in a row makes you ${G.champion.name}!`;
+    return `You are the ${G.champion.name}!`;
   }
 
   function jarHTML(k, total, extra = "") {
@@ -525,7 +556,7 @@
         <li><b>Shop.</b> Pay the exact price with your coins. Need different coins? Use the exchange counter.</li>
         <li><b>Powers!</b> Everything you buy has a special power. Before each run, pick ${S.powerSlots} powers to bring along.</li>
       </ol>
-      <p class="note">Count right on the first try for a Perfect Count star. ${G.unlockPerfectCounts} Perfect Counts unlock the next level. Beat your best for a world record!</p>
+      <p class="note">Count right on the first try for a Perfect Count star. ${G.unlockPerfectCounts} Perfect Counts unlock the next level. On Mystery Mountain and Dollar Summit you need them in a row. Get ${G.champion.inARow} in a row on Dollar Summit to become ${G.champion.name}. Clearing Dollar Summit opens ${LEVELS[ENDLESS].name}: coins fall faster and faster until you miss ${LEVELS[ENDLESS].lives}. Beat your best for a world record!</p>
       <button type="button" class="primary-btn" data-close>Got it!</button>`);
   });
 
@@ -607,14 +638,18 @@
     return vals[Math.min(item.lvl || 1, vals.length) - 1];
   }
   const powerName = (item) => `${S.powers[item.power].name} ${STAR.repeat(item.lvl || 1)}`;
+  // On Endless Castle there is no clock or tray limit, so Time and Bag powers give extra misses instead.
+  const extraLives = (item) => item.lvl || 1;
   function powerText(item) {
     const v = powerVal(item);
     const s = v === 1 ? "" : "s";
     switch (item.power) {
       case "magnet": return "Nearby coins fly to you.";
       case "shield": return `Bounce off ${v} rock${s} without tripping.`;
-      case "time": return `${v} more seconds to run.`;
-      case "bag": return level().maxCoins ? `Carry ${v} more coins.` : `${v} more seconds to run.`;
+      case "time": return level().endless ? `${extraLives(item)} more miss${extraLives(item) === 1 ? "" : "es"} allowed.` : `${v} more seconds to run.`;
+      case "bag":
+        if (level().endless) return `${extraLives(item)} more miss${extraLives(item) === 1 ? "" : "es"} allowed.`;
+        return level().maxCoins ? `Carry ${v} more coins.` : `${v} more seconds to run.`;
       case "slow": return "Coins fall slower.";
       case "rain": return `${v} coin shower${s} during the run.`;
       case "lucky": return "More big coins fall.";
@@ -663,7 +698,7 @@
     if (!lv) return weights;
     const ds = Object.keys(weights).map(Number).sort((a, b) => a - b);
     const out = {};
-    ds.forEach((d, i) => { out[d] = weights[d] * (1 + lv * 0.6 * i); });
+    ds.forEach((d, i) => { out[d] = COINS[d].bill ? weights[d] : weights[d] * (1 + lv * 0.6 * i); });
     return out;
   }
 
@@ -682,6 +717,7 @@
   const world = $("world");
   const entities = $("entities");
   const runnerEl = $("runner");
+  const path3d = window.CRR_Path3D(world);
   let run = null;
 
   function startRun() {
@@ -693,15 +729,17 @@
       .filter((i) => i && i.power && S.powers[i.power] && p.owned.includes(i.id))
       .slice(0, S.powerSlots)
       .forEach((i) => { pw[i.power] = { item: i, v: powerVal(i) }; });
-    const timed = !L.maxCoins;
-    const dur = (L.seconds || G.runSeconds) + (pw.time ? pw.time.v : 0) + (timed && pw.bag ? pw.bag.v : 0);
-    const showers = pw.rain ? Array.from({ length: pw.rain.v }, (_, k) => (dur * (k + 1)) / (pw.rain.v + 1)) : [];
+    const endless = !!L.endless;
+    const timed = !L.maxCoins && !endless;
+    const dur = endless ? Infinity : (L.seconds || G.runSeconds) + (pw.time ? pw.time.v : 0) + (timed && pw.bag ? pw.bag.v : 0);
+    const showers = !pw.rain ? [] : Array.from({ length: pw.rain.v }, (_, k) => (endless ? 25 * (k + 1) : (dur * (k + 1)) / (pw.rain.v + 1)));
     run = {
-      L, t: 0, dur, items: [], haul: [],
+      L, t: 0, dur, items: [], haul: [], endless, misses: 0,
+      lives: endless ? L.lives + (pw.time ? extraLives(pw.time.item) : 0) + (pw.bag ? extraLives(pw.bag.item) : 0) : 0,
       spawnT: 0.2, obsT: 3, trailT: 0, x: 0, targetX: 0, stumble: 0,
       last: 0, running: false, lastLane: -1, ended: false,
       pw,
-      maxCoins: timed ? Infinity : L.maxCoins + (pw.bag ? pw.bag.v : 0),
+      maxCoins: timed || endless ? Infinity : L.maxCoins + (pw.bag ? pw.bag.v : 0),
       weights: luckyWeights(L.weights, pw.lucky ? pw.lucky.v : 0),
       shields: pw.shield ? pw.shield.v : 0,
       slow: pw.slow ? pw.slow.v : 1,
@@ -709,12 +747,14 @@
       showers
     };
     show("run");
+    $("timerBar").classList.toggle("hidden", endless);
+    $("lives").classList.toggle("hidden", !endless);
     renderPowerHud();
     entities.innerHTML = "";
-    $("tray").innerHTML = "";
     $("runnerImg").src = runnerImg();
     $("dragHint").style.display = "";
     measure();
+    path3d.clear();
     run.x = run.targetX = run.W / 2;
     placeRunner();
     updateRunHud();
@@ -733,7 +773,10 @@
     run.runnerY = r.height - 70 * run.scale;
     run.edge = Math.round(48 * run.scale);
     runnerEl.style.setProperty("--runner-h", `${Math.round(110 * run.scale)}px`);
+    path3d.resize(run.W, run.H, run.runnerY);
+    run.ppu = path3d.ppu();
   }
+  const worldX = (px) => (px - run.W / 2) / run.ppu;
 
   function countdown(steps, done) {
     const b = $("runBanner");
@@ -770,23 +813,30 @@
       if (lane === run.lastLane) lane = (lane + 1 + Math.floor(Math.random() * (lanes - 1))) % lanes;
       run.lastLane = lane;
     }
-    const x = (run.W * (lane + 0.5)) / lanes;
-    const el = document.createElement("div");
+    const x = worldX((run.W * (lane + 0.5)) / lanes);
+    const z = opts.z == null ? -path3d.FAR : opts.z;
+    const phase = Math.random() * 6;
     let item;
     if (kind === "coin") {
       const d = pickCoin(run.weights);
+      const c = COINS[d];
       const size = run.scale * 1.15;
-      el.className = "falling";
-      el.innerHTML = coinHTML(d, { size, label: run.L.labels });
-      item = { kind, d, x, y: opts.y == null ? -40 : opts.y, r: (COINS[d].mm * 2.6 * size) / 2, el };
+      let obj, r;
+      if (c.bill) {
+        const w = 120 * size;
+        obj = path3d.bill(c.img, w, w * 0.48);
+        r = w * 0.4;
+      } else {
+        r = (c.mm * 2.6 * size) / 2;
+        obj = path3d.coin(c.img, r, d === 1, run.L.labels ? `${d}${CENT}` : "");
+      }
+      item = { kind, d, x, z, r, obj, phase, bonus: !!opts.bonus };
     } else {
       const src = G.obstacles[Math.floor(Math.random() * G.obstacles.length)];
       const px = Math.round(64 * run.scale);
-      el.className = "falling obstacle";
-      el.innerHTML = `<img src="${src}" alt="" draggable="false" style="width:${px}px" />`;
-      item = { kind, x, y: -40, r: px * 0.38, el };
+      item = { kind, x, z, r: px * 0.38, obj: path3d.sprite(src, px), phase };
     }
-    entities.appendChild(el);
+    path3d.place(item.obj, item.x, item.z, run.t, phase);
     run.items.push(item);
   }
 
@@ -799,7 +849,9 @@
     run.spawnT -= dt;
     if (run.spawnT <= 0) {
       spawn("coin");
-      run.spawnT = 0.55 + Math.random() * 0.35;
+      run.spawnT = run.endless
+        ? Math.max(0.42, 1.15 / (1 + run.t / 60)) * (0.85 + Math.random() * 0.3)
+        : 0.55 + Math.random() * 0.35;
     }
     if (run.L.obstacles) {
       run.obsT -= dt;
@@ -836,34 +888,42 @@
       }
     }
 
-    const speed = run.L.speed * run.slow * (run.H / 640) * (1 + (run.t / run.dur) * 0.25);
+    const ramp = run.endless ? Math.min(3, 1 + run.t / 40) : 1 + (run.t / run.dur) * 0.25;
+    // Path units per second: about 3 seconds from the horizon to the runner at a level's base speed.
+    const speed = (path3d.FAR / 3) * (run.L.speed / 200) * run.slow * ramp;
+    const ahead = (px) => (px / (run.H * 0.9)) * path3d.FAR;
     const reach = 30 * run.scale;
     const pull = run.pw.magnet ? run.pw.magnet.v * run.scale : 0;
+    const rx = worldX(run.x);
     for (const it of run.items) {
       if (it.gone) continue;
-      it.y += speed * dt;
-      const dy = run.runnerY - it.y;
-      if (pull && it.kind === "coin" && dy > 0 && dy < pull * 1.6 && Math.abs(it.x - run.x) < pull) {
-        it.x += (run.x - it.x) * Math.min(1, dt * 6);
+      const before = it.z;
+      it.z += speed * dt;
+      const gap = Math.abs(it.x - rx) * run.ppu;
+      if (pull && it.kind === "coin" && it.z < 0 && -it.z < ahead(pull * 1.6) && gap < pull) {
+        it.x += (rx - it.x) * Math.min(1, dt * 6);
       }
-      if (run.pw.fire && it.kind === "obstacle" && dy > 0 && dy < 170 * run.scale && Math.abs(it.x - run.x) < it.r + reach + 30 * run.scale) {
+      if (run.pw.fire && it.kind === "obstacle" && it.z < 0 && -it.z < ahead(170 * run.scale) && gap < it.r + reach + 30 * run.scale) {
         burnObstacle(it);
         continue;
       }
-      it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -50%)`;
-      const near = Math.abs(it.x - run.x) < it.r + reach && Math.abs(it.y - run.runnerY) < it.r + reach;
-      if (near) {
+      path3d.place(it.obj, it.x, it.z, run.t, it.phase);
+      if (before < 0 && it.z >= 0 && gap < it.r + reach) {
         if (it.kind === "coin" && run.stumble <= 0) collect(it);
-        else if (it.kind === "coin" && !it.missed) { it.missed = true; it.el.classList.add("missed"); }
+        else if (it.kind === "coin" && !it.missed) { it.missed = true; path3d.fx(it.obj, "ghost"); }
         else if (it.kind === "obstacle") hitObstacle(it);
-      } else if (it.y > run.H + 60) {
+      } else if (it.z > 2.5) {
         it.gone = true;
-        it.el.remove();
+        path3d.remove(it.obj);
+        if (run.endless && it.kind === "coin" && !it.bonus) missCoin(it);
       }
     }
     run.items = run.items.filter((it) => !it.gone);
+    path3d.update(dt);
+    path3d.render();
 
     updateRunHud();
+    if (run.endless && run.misses >= run.lives) return endRun(`${run.lives} misses!`);
     if (run.t >= run.dur) return endRun("Time!");
     if (run.haul.length >= run.maxCoins) return endRun("Tray full!");
     run.frame = requestAnimationFrame(tick);
@@ -871,26 +931,23 @@
 
   function collect(it) {
     it.gone = true;
-    it.el.classList.add("grab");
-    setTimeout(() => it.el.remove(), 250);
+    path3d.fx(it.obj, "grab");
     run.haul.push(it.d);
     Sfx.coin();
-    $("tray").insertAdjacentHTML("beforeend", coinHTML(it.d, { size: 0.8, label: run.L.labels, cls: "pop-in" }));
+    flash($("trayCount"), "pop");
   }
 
   function hitObstacle(it) {
     it.gone = true;
     if (run.shields > 0) {
       run.shields -= 1;
-      it.el.style.setProperty("--bx", `${it.x < run.x ? -110 : 110}px`);
-      it.el.classList.add("bounced");
-      setTimeout(() => it.el.remove(), 400);
+      path3d.fx(it.obj, "fling", { dir: it.x < worldX(run.x) ? -1 : 1 });
       Sfx.tone(660, 0.12, { type: "triangle", vol: 0.08 });
       flash(runnerEl, "shield-hit");
       renderPowerHud();
       return;
     }
-    it.el.remove();
+    path3d.remove(it.obj);
     run.stumble = 1.2;
     runnerEl.classList.add("stumble");
     const pop = document.createElement("div");
@@ -902,12 +959,22 @@
     Sfx.bonk();
   }
 
+  function missCoin(it) {
+    run.misses += 1;
+    const pop = document.createElement("div");
+    pop.className = "miss-pop";
+    pop.textContent = "Missed!";
+    const x = Math.max(50, Math.min(run.W - 50, run.W / 2 + it.x * run.ppu));
+    pop.style.transform = `translate(${x}px, ${run.H - 30 * run.scale}px) translate(-50%, -50%)`;
+    entities.appendChild(pop);
+    setTimeout(() => pop.remove(), 900);
+    flash($("lives"), "lost");
+    Sfx.tone(260, 0.18, { type: "triangle", vol: 0.08, slide: -80 });
+  }
+
   function burnObstacle(it) {
     it.gone = true;
-    it.el.innerHTML = art("assets/fire.png", "burn-art");
-    it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -50%)`;
-    it.el.classList.add("burning");
-    setTimeout(() => it.el.remove(), 500);
+    path3d.fx(it.obj, "burn", { src: "assets/fire.png" });
     Sfx.tone(180, 0.2, { type: "sawtooth", vol: 0.05 });
   }
 
@@ -918,7 +985,7 @@
     flash(b, "pop");
     setTimeout(() => { if (run && run.running) b.classList.add("hidden"); }, 1000);
     Sfx.fanfare();
-    for (let i = 0; i < 7; i++) spawn("coin", { lane: i % 5, y: -40 - i * 70 * run.scale });
+    for (let i = 0; i < 7; i++) spawn("coin", { lane: i % 5, z: -path3d.FAR - i * 2.5, bonus: true });
     renderPowerHud();
   }
 
@@ -926,6 +993,11 @@
     $("timerFill").style.width = `${Math.max(0, 100 - (run.t / run.dur) * 100)}%`;
     const n = run.haul.length;
     $("trayCount").textContent = run.maxCoins === Infinity ? `${n} coin${n === 1 ? "" : "s"}` : `${n} / ${run.maxCoins} coins`;
+    if (run.endless) {
+      const left = Math.max(0, run.lives - run.misses);
+      const html = Array.from({ length: run.lives }, (_, i) => `<i class="${i < left ? "" : "gone"}">${ICON.life}</i>`).join("");
+      if ($("lives").dataset.html !== html) { $("lives").innerHTML = html; $("lives").dataset.html = html; }
+    }
   }
 
   function endRun(msg) {
@@ -933,7 +1005,7 @@
     run.running = false;
     run.ended = true;
     cancelAnimationFrame(run.frame);
-    run.items.forEach((it) => it.el.remove());
+    path3d.clear();
     run.items = [];
     const b = $("runBanner");
     if (!run.haul.length) {
@@ -947,7 +1019,16 @@
     b.classList.remove("hidden");
     flash(b, "pop");
     Sfx.ching();
-    setTimeout(() => { b.classList.add("hidden"); startCount(); }, 1200);
+    const p = P();
+    const caught = run.haul.length;
+    const record = run.endless && caught > p.endlessBest;
+    const beat = record && p.endlessBest > 0;
+    if (record) { p.endlessBest = caught; save(); }
+    setTimeout(() => {
+      b.classList.add("hidden");
+      if (beat) celebrate([{ record: true, img: "assets/castle.png", title: G.fanfare, text: `Endless Castle: ${caught} coins caught!` }], startCount);
+      else startCount();
+    }, 1200);
   }
 
   function setTarget(clientX) {
@@ -968,7 +1049,7 @@
   });
   window.addEventListener("resize", () => { if (run && run.running) measure(); });
   $("quitRunBtn").addEventListener("click", () => {
-    if (run) { run.running = false; run.ended = true; cancelAnimationFrame(run.frame); }
+    if (run) { run.running = false; run.ended = true; cancelAnimationFrame(run.frame); path3d.clear(); }
     show("home");
     renderHome();
   });
@@ -987,7 +1068,7 @@
     const total = haul.reduce((s, d) => s + d, 0);
     count = {
       haul, total, rots: haul.map(() => Math.round(Math.random() * 40 - 20)),
-      attempts: 0, mode: "spread", entry: "", tapped: 0, running: 0, locked: false, newLevel: null
+      attempts: 0, mode: haul.length > 20 ? "grouped" : "spread", entry: "", tapped: 0, running: 0, locked: false, newLevel: null
     };
     show("count");
     const prompt = "How much did you collect?";
@@ -1010,6 +1091,8 @@
       return;
     }
     const sorted = count.haul.slice().sort((a, b) => b - a);
+    // Big hauls start grouped by kind with no names, so counting stays the job but dragging 50 coins doesn't.
+    const grouped = count.mode === "grouped";
     table.className = "coin-table rows";
     let i = 0;
     table.innerHTML = DENOMS.filter((d) => sorted.includes(d)).map((d) => {
@@ -1017,9 +1100,10 @@
       const coins = Array.from({ length: n }, () => {
         const idx = i++;
         const cls = count.mode === "countup" ? (idx < count.tapped ? "tapped" : idx === count.tapped ? "next" : "") : "";
-        return coinHTML(d, { size: 1.15, label: true, cls, attrs: `data-idx="${idx}"` });
+        return coinHTML(d, { size: 1.15, label: grouped ? L.labels : true, cls, attrs: `data-idx="${idx}"` });
       }).join("");
-      return `<div class="coin-row"><span class="row-label">${n} ${n === 1 ? COINS[d].name : COINS[d].plural}</span><div class="row-coins">${coins}</div></div>`;
+      const rowLabel = grouped ? `${ICON.times}${n}` : `${n} ${n === 1 ? COINS[d].name : COINS[d].plural}`;
+      return `<div class="coin-row"><span class="row-label">${rowLabel}</span><div class="row-coins">${coins}</div></div>`;
     }).join("");
   }
 
@@ -1037,10 +1121,10 @@
     $("countHelp").textContent = `Counting up: ${fmt(count.running)}`;
     if (count.tapped >= sorted.length) {
       count.locked = false;
-      Voice.say(`${count.running}. Now type the total.`);
+      Voice.say(`${count.running >= 100 ? fmt(count.running) : count.running}. Now type the total.`);
       $("countHelp").textContent = `Counting up: ${fmt(count.running)}. Now type the total!`;
     } else {
-      Voice.say(String(count.running));
+      Voice.say(count.running >= 100 ? fmt(count.running) : String(count.running));
     }
   });
 
@@ -1115,6 +1199,7 @@
       const pending = [];
       if (perfect) {
         p.perfect[p.level] = (p.perfect[p.level] || 0) + 1;
+        p.levelStreak[p.level] = (p.levelStreak[p.level] || 0) + 1;
         p.streak += 1;
         if (p.streak > p.bestStreak) {
           if (p.bestStreak > 0) pending.push({ record: true, img: "assets/stars.png", title: G.fanfare, text: `Longest Perfect Count streak: ${p.streak}!` });
@@ -1124,13 +1209,29 @@
           if (p.bestHaul > 0) pending.push({ record: true, img: "assets/save1000.png", title: G.fanfare, text: `Biggest perfect haul: ${fmt(count.total)}!` });
           p.bestHaul = count.total;
         }
-        if (p.level === p.unlocked && p.unlocked < LEVELS.length - 1 && p.perfect[p.level] >= G.unlockPerfectCounts) {
+        const L = level();
+        const reached = progressFor(p, L) >= goalFor(L);
+        if (p.level === p.unlocked && p.unlocked < SUMMIT && reached) {
           p.unlocked += 1;
           count.newLevel = p.unlocked;
           pending.push({ img: "assets/sparkle.png", title: `Level ${p.unlocked} unlocked!`, text: `${LEVELS[p.unlocked].name}: ${LEVELS[p.unlocked].note}` });
         }
+        if (p.level === SUMMIT && reached && !p.summit) {
+          p.summit = true;
+          pending.push({ record: true, img: "assets/castle.png", title: "Dollar Summit cleared!", text: `${goalFor(L)} Perfect Counts in a row at the top. You beat ${G.name}! Get ${G.champion.inARow} in a row to become ${G.champion.name}.` });
+        }
+        if (p.summit && ENDLESS > 0 && p.unlocked < ENDLESS) {
+          p.unlocked = ENDLESS;
+          count.newLevel = ENDLESS;
+          pending.push({ img: "assets/sparkle.png", title: `${LEVELS[ENDLESS].name} unlocked!`, text: LEVELS[ENDLESS].note });
+        }
+        if (p.level === G.champion.level && p.levelStreak[p.level] >= G.champion.inARow && !p.champion) {
+          p.champion = true;
+          pending.push({ record: true, img: G.champion.img, title: `${G.champion.name}!`, text: `${G.champion.inARow} Perfect Counts in a row on Dollar Summit. Your medal is in the Record Room!` });
+        }
       } else {
         p.streak = 0;
+        p.levelStreak[p.level] = 0;
       }
       save();
       sortPending = pending;
@@ -1165,6 +1266,7 @@
       count.locked = true;
       help(`It's ${fmt(count.total)}. We'll get it next time!`);
       P().streak = 0;
+      P().levelStreak[P().level] = 0;
       save();
       sortPending = [];
       setTimeout(startSort, 2600);

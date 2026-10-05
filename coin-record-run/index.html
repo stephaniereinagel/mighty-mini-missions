@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=15" />
+    <link rel="stylesheet" href="styles.css?v=22" />
   </head>
   <body>
     <main id="app">
@@ -72,7 +72,8 @@
       <section id="runScreen" class="screen run-screen hidden" aria-label="Coin run">
         <header class="run-hud">
           <button id="quitRunBtn" class="round-btn" type="button" aria-label="Leave run">&#8962;</button>
-          <div class="timer"><div id="timerFill" class="timer-fill"></div></div>
+          <div id="timerBar" class="timer"><div id="timerFill" class="timer-fill"></div></div>
+          <div id="lives" class="lives hidden" aria-label="Misses left"></div>
           <div id="powerHud" class="power-hud"></div>
           <span id="trayCount" class="tray-count"></span>
         </header>
@@ -82,7 +83,6 @@
           <div id="runBanner" class="run-banner hidden"></div>
           <p id="dragHint" class="drag-hint">Drag to move</p>
         </div>
-        <div id="tray" class="tray"></div>
       </section>
 
       <section id="countScreen" class="screen step-screen hidden" aria-label="Count your coins">
@@ -196,9 +196,11 @@
         </div>
       </div>
     </main>
-    <script src="coins.js?v=15"></script>
-    <script src="jars.js?v=15"></script>
-    <script src="store.js?v=15"></script>
-    <script src="app.js?v=15"></script>
+    <script src="coins.js?v=22"></script>
+    <script src="jars.js?v=22"></script>
+    <script src="store.js?v=22"></script>
+    <script src="vendor/three.min.js"></script>
+    <script src="path3d.js?v=22"></script>
+    <script src="app.js?v=22"></script>
   </body>
 </html>
