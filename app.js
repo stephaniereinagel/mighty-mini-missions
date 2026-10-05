@@ -286,7 +286,10 @@ function $(id) {
   return el;
 }
 
+let onPanelShown = () => {};
+
 function showOnly(panelId, ids) {
+  onPanelShown(panelId);
   const toShow = $(panelId);
   const toHide = ids.filter((id) => id !== panelId).map((id) => $(id));
 
@@ -469,7 +472,7 @@ async function main() {
   const templatePickers = buildTemplatePickers(data.templateVariables);
 
   // Elements.
-  const ids = ["profilePickerPanel", "mainPanel", "settingsPanel", "badgesPanel", "missionLogPanel", "manageProfilesPanel", "printPanel"];
+  const ids = ["profilePickerPanel", "hubPanel", "mainPanel", "settingsPanel", "badgesPanel", "missionLogPanel", "manageProfilesPanel", "printPanel"];
   const welcome = $("welcome");
   const choices = $("choices");
   const missionEl = $("mission");
@@ -527,6 +530,9 @@ async function main() {
   const choicesDifficultyPill = $("choicesDifficultyPill");
   const choicesCategoryPill = $("choicesCategoryPill");
 
+  const backToGamesButton = $("backToGamesButton");
+  const hubHeading = $("hubHeading");
+  const hubGrid = $("hubGrid");
   const profileIndicator = $("profileIndicator");
   const profileAvatar = $("profileAvatar");
   const profileName = $("profileName");
@@ -595,13 +601,90 @@ async function main() {
     saveProfiles(state.profiles, state.activeProfileId);
   }
 
+  let activePanel = "profilePickerPanel";
+  let homePanel = "profilePickerPanel";
+  const homePanels = new Set(["profilePickerPanel", "hubPanel", "mainPanel"]);
+
+  onPanelShown = (panelId) => {
+    activePanel = panelId;
+    if (homePanels.has(panelId)) homePanel = panelId;
+    syncChrome();
+  };
+
+  function syncChrome() {
+    const onMissions = activePanel === "mainPanel";
+    resetFiltersButton.classList.toggle("hidden", !onMissions);
+    const p = getActiveProfile();
+    if (!headerSubtitle) return;
+    if (activePanel === "profilePickerPanel") {
+      headerSubtitle.textContent = "Tap → choose → go play";
+    } else if (activePanel === "hubPanel" && p) {
+      headerSubtitle.textContent = `${p.name}, pick a game`;
+    } else if (onMissions && p) {
+      headerSubtitle.textContent = `${p.name}'s missions`;
+    }
+  }
+
   function updateProfileHeader() {
     const p = getActiveProfile();
     if (p) {
       profileAvatar.textContent = AVATAR_EMOJI[p.avatar] ?? "👤";
       profileName.textContent = p.name;
-      if (headerSubtitle) headerSubtitle.textContent = `${p.name}'s Missions`;
     }
+    syncChrome();
+  }
+
+  function renderHub() {
+    const p = getActiveProfile();
+    hubHeading.textContent = p ? `${p.name}, pick a game` : "Pick a game";
+    hubGrid.innerHTML = "";
+    const activities = Array.isArray(window.MIGHTY_GAMES) ? window.MIGHTY_GAMES : [];
+    for (const activity of activities) {
+      const frame = document.createElement("span");
+      frame.className = "hub-icon-frame";
+      const icon = document.createElement("img");
+      icon.className = "hub-icon";
+      icon.src = activity.icon || "";
+      icon.alt = "";
+      icon.draggable = false;
+      if (activity.iconScale) icon.style.transform = `scale(${Number(activity.iconScale)})`;
+      frame.appendChild(icon);
+
+      const label = document.createElement("span");
+      label.className = "hub-label";
+      label.textContent = activity.title || "Game";
+
+      if (activity.kind === "missions") {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "hub-tile";
+        button.append(frame, label);
+        button.addEventListener("click", openMissions);
+        hubGrid.appendChild(button);
+      } else if (activity.href) {
+        const link = document.createElement("a");
+        link.className = "hub-tile";
+        link.href = activity.href;
+        link.append(frame, label);
+        hubGrid.appendChild(link);
+      }
+    }
+  }
+
+  function openHub() {
+    renderHub();
+    showOnly("hubPanel", ids);
+    updateStatus();
+  }
+
+  function openMissions() {
+    showOnly("mainPanel", ids);
+    showWelcome();
+  }
+
+  function returnFromOverlay() {
+    showOnly(homePanel, ids);
+    updateStatus();
   }
 
   function renderProfileCards() {
@@ -634,9 +717,7 @@ async function main() {
     persist();
     updateProfileHeader();
     updateSegments();
-    showOnly("mainPanel", ids);
-    showWelcome();
-    updateStatus();
+    openHub();
   }
 
   function effectiveFilteredMissions() {
@@ -647,6 +728,10 @@ async function main() {
   }
 
   function updateStatus() {
+    if (activePanel !== "mainPanel") {
+      statusText.textContent = "";
+      return;
+    }
     const filtered = effectiveFilteredMissions().length;
     statusText.textContent = formatStatus({
       total: missions.length,
@@ -931,7 +1016,7 @@ async function main() {
       updateStatus();
       return;
     }
-    if (!initialLoad) ensureMainPanel();
+    if (!initialLoad) returnFromOverlay();
     initialLoad = false;
     updateStatus();
   }
@@ -1385,6 +1470,8 @@ async function main() {
     }
   });
 
+  backToGamesButton.addEventListener("click", () => openHub());
+
   // Profile indicator - switch profile
   profileIndicator.addEventListener("click", () => {
     ensureProfilePickerPanel();
@@ -1425,7 +1512,7 @@ async function main() {
     updateSegments();
   });
   closeSettingsButton.addEventListener("click", () => {
-    ensureMainPanel();
+    returnFromOverlay();
   });
 
   resetFiltersButton.addEventListener("click", () => {

@@ -1,0 +1,29 @@
+// Activities on a child's page. Missions is one option.
+// To add a game, append an object with title, icon, and href.
+window.MIGHTY_GAMES = [
+  {
+    id: "missions",
+    title: "Missions",
+    kind: "missions",
+    icon: "./logo.png",
+    iconScale: 1.55
+  },
+  {
+    id: "monster-hunt",
+    title: "Monster Hunt",
+    icon: "./word-monsters/icons/icon-192.png",
+    href: "./word-monsters/"
+  },
+  {
+    id: "ghost-word-run",
+    title: "Ghost Word Run",
+    icon: "./ghost-word-run/icons/icon-192.png",
+    href: "./ghost-word-run/"
+  },
+  {
+    id: "coin-record-run",
+    title: "Coin Record Run",
+    icon: "./coin-record-run/icons/icon-192.png",
+    href: "./coin-record-run/"
+  }
+];

@@ -42,7 +42,16 @@
         </div>
       </section>
 
+      <section class="panel hidden" id="hubPanel" aria-label="Choose a game">
+        <div class="hub">
+          <h1 id="hubHeading">Pick a game</h1>
+          <p class="lede">Tap a picture to play.</p>
+          <div class="hub-grid" id="hubGrid"></div>
+        </div>
+      </section>
+
       <section class="panel hidden" id="mainPanel" aria-live="polite">
+        <button class="ghost missions-back" id="backToGamesButton" type="button">← All games</button>
         <div class="welcome" id="welcome">
           <h1>Pick a mission.</h1>
           <p class="lede">
@@ -55,9 +64,6 @@
           </div>
           <div class="cta-row">
             <a class="secondary" href="#print">Print mission cards (no device needed)</a>
-            <a class="word-monsters-link" href="word-monsters/">&#x1F47E; Monster Hunt</a>
-            <a class="ghost-run-link" href="ghost-word-run/">👻 Ghost Word Run</a>
-            <a class="coin-run-link" href="coin-record-run/">🪙 Coin Record Run</a>
           </div>
           <div class="quick-picks" aria-label="Quick picks">
             <button class="chip" data-quick-category="build">🔧 Build</button>
@@ -340,6 +346,7 @@
     </footer>
 
     <script src="./missions-data.js"></script>
+    <script src="./games.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
