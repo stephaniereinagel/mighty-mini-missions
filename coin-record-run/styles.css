@@ -232,6 +232,7 @@ button:disabled { cursor: default; }
 .runner.shield-hit::after { animation: shieldHit 0.35s ease-out; }
 @keyframes shieldHit { 50% { transform: translate(-50%, -50%) scale(1.25); background: rgba(255, 255, 255, 0.5); } }
 .runner.fiery img { filter: drop-shadow(0 0 10px rgba(255, 120, 40, 0.85)); }
+.picker-runner { display: block; height: 90px; width: auto; margin: 0 auto -4px; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.35)); }
 .power-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 16px; max-height: 55vh; overflow-y: auto; padding: 4px; }
 .power-card {
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 18px;

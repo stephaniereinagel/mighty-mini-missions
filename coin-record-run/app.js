@@ -605,6 +605,9 @@
     if (pw) return togglePower(pw.dataset.power);
     if (t.closest("[data-power-go]")) {
       P().powers = powerPick.slice();
+      powerPick.map(itemById).forEach((i) => {
+        if (i.cat === "runner" || i.cat === "trail") P().equipped[i.cat] = i.id;
+      });
       save();
       closeGeneric(false);
       return startRun();
@@ -672,7 +675,8 @@
   function renderPowerPicker() {
     const items = ownedPowerItems();
     const picked = powerPick.map(itemById);
-    openGeneric(`<h2>Pick your powers!</h2>
+    openGeneric(`<img src="${runnerImg()}" class="picker-runner" alt="" draggable="false" />
+      <h2>Pick your powers!</h2>
       <p class="note">Choose up to ${S.powerSlots}. Only one of each kind. Tap again to take it off.</p>
       <div class="power-grid">${items.map((i) => `<button type="button" class="power-card ${powerPick.includes(i.id) ? "on" : ""}" data-power="${i.id}">
         ${art(i.img, "power-art")}<b>${powerName(i)}</b><small>${powerText(i)}</small>
@@ -688,6 +692,11 @@
       powerPick = powerPick.filter((x) => itemById(x).power !== item.power);
       if (powerPick.length >= S.powerSlots) powerPick.shift();
       powerPick.push(id);
+      if (item.cat === "runner" || item.cat === "trail") {
+        P().equipped[item.cat] = item.id;
+        save();
+        $("runBtnRunner").src = runnerImg();
+      }
       Voice.say(`${S.powers[item.power].name}! ${powerText(item)}`);
     }
     Sfx.drop();
