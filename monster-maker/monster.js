@@ -292,6 +292,47 @@
     return best;
   }
 
+  // Horns sit evenly along the top edge of the body, pointing out and a little up, so they stay
+  // clear of the arms and never lie flat against a slanted side where the body would hide them.
+  function layoutHorns(g, n) {
+    const armTop = g.cy - g.h * 0.2;
+    const thr = Math.max(g.minY + g.h * 0.22, Math.min(g.minY + g.h * 0.45, armTop - 18));
+    const pts = g.pts;
+    const start = pts.findIndex((p) => p[1] >= thr);
+    const loop = pts.slice(start).concat(pts.slice(0, start));
+    const segs = [];
+    let total = 0;
+    const cut = (p, q) => {
+      const t = (thr - p[1]) / (q[1] - p[1]);
+      return [p[0] + (q[0] - p[0]) * t, thr];
+    };
+    for (let i = 0; i < loop.length; i++) {
+      let a = loop[i], b = loop[(i + 1) % loop.length];
+      if (a[1] >= thr && b[1] >= thr) continue;
+      if (a[1] >= thr) a = cut(a, b);
+      else if (b[1] >= thr) b = cut(a, b);
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (l < 0.01) continue;
+      segs.push({ a, b, l, at: total });
+      total += l;
+    }
+    const out = [];
+    for (let k = 0; k < n; k++) {
+      const target = total * (0.1 + (0.8 * (k + 0.5)) / n);
+      const s = segs.find((sg) => target <= sg.at + sg.l) || segs[segs.length - 1];
+      const t = Math.min(1, Math.max(0, (target - s.at) / s.l));
+      const x = s.a[0] + (s.b[0] - s.a[0]) * t;
+      const y = s.a[1] + (s.b[1] - s.a[1]) * t;
+      let nx = -(s.b[1] - s.a[1]) / s.l, ny = (s.b[0] - s.a[0]) / s.l;
+      if (g.inside(x + nx * 4, y + ny * 4)) { nx = -nx; ny = -ny; }
+      let dx = nx, dy = ny - 0.7;
+      const d = Math.hypot(dx, dy);
+      dx /= d; dy /= d;
+      out.push({ x, y, dx, dy });
+    }
+    return out.sort((p, q) => p.x - q.x);
+  }
+
   // ---------------------------------------------------------------- drawing
 
   let uid = 0;
@@ -320,11 +361,14 @@
 
     // Legs (behind body)
     const nLegs = spec.legs || 0;
+    let legSpan = 0;
     if (nLegs) {
-      const yRef = g.maxY - g.h * 0.2;
-      let span = g.widthAt(yRef) * 0.85;
-      span = Math.min(span, nLegs * 62);
-      const legW = Math.min(30, (span / nLegs) * 0.72);
+      // Bodies that narrow at the bottom (heart, diamond) spread legs across their widest lower part.
+      let widest = 0;
+      for (let yy = g.cy; yy <= g.maxY; yy += 4) widest = Math.max(widest, g.widthAt(yy));
+      const span = Math.min(widest * 0.78, nLegs * 62);
+      legSpan = span;
+      const legW = Math.min(30, (span / nLegs) * 0.68);
       for (let i = 0; i < nLegs; i++) {
         const x = 200 - span / 2 + (span * (i + 0.5)) / nLegs;
         const top = (g.bottomAt(x) ?? g.maxY) - 24;
@@ -336,15 +380,17 @@
       }
     }
 
+    if (!outline && opts.shadow !== false) {
+      const rx = Math.max(g.w * 0.42, legSpan / 2 + 26);
+      parts.unshift(`<ellipse cx="200" cy="${GROUND + 9}" rx="${f(rx)}" ry="13" fill="${INK}" opacity="0.13"/>`);
+    }
+
     // Horns (behind body)
     const nHorns = spec.horns || 0;
     if (nHorns) {
-      const spread = nHorns === 1 ? 0 : Math.min(150, 34 * (nHorns - 1));
       const len = 44 - nHorns * 2;
       const bw = nHorns > 4 ? 17 : 23;
-      for (let i = 0; i < nHorns; i++) {
-        const deg = nHorns === 1 ? 0 : -spread / 2 + (spread * i) / (nHorns - 1);
-        const h = g.rayHit(deg);
+      layoutHorns(g, nHorns).forEach((h, i) => {
         const bx = h.x - h.dx * 10, by = h.y - h.dy * 10;
         const px = -h.dy, py = h.dx;
         const tx = bx + h.dx * (len + 10), ty = by + h.dy * (len + 10);
@@ -353,7 +399,7 @@
         const c1 = [(l1[0] + tx) / 2 + px * 4, (l1[1] + ty) / 2 + py * 4];
         const c2 = [(l2[0] + tx) / 2 - px * 2, (l2[1] + ty) / 2 - py * 2];
         parts.push(`<path${popAttr("horns", i, pop)} d="M${f(l1[0])} ${f(l1[1])} Q${f(c1[0])} ${f(c1[1])} ${f(tx)} ${f(ty)} Q${f(c2[0])} ${f(c2[1])} ${f(l2[0])} ${f(l2[1])} Z" fill="${outline ? "#fff" : HORN}" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>`);
-      }
+      });
     }
 
     // Arms (behind body)
@@ -401,6 +447,8 @@
     parts.push(`<path d="${g.d}" fill="${fill}" stroke="${INK}" stroke-width="${lw}" stroke-linejoin="round"/>`);
     if (!outline) {
       parts.push(`<ellipse clip-path="url(#${id}b)" cx="${f(g.minX + g.w * 0.3)}" cy="${f(g.minY + g.h * 0.24)}" rx="${f(g.w * 0.16)}" ry="${f(g.h * 0.09)}" transform="rotate(-25 ${f(g.minX + g.w * 0.3)} ${f(g.minY + g.h * 0.24)})" fill="#fff" opacity="0.28"/>`);
+      parts.push(`<ellipse clip-path="url(#${id}b)" cx="${f(g.cx + g.w * 0.2)}" cy="${f(g.maxY + g.h * 0.05)}" rx="${f(g.w * 0.62)}" ry="${f(g.h * 0.34)}" fill="${dark}" opacity="0.22"/>`);
+      parts.push(`<path d="${g.d}" fill="none" stroke="${INK}" stroke-width="${lw}" stroke-linejoin="round"/>`);
     }
 
     const eyes = layoutEyes(g, shape, spec.eyes || 0);
@@ -430,8 +478,8 @@
       if (emotion === "proud") {
         s += `<path d="M${f(x - r)} ${f(y + r * 0.35)} Q${f(x)} ${f(y - r * 0.05)} ${f(x + r)} ${f(y + r * 0.35)} A${f(r)} ${f(r)} 0 0 1 ${f(x - r)} ${f(y + r * 0.35)} Z" fill="${fill}" stroke="${INK}" stroke-width="3"/>`;
       }
-      if (e.row === topRow) s += brow(x, y, r, emotion);
-      parts.push(`<g${popAttr("eyes", i, pop)}>${s}</g>`);
+      const blink = outline ? s : `<g class="blink" style="animation-delay:${((seed % 37) / 10).toFixed(1)}s">${s}</g>`;
+      parts.push(`<g${popAttr("eyes", i, pop)}>${blink}${e.row === topRow ? brow(x, y, r, emotion) : ""}</g>`);
     });
 
     // Mouth and teeth

@@ -11,6 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="images/bg-home.webp" />
+  <link rel="preload" as="image" href="images/bg-workshop.webp" />
+  <link rel="preload" as="image" href="images/bg-gallery.webp" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -40,7 +43,11 @@
         <button id="btn-hear" class="icon-btn" aria-label="Hear it again">&#x1F50A;</button>
       </div>
       <div class="build-body">
-        <div class="stage"><div id="stage-monster" class="stage-monster"></div></div>
+        <div class="stage">
+          <div id="stage-monster" class="stage-monster"></div>
+          <img id="helper" class="helper" src="images/mascot.webp" alt="" draggable="false" />
+          <div id="burst" class="burst"></div>
+        </div>
         <div id="panel" class="panel"></div>
       </div>
     </section>
@@ -56,9 +63,11 @@
         <div class="done-side">
           <div id="done-recipe" class="recipe"></div>
           <div class="done-buttons">
-            <button id="btn-rename" class="mid-btn">&#x270F;&#xFE0F; Change name</button>
-            <button id="btn-print" class="mid-btn">&#x1F5A8;&#xFE0F; Print it</button>
-            <button id="btn-print-color" class="mid-btn">&#x1F58D;&#xFE0F; Coloring page</button>
+            <div class="tool-row">
+              <button id="btn-rename" class="tool-btn"><span>&#x270F;&#xFE0F;</span>Rename</button>
+              <button id="btn-print" class="tool-btn"><span>&#x1F5A8;&#xFE0F;</span>Print</button>
+              <button id="btn-print-color" class="tool-btn"><span>&#x1F58D;&#xFE0F;</span>Color page</button>
+            </div>
             <button id="btn-again" class="big-btn">Build another!</button>
             <button id="btn-to-gallery" class="mid-btn">My Monsters</button>
             <button id="btn-delete" class="text-btn hidden">Delete this monster</button>

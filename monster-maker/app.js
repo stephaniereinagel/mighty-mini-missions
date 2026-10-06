@@ -253,6 +253,31 @@
       `<button class="choice" data-n="${n}">${n}${withDots && n > 0 ? `<span class="dots">${"<i></i>".repeat(n)}</span>` : ""}</button>`).join("")}</div>`;
   }
 
+  function helperReact(cls) {
+    const h = $("helper");
+    if (!h) return;
+    h.classList.remove("cheer", "hmm");
+    void h.offsetWidth;
+    h.classList.add(cls);
+  }
+
+  function burst() {
+    const box = $("burst");
+    box.innerHTML = "";
+    const colors = ["#ffd84d", "#ff8fc1", "#5cb8ff", "#7ed957", "#a98bff"];
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const d = 90 + Math.random() * 60;
+      const el = document.createElement("i");
+      el.style.setProperty("--x", `${Math.cos(a) * d}px`);
+      el.style.setProperty("--y", `${Math.sin(a) * d}px`);
+      el.style.setProperty("--c", colors[i % colors.length]);
+      el.style.animationDelay = `${Math.random() * 0.15}s`;
+      box.appendChild(el);
+    }
+    setTimeout(() => { box.innerHTML = ""; }, 1300);
+  }
+
   function bindChoices(onRight) {
     $("panel").querySelectorAll(".choice").forEach((b) => b.addEventListener("click", async () => {
       if (busy) return;
@@ -261,10 +286,12 @@
         busy = true;
         b.classList.add("right");
         Sfx.right();
+        helperReact("cheer");
         await onRight();
       } else {
         b.classList.add("wrong");
         Sfx.boing();
+        helperReact("hmm");
         say(current.retry || "Hmm, not quite. Try again!");
       }
     }));
@@ -337,6 +364,7 @@
       await sleep(250);
       drawStage({ part: partId, from: 0 });
       drawSteps();
+      burst();
       for (let i = 1; i <= n; i++) {
         setTimeout(() => Sfx.pop(), 100 + (i - 1) * 500);
       }
@@ -493,7 +521,11 @@
   function renderGallery() {
     const list = store.data.monsters;
     $("gallery-grid").innerHTML = list.length
-      ? list.map((m, i) => `<button class="gallery-card" data-i="${i}">${renderMonster(m)}${esc(m.name)}</button>`).join("")
+      ? list.map((m, i) => {
+        const frame = (COLORS.find((c) => c.id === m.color) || COLORS[0]).fill;
+        const tilt = [-2, 1.5, -1, 2, -1.5, 1][i % 6];
+        return `<button class="gallery-card" data-i="${i}" style="--frame:${frame};--tilt:${tilt}deg">${renderMonster(m)}<span class="plate">${esc(m.name)}</span></button>`;
+      }).join("")
       : `<div class="gallery-empty">No monsters yet. Go build one!</div>`;
     $("btn-print-all").classList.toggle("hidden", !list.length);
     show("gallery");
