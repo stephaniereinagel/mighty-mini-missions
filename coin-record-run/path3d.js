@@ -1,13 +1,13 @@
-// 3D layer for the run: coins and obstacles come down the painted path toward the runner.
+// 3D layer for the run: coins and obstacles come down the painted road toward the runner.
 // World units: x across the path, z along it (FAR is the horizon end, 0 is the runner), y up.
 (function () {
   const FAR = 30;
   const CAM_D = 6;
   const Y_REF = 0.5;
   const FOV = 40;
-  // Where the path meets the horizon in scene_run.jpg (fractions of the image), and the
-  // vertical background-position the .world box uses for that image.
-  const VANISH = { x: 0.585, y: 0.467, bgY: 0.6 };
+  // In scene_run.jpg (fractions of the image): where the road edges meet (x, y) and where the
+  // road comes over the hill (crestY). bgY is the vertical background-position of .world.
+  const VANISH = { x: 0.54, y: 0.42, crestY: 0.495, bgY: 0.6 };
 
   window.CRR_Path3D = function (host) {
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -81,7 +81,7 @@
       return labelMats[text];
     };
 
-    const view = { W: 1, H: 1, ppu: 100, slope: 0 };
+    const view = { W: 1, H: 1, ppu: 100, slope: 0, rise: 0 };
     const live = new Set();
     const v3 = new THREE.Vector3();
 
@@ -108,7 +108,13 @@
       view.ppu = toScreen(1, Y_REF, 0).x - toScreen(0, Y_REF, 0).x;
       // Lanes lean so they all meet at the vanishing point, not the screen center.
       view.slope = ((2 * hx) / W - 1) * Math.cos(theta) * T * camera.aspect;
+      // Bend the far end of the road up or down so new coins appear right at the hill crest.
+      const crest = (H - D) * VANISH.bgY + VANISH.crestY * D;
+      const y0 = toScreen(0, Y_REF, -FAR).y;
+      const y1 = toScreen(0, Y_REF + 1, -FAR).y;
+      view.rise = (crest - y0) / (y1 - y0);
     }
+    const lift = (z) => view.rise * Math.min(1, Math.max(0, -z) / FAR) ** 2;
 
     function track(h) {
       h.age = 0;
@@ -167,14 +173,15 @@
     // Put a thing at path position (x, z); coins hop along at about runner height.
     function place(h, x, z, t, phase) {
       const px = x - view.slope * z;
-      let y = 0;
+      const ground = lift(z);
+      let y = ground;
       if (!h.ground) {
-        y = Y_REF + Math.abs(Math.sin(t * 5 + phase)) * h.r * 0.7;
+        y += Y_REF + Math.abs(Math.sin(t * 5 + phase)) * h.r * 0.7;
         h.obj.rotation.y = Math.sin(t * 2.4 + phase) * 0.55;
-        h.obj.rotation.z = h.sprite ? 0 : Math.sin(t * 1.7 + phase) * 0.12;
+        h.obj.rotation.z = Math.sin(t * 1.7 + phase) * 0.12;
       }
       h.obj.position.set(px, y, z);
-      h.shadow.position.set(px, 0.01, z);
+      h.shadow.position.set(px, ground + 0.01, z);
       h.shadow.scale.set(h.r, 1, h.r * 0.45);
     }
 

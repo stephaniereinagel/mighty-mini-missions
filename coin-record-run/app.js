@@ -822,7 +822,8 @@
       if (lane === run.lastLane) lane = (lane + 1 + Math.floor(Math.random() * (lanes - 1))) % lanes;
       run.lastLane = lane;
     }
-    const x = worldX((run.W * (lane + 0.5)) / lanes);
+    // Lanes cover the middle of the screen so coins stay on the painted road.
+    const x = worldX(run.W * (0.5 + (lane - (lanes - 1) / 2) * 0.16));
     const z = opts.z == null ? -path3d.FAR : opts.z;
     const phase = Math.random() * 6;
     let item;
