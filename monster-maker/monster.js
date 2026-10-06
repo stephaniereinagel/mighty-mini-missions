@@ -161,34 +161,87 @@
 
   // ---------------------------------------------------------------- layout
 
+  function eyeRowSplits(n) {
+    const out = [];
+    for (let rows = 1; rows <= Math.min(4, n); rows++) {
+      const lo = Math.floor(n / rows);
+      if (Math.ceil(n / rows) > 5) continue;
+      const big = n % rows;
+      const seen = new Set();
+      const walk = (left, bigLeft, acc) => {
+        if (acc.length === rows) { const k = acc.join(); if (!seen.has(k)) { seen.add(k); out.push(acc); } return; }
+        if (left - acc.length > bigLeft) walk(left, bigLeft, acc.concat(lo));
+        if (bigLeft) walk(left, bigLeft - 1, acc.concat(lo + 1));
+      };
+      walk(rows, big, []);
+    }
+    return out;
+  }
+
   function layoutEyes(g, shape, n) {
     if (!n) return [];
-    const rowsN = n <= 3 ? 1 : n <= 8 ? 2 : 3;
-    const base = Math.floor(n / rowsN);
-    const extra = n % rowsN;
-    const per = [];
-    for (let i = 0; i < rowsN; i++) per.push(base + (i >= rowsN - extra ? 1 : 0));
-    const startR = n === 1 ? 34 : n === 2 ? 27 : 24;
-    let r = startR;
-    let ys = [];
-    for (let iter = 0; iter < 8; iter++) {
-      const gap = r * 2.45;
-      ys = per.map((_, i) => shape.eyeY + (i - (rowsN - 1) / 2) * gap);
-      const overlap = ys[ys.length - 1] + r - (shape.mouthY - 16);
-      if (overlap > 0) ys = ys.map((y) => y - overlap);
-      let maxR = startR;
-      ys.forEach((y, i) => {
-        const avail = Math.min(g.widthAt(y - r * 0.6), g.widthAt(y + r * 0.6)) - 26;
-        maxR = Math.min(maxR, avail / (per[i] * 2.3));
+    g.eyeCache = g.eyeCache || {};
+    if (!g.eyeCache[n]) g.eyeCache[n] = computeEyes(g, shape, n);
+    return g.eyeCache[n].map((e) => ({ ...e }));
+  }
+
+  function computeEyes(g, shape, n) {
+    const maxR = n === 1 ? 34 : n === 2 ? 27 : 24;
+    const PAD = 8;
+    const fits = (x, y, r) => {
+      for (let k = 0; k < 12; k++) {
+        const t = (k / 12) * Math.PI * 2;
+        if (!g.inside(x + Math.cos(t) * (r + 6), y + Math.sin(t) * (r + 6))) return false;
+      }
+      return true;
+    };
+    const place = (per, rs, dy) => {
+      const total = rs.reduce((s, r) => s + 2 * r, 0) + PAD * (per.length - 1);
+      let y = shape.eyeY - total / 2 + dy;
+      const lift = y + total - (shape.mouthY - 16);
+      if (lift > 0) y -= lift;
+      const eyes = [];
+      rs.forEach((r, i) => {
+        const cy = y + r;
+        const step = 2 * r + PAD;
+        for (let j = 0; j < per[i]; j++) eyes.push({ x: 200 + (j - (per[i] - 1) / 2) * step, y: cy, r, row: i });
+        y += 2 * r + PAD;
       });
-      r = Math.max(8, Math.min(startR, maxR));
+      return eyes;
+    };
+    const OFFSETS = [0, 8, -8, 16, -16, 24, -24, 32, 40, 48];
+    const placeFit = (per, rs) => {
+      for (const dy of OFFSETS) {
+        const eyes = place(per, rs, dy);
+        if (eyes.every((e) => fits(e.x, e.y, e.r))) return eyes;
+      }
+      return null;
+    };
+    let best = null;
+    for (const per of eyeRowSplits(n)) {
+      let lo = 0, hi = maxR, eyes = null;
+      for (let i = 0; i < 9; i++) {
+        const mid = (lo + hi) / 2;
+        const got = placeFit(per, per.map(() => mid));
+        if (got) { lo = mid; eyes = got; } else hi = mid;
+      }
+      if (!eyes || lo < 6) continue;
+      const rs = per.map(() => lo);
+      for (let i = per.length - 1; i >= 0; i--) {
+        for (let tries = 0; tries < 8 && rs[i] < maxR; tries++) {
+          const next = rs.slice();
+          next[i] = Math.min(maxR, rs[i] * 1.08);
+          const got = placeFit(per, next);
+          if (!got) break;
+          rs[i] = next[i];
+          eyes = got;
+        }
+      }
+      const score = lo * 2 + rs.reduce((s, r, i) => s + r * per[i], 0) / n - per.length * 0.5;
+      if (!best || score > best.score) best = { eyes, score };
     }
-    const eyes = [];
-    ys.forEach((y, i) => {
-      const k = per[i];
-      const step = r * 2.3;
-      for (let j = 0; j < k; j++) eyes.push({ x: 200 + (j - (k - 1) / 2) * step, y, r, row: i });
-    });
+    if (best) return best.eyes;
+    const eyes = place([n], [6], 0);
     return eyes;
   }
 
