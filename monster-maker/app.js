@@ -453,9 +453,13 @@
       <div class="recipe-row"><small style="margin-left:0">${esc(L.label)} math</small></div>`;
   }
 
+  let viewingFresh = false;
+
   function showMonster(m, fresh) {
     viewing = m;
+    viewingFresh = fresh;
     show("done");
+    $("rename").classList.add("hidden");
     $("done-title").textContent = fresh ? `Meet ${m.name}!` : m.name;
     $("done-monster").innerHTML = renderMonster(m);
     $("done-recipe").innerHTML = recipeHTML(m);
@@ -545,6 +549,48 @@
 
   $("btn-start").onclick = startBuild;
   $("btn-gallery").onclick = renderGallery;
+  function openRename(names) {
+    if (!viewing) return;
+    names = names || [C.makeName(), C.makeName(), C.makeName()];
+    let picked = viewing.name;
+    $("rename-panel").innerHTML = `
+      <h2>New name for ${esc(viewing.name)}?</h2>
+      <div class="names">${names.map((n) => `<button class="name-btn" data-name="${esc(n)}">${esc(n)}</button>`).join("")}</div>
+      <div class="row"><button class="small-btn" id="btn-rename-more">More names</button></div>
+      <input id="rename-input" class="name-input" maxlength="24" placeholder="or type a name" autocomplete="off" />
+      <div class="row">
+        <button class="mid-btn" id="btn-rename-cancel">Keep old name</button>
+        <button class="next-btn" id="btn-rename-save">Save &#x2B50;</button>
+      </div>`;
+    $("rename").classList.remove("hidden");
+    say(`What's ${viewing.name}'s new name? Tap one, or type your own!`);
+    const panel = $("rename-panel");
+    panel.querySelectorAll("[data-name]").forEach((b) => b.addEventListener("click", () => {
+      picked = b.dataset.name;
+      $("rename-input").value = "";
+      panel.querySelectorAll("[data-name]").forEach((x) => x.classList.toggle("on", x === b));
+      say(picked);
+    }));
+    $("rename-input").addEventListener("input", (e) => {
+      const v = e.target.value.trim();
+      picked = v || viewing.name;
+      panel.querySelectorAll("[data-name]").forEach((x) => x.classList.remove("on"));
+    });
+    $("btn-rename-more").onclick = () => openRename();
+    $("btn-rename-cancel").onclick = () => $("rename").classList.add("hidden");
+    $("btn-rename-save").onclick = () => {
+      viewing.name = picked;
+      store.save();
+      $("rename").classList.add("hidden");
+      $("done-title").textContent = viewingFresh ? `Meet ${picked}!` : picked;
+      $("done-recipe").innerHTML = recipeHTML(viewing);
+      $("done-monster").innerHTML = renderMonster(viewing);
+      Sfx.tada();
+      say(`Hello, ${picked}!`);
+    };
+  }
+
+  $("btn-rename").onclick = () => openRename();
   $("btn-to-gallery").onclick = renderGallery;
   $("btn-again").onclick = startBuild;
   $("btn-hear").onclick = () => lastSay && Speech.say(lastSay);
