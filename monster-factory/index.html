@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#a98bff" />
+  <title>Monster Factory</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="app">
+
+    <section id="screen-home" class="screen active">
+      <div class="top-left">
+        <a class="icon-btn" href="../" aria-label="Back to Mighty Mini Missions">&#x1F3E0;</a>
+      </div>
+      <div class="top-right">
+        <button id="btn-sound" class="icon-btn" aria-label="Voice on or off">&#x1F50A;</button>
+      </div>
+      <div class="home-card">
+        <img class="mascot" src="images/mascot.webp" alt="" width="491" height="520" draggable="false" />
+        <h1 class="title">Monster<br />Factory</h1>
+        <p class="tagline">Solve math. Build a monster!</p>
+        <div class="levels" id="levels" role="radiogroup" aria-label="Math level"></div>
+        <button id="btn-start" class="big-btn">Build a monster!</button>
+        <button id="btn-gallery" class="mid-btn">My Monsters <span id="gallery-count" class="pill"></span></button>
+      </div>
+    </section>
+
+    <section id="screen-build" class="screen">
+      <div class="build-top">
+        <button id="btn-build-home" class="icon-btn" aria-label="Home">&#x1F3E0;</button>
+        <div id="steps" class="steps"></div>
+        <button id="btn-hear" class="icon-btn" aria-label="Hear it again">&#x1F50A;</button>
+      </div>
+      <div class="build-body">
+        <div class="stage"><div id="stage-monster" class="stage-monster"></div></div>
+        <div id="panel" class="panel"></div>
+      </div>
+    </section>
+
+    <section id="screen-done" class="screen">
+      <div class="build-top">
+        <button id="btn-done-home" class="icon-btn" aria-label="Home">&#x1F3E0;</button>
+        <h2 id="done-title" class="done-title"></h2>
+        <span class="icon-btn-spacer"></span>
+      </div>
+      <div class="done-body">
+        <div id="done-monster" class="done-monster"></div>
+        <div class="done-side">
+          <div id="done-recipe" class="recipe"></div>
+          <div class="done-buttons">
+            <button id="btn-print" class="mid-btn">&#x1F5A8;&#xFE0F; Print it</button>
+            <button id="btn-print-color" class="mid-btn">&#x1F58D;&#xFE0F; Coloring page</button>
+            <button id="btn-again" class="big-btn">Build another!</button>
+            <button id="btn-to-gallery" class="mid-btn">My Monsters</button>
+            <button id="btn-delete" class="text-btn hidden">Delete this monster</button>
+          </div>
+        </div>
+      </div>
+      <div id="confetti" class="confetti"></div>
+    </section>
+
+    <section id="screen-gallery" class="screen">
+      <div class="build-top">
+        <button id="btn-gallery-home" class="icon-btn" aria-label="Home">&#x1F3E0;</button>
+        <h2 class="done-title">My Monsters</h2>
+        <button id="btn-print-all" class="icon-btn" aria-label="Print all monsters">&#x1F5A8;&#xFE0F;</button>
+      </div>
+      <div id="gallery-grid" class="gallery-grid"></div>
+    </section>
+
+  </main>
+
+  <div id="print-root"></div>
+
+  <script src="monster.js"></script>
+  <script src="content.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
