@@ -1,4 +1,4 @@
-"""Build the Monster Factory app icons from the mascot art (run: python3 tools/make_icons.py)."""
+"""Build the Monster Maker app icons from the mascot art (run: python3 tools/make_icons.py)."""
 from pathlib import Path
 
 from PIL import Image

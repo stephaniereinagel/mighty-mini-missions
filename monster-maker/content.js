@@ -1,4 +1,4 @@
-// Math, shape, and feelings content for Monster Factory.
+// Math, shape, and feelings content for Monster Maker.
 // Problems are generated answer-first so every answer is a part count the monster can actually show.
 (() => {
   "use strict";

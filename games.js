@@ -27,9 +27,9 @@ window.MIGHTY_GAMES = [
     href: "./coin-record-run/"
   },
   {
-    id: "monster-factory",
-    title: "Monster Factory",
-    icon: "./monster-factory/icons/icon-192.png",
-    href: "./monster-factory/"
+    id: "monster-maker",
+    title: "Monster Maker",
+    icon: "./monster-maker/icons/icon-192.png",
+    href: "./monster-maker/"
   }
 ];

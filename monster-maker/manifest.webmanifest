@@ -1,6 +1,6 @@
 {
-  "name": "Monster Factory",
-  "short_name": "Monster Factory",
+  "name": "Monster Maker",
+  "short_name": "Monster Maker",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

@@ -15,7 +15,7 @@
     Cache-Control = "no-cache"
 
 [[headers]]
-  for = "/monster-factory/sw.js"
+  for = "/monster-maker/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
 
