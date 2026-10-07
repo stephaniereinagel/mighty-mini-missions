@@ -170,6 +170,7 @@
 
   function goStep() {
     busy = false;
+    $("panel").classList.remove("picked");
     drawSteps();
     drawStage();
     const step = STEPS[stepIndex];
@@ -186,7 +187,7 @@
     const shapes = C.SHAPE_SETS[spec.level];
     $("panel").innerHTML = `
       <h2>Pick a body shape!</h2>
-      <div class="grid-pick">${shapes.map((s, i) =>
+      <div class="grid-pick" style="${gridVars(shapes.length, shapes.length > 8 ? 5 : shapes.length > 6 ? 4 : 3, 1, 70)}">${shapes.map((s, i) =>
         `<button class="shape-btn" data-shape="${s}" aria-label="${C.shapeName(s, spec.level)}">${renderShape(s, COLORS[i % COLORS.length].id)}</button>`).join("")}</div>`;
     say("Pick a shape for your monster's body!");
     $("panel").querySelectorAll("[data-shape]").forEach((b) => b.addEventListener("click", () => chooseShape(b.dataset.shape)));
@@ -231,7 +232,7 @@
   function stepColor() {
     $("panel").innerHTML = `
       <h2>Pick a color!</h2>
-      <div class="grid-pick">${COLORS.map((c) =>
+      <div class="grid-pick swatches" style="${gridVars(COLORS.length, 4, 1, 150)}">${COLORS.map((c) =>
         `<button class="swatch${c.id === spec.color ? " on" : ""}" data-color="${c.id}" style="background:${c.fill}" aria-label="${c.name}"></button>`).join("")}</div>
       <button class="next-btn" id="btn-next">Next &#x27A1;&#xFE0F;</button>`;
     say("What color is your monster?");
@@ -247,6 +248,11 @@
   }
 
   // ---------------------------------------------------------------- part problems
+
+  // Grid width is capped by the panel height so every row stays on screen.
+  function gridVars(n, cols, cellAspect, reserve) {
+    return `--cols:${cols};--rows:${Math.ceil(n / cols)};--aspect:${cellAspect};--reserve:${typeof reserve === "number" ? reserve + "px" : reserve}`;
+  }
 
   function choicesHTML(choices, withDots) {
     return `<div class="choices">${choices.map((n) =>
@@ -389,17 +395,18 @@
     const sc = C.pickScenario(spec.level, lastScenario);
     lastScenario = sc.text;
     const emotions = C.EMOTION_SETS[spec.level];
-    const cols = emotions.length > 6 ? 4 : emotions.length > 4 ? 3 : 2;
+    const cols = emotions.length === 6 ? 3 : 4;
+    $("panel").classList.remove("picked");
     $("panel").innerHTML = `
       <p class="scenario">${esc(sc.text)}</p>
-      <h2>How might your monster feel?</h2>
-      <div class="grid-pick" style="grid-template-columns:repeat(${cols}, minmax(0, 1fr));max-width:460px">${emotions.map((e) => `
+      <h2 class="feel-ask">How might your monster feel?</h2>
+      <div class="grid-pick feel-grid" style="${gridVars(emotions.length, cols, 1.3, "calc(32cqh + 48px + max(0px, (380px - 100cqw) * 0.7))")};--maxw:460px">${emotions.map((e) => `
         <button class="feel-btn" data-emo="${e}">
           ${renderMonster({ shape: "circle", color: spec.color, eyes: 2, teeth: 2, emotion: e, seed: 3 }, { viewBox: "78 66 244 280" })}
           ${C.EMOTIONS[e].name}
         </button>`).join("")}</div>
       <div id="feel-reply"></div>
-      <div class="row"><button class="small-btn" id="btn-new-story">New story</button></div>`;
+      <div class="row feel-more"><button class="small-btn" id="btn-new-story">New story</button></div>`;
     $("btn-new-story").onclick = stepFeeling;
     say(`${sc.text} How might your monster feel?`);
 
@@ -414,9 +421,15 @@
       const lead = fits
         ? `Yes, your monster might feel ${info.name}.`
         : `Your monster feels ${info.name}. Different monsters can feel different ways, and that's okay!`;
+      $("panel").classList.add("picked");
       $("feel-reply").innerHTML = `
         <div class="bubble">${esc(lead)} ${esc(info.tip)}<span class="ask">Talk about it: ${esc(info.ask)}</span></div>
-        <div class="row" style="margin-top:12px"><button class="next-btn" id="btn-next">Next &#x27A1;&#xFE0F;</button></div>`;
+        <div class="row"><button class="small-btn" id="btn-refeel">Pick a different feeling</button></div>
+        <button class="next-btn" id="btn-next">Next &#x27A1;&#xFE0F;</button>`;
+      $("btn-refeel").onclick = () => {
+        $("panel").classList.remove("picked");
+        $("feel-reply").innerHTML = "";
+      };
       $("btn-next").onclick = () => {
         spec.feelingStory = sc.text;
         nextStep();
@@ -432,8 +445,8 @@
     if (!spec.name) spec.name = names[0];
     $("panel").innerHTML = `
       <h2>Name your monster!</h2>
-      <div class="names">${names.map((n) => `<button class="name-btn${n === spec.name ? " on" : ""}" data-name="${esc(n)}">${esc(n)}</button>`).join("")}</div>
-      <div class="row"><button class="small-btn" id="btn-more-names">More names</button></div>
+      <div class="names">${names.map((n) => `<button class="name-btn${n === spec.name ? " on" : ""}" data-name="${esc(n)}">${esc(n)}</button>`).join("")}
+        <button class="small-btn" id="btn-more-names">More names</button></div>
       <input id="name-input" class="name-input" maxlength="24" placeholder="or type a name" autocomplete="off" />
       <button class="next-btn" id="btn-finish">Finish! &#x2B50;</button>`;
     say("What's your monster's name? Tap one, or type your own!");
@@ -587,8 +600,8 @@
     let picked = viewing.name;
     $("rename-panel").innerHTML = `
       <h2>New name for ${esc(viewing.name)}?</h2>
-      <div class="names">${names.map((n) => `<button class="name-btn" data-name="${esc(n)}">${esc(n)}</button>`).join("")}</div>
-      <div class="row"><button class="small-btn" id="btn-rename-more">More names</button></div>
+      <div class="names">${names.map((n) => `<button class="name-btn" data-name="${esc(n)}">${esc(n)}</button>`).join("")}
+        <button class="small-btn" id="btn-rename-more">More names</button></div>
       <input id="rename-input" class="name-input" maxlength="24" placeholder="or type a name" autocomplete="off" />
       <div class="row">
         <button class="mid-btn" id="btn-rename-cancel">Keep old name</button>
