@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ethan's Trains">
+<meta name="theme-color" content="#5aa9e6">
+<title>Ethan's Train Set</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root {
+    --bar: 86px;
+    --tray: 112px;
+    --btn: clamp(52px, calc((100vw - 150px) / 10.5), 88px);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #9ad67f;
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none;
+  }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+  header {
+    height: var(--bar); flex: none; position: relative;
+    display: flex; gap: 14px; align-items: center; justify-content: center;
+    padding: 8px 70px; background: linear-gradient(#7cc4f2, #5aa9e6);
+    box-shadow: 0 3px 0 rgba(0,0,0,.12); z-index: 2;
+  }
+  .mode {
+    height: 70px; min-width: 120px; padding: 0 18px;
+    border: none; border-radius: 24px; background: rgba(255,255,255,.55);
+    font-size: 38px; display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 5px 0 rgba(0,0,0,.2); color: #2b3a4a; touch-action: manipulation;
+  }
+  .mode span { font-size: 17px; font-weight: 800; letter-spacing: .5px; }
+  .mode img, .mode canvas { height: 52px; width: 72px; object-fit: contain; pointer-events: none; }
+  .mode.active { background: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.2); transform: translateY(3px); outline: 5px solid #ffd54f; }
+  #gear {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 50px; height: 50px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,.35); opacity: .7; overflow: hidden; padding: 8px;
+  }
+  #gear img { width: 100%; height: 100%; pointer-events: none; }
+  #gear .fill, .hold .fill {
+    position: absolute; left: 0; bottom: 0; width: 100%; height: 0;
+    background: rgba(229,57,53,.45); pointer-events: none;
+  }
+  #gear.holding .fill { height: 100%; transition: height .8s linear; }
+
+  main#stage { flex: 1; position: relative; overflow: hidden; }
+  canvas#board { position: absolute; inset: 0; touch-action: none; }
+
+  footer#tray {
+    height: var(--tray); flex: none;
+    background: linear-gradient(rgba(120,70,20,.45), rgba(120,70,20,.45)), url(art/wood_texture.jpg) center / 300px;
+    box-shadow: inset 0 4px 0 rgba(0,0,0,.18);
+    display: flex; align-items: center; justify-content: center; padding: 8px;
+  }
+  .tools { display: none; gap: 10px; align-items: center; }
+  .tools.show { display: flex; }
+  .sep { width: 4px; height: 70%; background: rgba(0,0,0,.18); border-radius: 2px; margin: 0 4px; }
+  .tbtn {
+    position: relative; overflow: hidden;
+    width: var(--btn); height: var(--btn); border-radius: 22px; border: none;
+    background: #fff8ec; font-size: calc(var(--btn) * .48);
+    box-shadow: 0 5px 0 rgba(0,0,0,.28);
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    touch-action: manipulation;
+  }
+  .tbtn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.28); }
+  .tbtn.selected { outline: 5px solid #ffd54f; }
+  .tbtn canvas, .tbtn img { width: 80%; height: 80%; object-fit: contain; pointer-events: none; }
+  .tbtn.wide { width: calc(var(--btn) * 1.6); }
+  .tbtn.wide img { width: 90%; height: 90%; }
+  .tbtn.star.on { background: #ffe082; outline: 5px solid #ffb300; }
+  .hold.holding .fill { height: 100%; transition: height 1.2s linear; }
+
+  #yard {
+    position: absolute; inset: 0; display: none;
+    background: linear-gradient(rgba(255,248,236,.55), rgba(255,248,236,.55)), url(art/bg_meadow.jpg) center / cover;
+  }
+  #yard.show { display: block; }
+  #yardCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+
+  #prompt {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: #cfe9ff; border: 5px solid #fff; border-radius: 30px; padding: 6px 12px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.18); display: none; align-items: center; gap: 6px;
+    z-index: 1; touch-action: manipulation;
+  }
+  #prompt.show { display: flex; animation: wiggle 2.4s ease-in-out infinite; }
+  #prompt canvas { width: 92px; height: 92px; pointer-events: none; }
+  #prompt img { width: 56px; height: 56px; object-fit: contain; pointer-events: none; }
+  @keyframes wiggle {
+    0%, 80%, 100% { transform: translateX(-50%) rotate(0); }
+    85% { transform: translateX(-50%) rotate(-5deg); }
+    90% { transform: translateX(-50%) rotate(5deg); }
+    95% { transform: translateX(-50%) rotate(-3deg); }
+  }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 10; display: none;
+    align-items: center; justify-content: center; background: rgba(0,0,0,.45);
+  }
+  .overlay.show { display: flex; }
+  .panel {
+    background: #fff; border-radius: 22px; padding: 20px 24px; width: min(540px, 92vw);
+    max-height: 90vh; overflow: auto; color: #333; font-size: 17px; touch-action: pan-y;
+  }
+  .panel h2 { margin: 0 0 6px; }
+  .panel .row { margin: 16px 0; }
+  .panel .label { font-weight: 700; margin-bottom: 6px; }
+  .seg { display: flex; gap: 8px; }
+  .seg button, .panel .action {
+    flex: 1; padding: 12px; border-radius: 12px; border: 2px solid #ccc;
+    background: #f6f6f6; font-size: 16px; color: #333;
+  }
+  .seg button.on { background: #ffd54f; border-color: #e0a800; font-weight: 800; }
+  .panel .action.danger { border-color: #e57373; color: #c62828; }
+  .panel .tip { font-size: 14px; color: #666; line-height: 1.4; }
+
+  #splash {
+    background: #7cc4f2 url(art/splash.jpg) center / cover;
+    flex-direction: column; justify-content: flex-start; padding-top: 6vh; gap: 10px;
+  }
+  #splash h1 {
+    margin: 0; font-size: clamp(36px, 6vw, 64px); color: #fff;
+    text-shadow: 0 4px 0 #1e6fb8, 0 8px 14px rgba(0,0,0,.25);
+  }
+  #splash button {
+    margin-top: 6px; width: 150px; height: 150px; border: none; border-radius: 50%;
+    background: transparent; padding: 0; animation: chug 1.2s ease-in-out infinite;
+  }
+  #splash button img { width: 100%; height: 100%; filter: drop-shadow(0 8px 8px rgba(0,0,0,.3)); }
+  #splash button:disabled { opacity: .5; animation: none; }
+  @keyframes chug { 50% { transform: translateY(-8px) scale(1.04); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="mode" data-mode="build"><img src="art/icon_track.png" alt=""><span>Track</span></button>
+    <button class="mode" data-mode="train"><canvas id="modeTrainIcon"></canvas><span>Train</span></button>
+    <button class="mode" data-mode="play"><img id="modePlayIcon" src="art/engine_red.png" alt=""><span>Play</span></button>
+    <button id="gear" aria-label="Grown-up settings (hold)"><img src="art/icon_gear.png" alt=""><i class="fill"></i></button>
+  </header>
+  <main id="stage">
+    <canvas id="board"></canvas>
+    <div id="prompt"><canvas id="promptCanvas"></canvas></div>
+    <div id="yard"><canvas id="yardCanvas"></canvas></div>
+  </main>
+  <footer id="tray">
+    <div class="tools" id="tools-build"></div>
+    <div class="tools" id="tools-train"></div>
+    <div class="tools" id="tools-play"></div>
+  </footer>
+</div>
+
+<div class="overlay show" id="splash">
+  <h1>Ethan's Train Set</h1>
+  <button id="startBtn" disabled aria-label="Play"><img src="art/icon_go.png" alt=""></button>
+</div>
+
+<div class="overlay" id="parent">
+  <div class="panel">
+    <h2>Grown-up settings</h2>
+    <div class="row"><div class="label">Voice</div>
+      <div class="seg" data-setting="voice"><button data-v="true">On</button><button data-v="false">Off</button></div></div>
+    <div class="row"><div class="label">Sounds</div>
+      <div class="seg" data-setting="sound"><button data-v="true">On</button><button data-v="false">Off</button></div></div>
+    <div class="row"><div class="label">Train speed</div>
+      <div class="seg" data-setting="speed"><button data-v="0">Slow</button><button data-v="1">Medium</button><button data-v="2">Fast</button></div></div>
+    <div class="row"><div class="label">"Find it" ? game asks about</div>
+      <div class="seg" data-setting="ask"><button data-v="color">Colors</button><button data-v="shape">Shapes</button><button data-v="both">Both</button></div></div>
+    <div class="row seg">
+      <button class="action" id="fullBtn">Full screen</button>
+      <button class="action danger" id="resetBtn">Start over</button>
+    </div>
+    <p class="tip">
+      <b>How to play:</b> <b>Track:</b> drag a finger to lay track (pieces connect themselves), tap a shape to add a station, tap the magic wand for a ready-made track, use the sponge to erase.
+      <b>Train:</b> tap a cargo car to add it, tap a car on the train to send it away, tap the engine to change its color.
+      <b>Play:</b> swipe anywhere to push the train, or press the green button to let it drive. Tap stations, the train, or the star for a "find it" game.<br><br>
+      <b>iPad tips:</b> Share, then Add to Home Screen for a full-screen app. Turn on Guided Access (Settings, Accessibility) and triple-click the side button to lock Ethan into the game.
+      Hold the gear button to open this panel; hold the trash can to clear the track.
+    </p>
+    <div class="row seg">
+      <a class="action" href="../" style="text-align:center;text-decoration:none">Back to all games</a>
+      <button class="action" id="closeParent">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// ---------- constants ----------
+const COLS = 10, ROWS = 6;
+const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+const opp = d => (d + 2) % 4;
+const COLORS = [
+  { name: 'red',    hex: '#e53935', dark: '#a3201d' },
+  { name: 'blue',   hex: '#1e88e5', dark: '#0f5aa3' },
+  { name: 'yellow', hex: '#fdd835', dark: '#b89a00' },
+  { name: 'green',  hex: '#43a047', dark: '#2a6e2d' },
+  { name: 'orange', hex: '#fb8c00', dark: '#b86500' },
+  { name: 'purple', hex: '#8e24aa', dark: '#5e1572' },
+];
+const SHAPES = ['circle', 'square', 'triangle', 'rectangle', 'star', 'heart'];
+const SPEEDS = [0.9, 1.5, 2.3];
+const SPACING = 0.95;
+const MAX_CARS = 7;
+const STORE = 'ethanTrainSet.v1';
+
+const rand = n => Math.floor(Math.random() * n);
+const pick = arr => arr[rand(arr.length)];
+const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const key = (x, y) => x + ',' + y;
+const inBounds = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS;
+const itemName = it => `${COLORS[it.color].name} ${it.shape}`;
+
+// ---------- state ----------
+function defaults() {
+  return {
+    track: {},
+    stations: [],
+    train: { engine: 0, cars: [{ shape: 'circle', color: 1 }, { shape: 'star', color: 2 }] },
+    settings: { voice: true, sound: true, speed: 1, ask: 'both' },
+    layout: 0,
+  };
+}
+let state;
+try { state = Object.assign(defaults(), JSON.parse(localStorage.getItem(STORE) || 'null') || {}); }
+catch (e) { state = defaults(); }
+state.settings = Object.assign(defaults().settings, state.settings);
+
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const out = {
+      track: state.track,
+      stations: state.stations.map(s => ({ x: s.x, y: s.y, shape: s.shape, color: s.color })),
+      train: state.train, settings: state.settings, layout: state.layout,
+    };
+    try { localStorage.setItem(STORE, JSON.stringify(out)); } catch (e) {}
+  }, 250);
+}
+
+let mode = 'play';
+let tool = 'track';
+let trackVersion = 0;
+let running = false;
+let time = 0;
+
+// ---------- audio ----------
+let actx = null, noiseBuf = null;
+function audio() {
+  if (!state.settings.sound) return null;
+  if (!actx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    actx = new AC();
+  }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, dur, { type = 'sine', vol = 0.2, slideTo = null, delay = 0 } = {}) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function noise(dur, { freq = 1000, q = 1, vol = 0.2, type = 'bandpass' } = {}) {
+  const a = audio(); if (!a) return;
+  if (!noiseBuf) {
+    noiseBuf = a.createBuffer(1, a.sampleRate * 0.5, a.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const t = a.currentTime;
+  const s = a.createBufferSource(); s.buffer = noiseBuf;
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = a.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f).connect(g).connect(a.destination);
+  s.start(t); s.stop(t + dur + 0.02);
+}
+const sfx = {
+  click() { tone(520, 0.07, { type: 'triangle', vol: 0.25, slideTo: 300 }); noise(0.04, { freq: 2200, q: 2, vol: 0.12 }); },
+  erase() { tone(320, 0.14, { vol: 0.2, slideTo: 140 }); },
+  pop() { tone(420, 0.13, { vol: 0.25, slideTo: 950 }); },
+  bump() { tone(150, 0.22, { vol: 0.35, slideTo: 60 }); noise(0.09, { freq: 400, vol: 0.2 }); },
+  chuff() { noise(0.13, { freq: 520, q: 0.7, vol: 0.08, type: 'lowpass' }); },
+  whistle() {
+    [587, 740, 880].forEach(f => {
+      tone(f, 0.4, { type: 'triangle', vol: 0.07 });
+      tone(f, 0.75, { type: 'triangle', vol: 0.07, delay: 0.5 });
+    });
+  },
+  chime() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.45, { vol: 0.18, delay: i * 0.11 })); },
+  ding() { tone(1046, 0.3, { vol: 0.12 }); tone(1318, 0.45, { vol: 0.1, delay: 0.09 }); },
+};
+
+// ---------- speech ----------
+let voice = null;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  for (const p of ['Samantha', 'Karen', 'Moira', 'Tessa', 'Google US English']) {
+    const v = vs.find(v => v.name.startsWith(p));
+    if (v) { voice = v; return; }
+  }
+  voice = vs.find(v => /^en/i.test(v.lang)) || null;
+}
+const hasSpeech = 'speechSynthesis' in window;
+if (hasSpeech) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function say(text) {
+  if (!state.settings.voice || !hasSpeech) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) u.voice = voice;
+  u.rate = 0.85; u.pitch = 1.15;
+  speechSynthesis.speak(u);
+}
+
+// ---------- track model ----------
+const track = () => state.track;
+const conns = (x, y) => state.track[key(x, y)];
+const connDirs = cs => [0, 1, 2, 3].filter(d => cs[d]);
+const stationAt = (x, y) => state.stations.find(s => s.x === x && s.y === y);
+
+function dirBetween(a, b) {
+  for (let d = 0; d < 4; d++) if (a[0] + DX[d] === b[0] && a[1] + DY[d] === b[1]) return d;
+  return -1;
+}
+function ensureCell(x, y) {
+  const k = key(x, y);
+  if (!state.track[k]) { state.track[k] = [0, 0, 0, 0]; return true; }
+  return false;
+}
+function connect(a, b) {
+  const d = dirBetween(a, b);
+  if (d < 0) return false;
+  const ca = conns(a[0], a[1]), cb = conns(b[0], b[1]);
+  if (!ca || !cb || (ca[d] && cb[opp(d)])) return false;
+  ca[d] = 1; cb[opp(d)] = 1;
+  return true;
+}
+function removeCell(x, y) {
+  if (!conns(x, y)) return false;
+  delete state.track[key(x, y)];
+  for (let d = 0; d < 4; d++) {
+    const n = conns(x + DX[d], y + DY[d]);
+    if (n) n[opp(d)] = 0;
+  }
+  return true;
+}
+function hasAnyConnection() {
+  return Object.values(state.track).some(cs => cs.some(Boolean));
+}
+function trackChanged() { trackVersion++; save(); }
+
+// ---------- segments (train path through a cell, in grid units) ----------
+function segLen(s) {
+  if (s.from === null || s.to === null) return 0.5;
+  if (s.to === opp(s.from)) return 1;
+  return Math.PI / 4;
+}
+function segPoint(s, t) {
+  const cx = s.x + 0.5, cy = s.y + 0.5;
+  if (s.from !== null && s.to !== null && s.to !== opp(s.from)) {
+    const a = s.from, b = s.to;
+    const kx = cx + (DX[a] + DX[b]) * 0.5, ky = cy + (DY[a] + DY[b]) * 0.5;
+    const a0 = Math.atan2(-DY[b], -DX[b]);
+    let dA = Math.atan2(-DY[a], -DX[a]) - a0;
+    while (dA > Math.PI) dA -= 2 * Math.PI;
+    while (dA < -Math.PI) dA += 2 * Math.PI;
+    const ang = a0 + dA * t, sg = Math.sign(dA);
+    return { x: kx + 0.5 * Math.cos(ang), y: ky + 0.5 * Math.sin(ang), dx: -Math.sin(ang) * sg, dy: Math.cos(ang) * sg };
+  }
+  const p0 = s.from === null ? [cx, cy] : [cx + DX[s.from] * 0.5, cy + DY[s.from] * 0.5];
+  const p1 = s.to === null ? [cx, cy] : [cx + DX[s.to] * 0.5, cy + DY[s.to] * 0.5];
+  const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1;
+  return { x: p0[0] + (p1[0] - p0[0]) * t, y: p0[1] + (p1[1] - p0[1]) * t, dx: (p1[0] - p0[0]) / len, dy: (p1[1] - p0[1]) / len };
+}
+
+// ---------- train ----------
+// segs[0] is the front of the train (in the direction of travel); d is distance travelled into segs[0].
+const T = { segs: null, d: 0, reversed: false, version: -1, pause: 0, moving: 0, facing: [], screen: [] };
+const unitCount = () => 1 + state.train.cars.length;
+const trainLen = () => unitCount() * SPACING;
+
+function locate(s) {
+  const segs = T.segs;
+  let rem = s, d = T.d;
+  for (let i = 0; i < segs.length; i++) {
+    if (rem <= d || i === segs.length - 1) return { i, dd: Math.max(0, d - rem) };
+    rem -= d;
+    d = segLen(segs[i + 1]);
+  }
+}
+function pointAt(s) {
+  const { i, dd } = locate(s);
+  const seg = T.segs[i];
+  return segPoint(seg, Math.min(1, dd / segLen(seg)));
+}
+function extendBack() {
+  let cum = T.d;
+  for (let i = 1; i < T.segs.length; i++) cum += segLen(T.segs[i]);
+  let guard = 0;
+  while (cum < trainLen() + 0.6 && guard++ < 200) {
+    const last = T.segs[T.segs.length - 1];
+    if (last.from === null) break;
+    const px = last.x + DX[last.from], py = last.y + DY[last.from];
+    const cs = conns(px, py), exit = opp(last.from);
+    if (!cs || !cs[exit]) break;
+    const opts = [0, 1, 2, 3].filter(d => d !== exit && cs[d]);
+    const from = opts.length ? (opts.includes(opp(exit)) ? opp(exit) : opts[0]) : null;
+    const seg = { x: px, y: py, from, to: exit };
+    T.segs.push(seg);
+    cum += segLen(seg);
+  }
+}
+function trim() {
+  let cum = T.d, i = 1;
+  while (i < T.segs.length && cum < trainLen() + 0.6) { cum += segLen(T.segs[i]); i++; }
+  T.segs.length = i;
+}
+function reverseTrain() {
+  const { i, dd } = locate(trainLen());
+  const nw = [];
+  for (let j = i; j >= 0; j--) { const s = T.segs[j]; nw.push({ x: s.x, y: s.y, from: s.to, to: s.from }); }
+  T.segs = nw;
+  T.d = segLen(nw[0]) - dd;
+  T.reversed = !T.reversed;
+  extendBack();
+}
+function advance(ds) {
+  let bumped = false, guard = 0;
+  T.d += ds;
+  while (guard++ < 50) {
+    const s0 = T.segs[0], L0 = segLen(s0);
+    if (T.d < L0) break;
+    if (s0.to === null) { T.d = L0; reverseTrain(); bumped = true; break; }
+    const nx = s0.x + DX[s0.to], ny = s0.y + DY[s0.to], entry = opp(s0.to);
+    const cs = conns(nx, ny);
+    if (!cs || !cs[entry]) { T.d = L0; reverseTrain(); bumped = true; break; }
+    const opts = [0, 1, 2, 3].filter(d => d !== entry && cs[d]);
+    let to = null;
+    if (opts.length === 1) to = opts[0];
+    else if (opts.length === 3) to = opp(entry);           // crossings: go straight
+    else if (opts.length > 1) to = pick(opts);              // junctions: surprise!
+    T.d -= L0;
+    T.segs.unshift({ x: nx, y: ny, from: entry, to });
+  }
+  trim();
+  return bumped;
+}
+function placeTrain() {
+  const cells = Object.keys(state.track).filter(k => state.track[k].some(Boolean));
+  if (!cells.length) { T.segs = null; return; }
+  const twos = cells.filter(k => connDirs(state.track[k]).length === 2);
+  const straights = twos.filter(k => { const ds = connDirs(state.track[k]); return ds[1] === opp(ds[0]); });
+  const k = pick(straights.length ? straights : twos.length ? twos : cells);
+  const [x, y] = k.split(',').map(Number);
+  const ds = connDirs(state.track[k]);
+  let from = ds[0], to = ds.length > 1 ? ds[1] : null;
+  if (to === 3 || to === 0) [from, to] = [to, from];         // prefer heading right / down
+  T.segs = [{ x, y, from, to }];
+  T.d = segLen(T.segs[0]) / 2;
+  T.reversed = false;
+  T.version = trackVersion;
+  T.facing = [];
+  extendBack();
+  initNear();
+}
+function enginePoint() {
+  if (!T.segs) return null;
+  const j = T.reversed ? unitCount() - 1 : 0;
+  return pointAt((j + 0.5) * SPACING);
+}
+
+// ---------- stations ----------
+function addStation(shape, color, announce = true) {
+  const near = [], free = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (conns(x, y) || stationAt(x, y)) continue;
+    free.push([x, y]);
+    if ([0, 1, 2, 3].some(d => conns(x + DX[d], y + DY[d]))) near.push([x, y]);
+  }
+  const pool = near.length ? near : free;
+  if (!pool.length) { if (announce) say('No more room!'); return null; }
+  const [x, y] = pick(pool);
+  const st = { x, y, shape, color, bounceT: 0, near: false };
+  state.stations.push(st);
+  st.bounceT = time;
+  save();
+  if (announce) { sfx.pop(); say(itemName(st) + '!'); }
+  return st;
+}
+function addRandomStations(n) {
+  const shapes = shuffle(SHAPES), colors = shuffle([0, 1, 2, 3, 4, 5]);
+  for (let i = 0; i < n; i++) addStation(shapes[i % 6], colors[i % 6], false);
+}
+function ensureStations(n) {
+  if (state.stations.length < n) addRandomStations(n - state.stations.length);
+}
+function bounce(st) { st.bounceT = time; }
+function initNear() {
+  const ep = enginePoint();
+  for (const st of state.stations) st.near = ep ? isNear(st, ep) : false;
+}
+function isNear(st, p) {
+  return Math.abs(st.x + 0.5 - p.x) < 1.35 && Math.abs(st.y + 0.5 - p.y) < 1.35;
+}
+
+// ---------- magic layouts ----------
+function rectLoop(x1, y1, x2, y2) {
+  const p = [];
+  for (let x = x1; x <= x2; x++) p.push([x, y1]);
+  for (let y = y1 + 1; y <= y2; y++) p.push([x2, y]);
+  for (let x = x2 - 1; x >= x1; x--) p.push([x, y2]);
+  for (let y = y2 - 1; y > y1; y--) p.push([x1, y]);
+  return p;
+}
+function layPath(p, closed) {
+  p.forEach(c => ensureCell(c[0], c[1]));
+  for (let i = 1; i < p.length; i++) connect(p[i - 1], p[i]);
+  if (closed) connect(p[p.length - 1], p[0]);
+}
+const LAYOUTS = [
+  () => layPath(rectLoop(1, 1, 8, 4), true),
+  () => layPath([[1,2],[2,2],[3,2],[3,1],[4,1],[5,1],[6,1],[6,2],[7,2],[8,2],[8,3],[8,4],[7,4],[6,4],[5,4],[4,4],[3,4],[2,4],[1,4],[1,3]], true),
+  () => { layPath(rectLoop(1, 1, 8, 4), true); layPath([[4,1],[4,2],[4,3],[4,4]], false); },
+  () => { layPath(rectLoop(1, 1, 6, 4), true); layPath([[6,2],[7,2],[8,2]], false); },
+];
+function magicTrack(announce = true) {
+  state.track = {};
+  state.stations = [];
+  LAYOUTS[state.layout % LAYOUTS.length]();
+  state.layout = (state.layout + 1) % LAYOUTS.length;
+  addRandomStations(4);
+  trackChanged();
+  if (announce) { sfx.chime(); say('Ta da! A new track!'); }
+}
+
+// ---------- canvas setup ----------
+const stage = document.getElementById('stage');
+const board = document.getElementById('board');
+const ctx = board.getContext('2d');
+let dpr = 1, bw = 0, bh = 0, cellPx = 60, ox = 0, oy = 0;
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  bw = r.width; bh = r.height;
+  board.width = Math.round(bw * dpr); board.height = Math.round(bh * dpr);
+  board.style.width = bw + 'px'; board.style.height = bh + 'px';
+  cellPx = Math.min((bw - 16) / COLS, (bh - 10) / (ROWS + 0.45));
+  ox = (bw - cellPx * COLS) / 2;
+  oy = (bh - cellPx * ROWS) / 2 + cellPx * 0.2;
+  sizeCanvas(yardCanvas);
+  sizeCanvas(promptCanvas);
+  drawYard();
+  drawPrompt();
+}
+function sizeCanvas(cv) {
+  const r = cv.getBoundingClientRect();
+  if (!r.width) return;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+}
+
+// ---------- art ----------
+const ART = {};
+const ART_FILES = [
+  ...COLORS.map(c => 'engine_' + c.name),
+  'car_flatbed', 'station_base', 'paint_splat', 'smoke_puff', 'buffer_stop',
+  ...SHAPES.map(s => 'shape_' + s),
+  'icon_track', 'icon_sponge', 'icon_wand', 'icon_trash', 'icon_go', 'icon_stop', 'icon_whistle', 'icon_star',
+];
+const ART_JPG = ['bg_meadow', 'wood_texture'];
+function loadArt() {
+  const all = [...ART_FILES.map(n => [n, 'png']), ...ART_JPG.map(n => [n, 'jpg'])];
+  return Promise.all(all.map(([n, ext]) => new Promise(res => {
+    const img = new Image();
+    img.onload = () => { ART[n] = img; res(); };
+    img.onerror = () => res();
+    img.src = `art/${n}.${ext}`;
+  })));
+}
+
+// White wooden shapes and the white paint splat are tinted per color once, then cached.
+const TINT = {};
+function tint(name, colorIdx) {
+  const k = name + '|' + colorIdx;
+  if (TINT[k]) return TINT[k];
+  const img = ART[name];
+  const s = 256 / Math.max(img.width, img.height);
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, c.width, c.height);
+  if (colorIdx !== null) {
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = COLORS[colorIdx].hex;
+    g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(img, 0, 0, c.width, c.height);
+  }
+  return (TINT[k] = c);
+}
+const shapeImg = (shape, color) => tint('shape_' + shape, color);
+
+// Draw an image so its box fits in `size` and its bottom-center sits at (x, y).
+function drawFit(c, img, x, y, size, flip = 1) {
+  const s = size / Math.max(img.width, img.height);
+  const w = img.width * s, h = img.height * s;
+  c.save(); c.translate(x, y); c.scale(flip, 1);
+  c.drawImage(img, -w / 2, -h, w, h);
+  c.restore();
+  return { w, h };
+}
+function drawShapeArt(c, shape, color, x, y, size) {
+  const img = shapeImg(shape, color);
+  const s = size / Math.max(img.width, img.height);
+  c.drawImage(img, x - img.width * s / 2, y - img.height * s / 2, img.width * s, img.height * s);
+}
+
+function drawEngine(c, x, y, w, facing, ci) {
+  const img = ART['engine_' + COLORS[ci].name];
+  drawFit(c, img, x, y + w * 0.02, w, facing);
+}
+function drawCar(c, x, y, w, shape, ci) {
+  const bed = ART.car_flatbed;
+  const { h } = drawFit(c, bed, x, y + w * 0.02, w);
+  const img = shapeImg(shape, ci);
+  const size = w * 0.62;
+  const s = size / Math.max(img.width, img.height);
+  const sw = img.width * s, sh = img.height * s;
+  const deckTop = y + w * 0.02 - h * 0.95;
+  c.drawImage(img, x - sw / 2, deckTop - sh + h * 0.12, sw, sh);
+}
+
+// ---------- board rendering ----------
+function cellCenter(x, y) { return [ox + (x + 0.5) * cellPx, oy + (y + 0.5) * cellPx]; }
+function trackPairs(cs) {
+  const ds = connDirs(cs);
+  if (ds.length === 1) return [[ds[0], null]];
+  if (ds.length === 2) return [[ds[0], ds[1]]];
+  const out = [];
+  for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) out.push([ds[i], ds[j]]);
+  return out;
+}
+function pairPath(c, x, y, a, b, off) {
+  const [cx, cy] = cellCenter(x, y), h = cellPx / 2, o = off * cellPx;
+  if (b === null || b === opp(a)) {
+    const px = -DY[a] * o, py = DX[a] * o;
+    const end = b === null ? -0.2 : 1;   // dead ends run a little past the center to the buffer
+    c.moveTo(cx + DX[a] * h + px, cy + DY[a] * h + py);
+    c.lineTo(cx - DX[a] * h * end + px, cy - DY[a] * h * end + py);
+    return;
+  }
+  const kx = cx + (DX[a] + DX[b]) * h, ky = cy + (DY[a] + DY[b]) * h;
+  const a0 = Math.atan2(-DY[b], -DX[b]);
+  let d = Math.atan2(-DY[a], -DX[a]) - a0;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  const r = h + o;
+  c.moveTo(kx + r * Math.cos(a0), ky + r * Math.sin(a0));
+  c.arc(kx, ky, r, a0, a0 + d, d < 0);
+}
+let woodPattern = null, woodPatternCell = 0;
+function getWoodPattern() {
+  if (!ART.wood_texture) return '#e7bd85';
+  if (!woodPattern || woodPatternCell !== cellPx) {
+    woodPattern = ctx.createPattern(ART.wood_texture, 'repeat');
+    try { woodPattern.setTransform(new DOMMatrix().scale(cellPx / 400)); } catch (e) {}
+    woodPatternCell = cellPx;
+  }
+  return woodPattern;
+}
+function drawTrack() {
+  const items = [];
+  const singles = [];
+  for (const k in state.track) {
+    const [x, y] = k.split(',').map(Number);
+    const cs = state.track[k];
+    if (!cs.some(Boolean)) singles.push([x, y]);
+    else items.push({ x, y, cs, pairs: trackPairs(cs) });
+  }
+  ctx.lineCap = 'butt';
+  const pass = (lw, style, offs) => {
+    ctx.beginPath();
+    for (const it of items) for (const [a, b] of it.pairs) for (const o of offs) pairPath(ctx, it.x, it.y, a, b, o);
+    ctx.lineWidth = lw * cellPx; ctx.strokeStyle = style; ctx.stroke();
+  };
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = cellPx * 0.08; ctx.shadowOffsetY = cellPx * 0.04;
+  pass(0.54, '#9a6735', [0]);
+  ctx.restore();
+  pass(0.48, getWoodPattern(), [0]);
+  pass(0.06, 'rgba(110,65,25,.55)', [-0.11, 0.11]);
+  pass(0.02, 'rgba(255,240,210,.5)', [-0.075, 0.145]);
+
+  ctx.strokeStyle = 'rgba(110,65,25,.45)'; ctx.lineWidth = Math.max(1, cellPx * 0.02);
+  ctx.beginPath();
+  for (const it of items) for (const d of [1, 2]) {
+    if (!it.cs[d]) continue;
+    const [cx, cy] = cellCenter(it.x, it.y);
+    const ex = cx + DX[d] * cellPx / 2, ey = cy + DY[d] * cellPx / 2;
+    ctx.moveTo(ex - DY[d] * cellPx * 0.24, ey + DX[d] * cellPx * 0.24);
+    ctx.lineTo(ex + DY[d] * cellPx * 0.24, ey - DX[d] * cellPx * 0.24);
+  }
+  ctx.stroke();
+
+  for (const it of items) {
+    const ds = connDirs(it.cs);
+    if (ds.length !== 1 || !ART.buffer_stop) continue;
+    const [cx, cy] = cellCenter(it.x, it.y), b = opp(ds[0]);
+    const img = ART.buffer_stop, w = cellPx * 0.62, h = w * img.height / img.width;
+    ctx.save();
+    ctx.translate(cx + DX[b] * cellPx * 0.14, cy + DY[b] * cellPx * 0.14);
+    ctx.rotate(Math.atan2(DY[b], DX[b]) + Math.PI / 2);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+  for (const [x, y] of singles) {
+    const [cx, cy] = cellCenter(x, y);
+    fillRR(ctx, cx - cellPx * 0.32, cy - cellPx * 0.27, cellPx * 0.64, cellPx * 0.54, cellPx * 0.08, getWoodPattern(), '#9a6735', cellPx * 0.04);
+  }
+}
+function rrPath(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+function fillRR(c, x, y, w, h, r, fill, stroke, lw) {
+  rrPath(c, x, y, w, h, r);
+  c.fillStyle = fill; c.fill();
+  if (stroke) { c.lineWidth = lw; c.strokeStyle = stroke; c.stroke(); }
+}
+function drawStations() {
+  for (const st of state.stations) {
+    const [cx, cy] = cellCenter(st.x, st.y);
+    const t = (time - (st.bounceT || -9)) / 0.6;
+    const hop = t >= 0 && t < 1 ? Math.sin(t * Math.PI) : 0;
+    const base = ART.station_base;
+    const bw_ = cellPx * 0.86, bh_ = bw_ * base.height / base.width;
+    const bottom = cy + cellPx * 0.46;
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.ellipse(cx, bottom, bw_ * 0.5, cellPx * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(base, cx - bw_ / 2, bottom - bh_, bw_, bh_);
+    const img = shapeImg(st.shape, st.color);
+    const size = cellPx * (0.72 + hop * 0.18);
+    const s = size / Math.max(img.width, img.height);
+    const sw = img.width * s, sh = img.height * s;
+    const seat = bottom - bh_ * 0.55 - hop * cellPx * 0.35;
+    ctx.drawImage(img, cx - sw / 2, seat - sh, sw, sh);
+  }
+}
+const smoke = [], confetti = [];
+function drawTrain() {
+  if (!T.segs) { T.screen = []; return; }
+  const n = unitCount(), w = cellPx * 0.92;
+  const list = [];
+  for (let j = 0; j < n; j++) {
+    const id = T.reversed ? n - 1 - j : j;
+    const p = pointAt((j + 0.5) * SPACING);
+    const dirX = p.dx * (T.reversed ? -1 : 1);
+    if (Math.abs(dirX) > 0.3) T.facing[id] = Math.sign(dirX);
+    if (!T.facing[id]) T.facing[id] = 1;
+    const bob = T.moving > 0 ? Math.sin(time * 22 + j * 1.7) * cellPx * 0.012 : 0;
+    list.push({ id, x: ox + p.x * cellPx, y: oy + p.y * cellPx + cellPx * 0.12, bob, f: T.facing[id] });
+  }
+  T.screen = list;
+  list.slice().sort((a, b) => a.y - b.y).forEach(u => {
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.beginPath(); ctx.ellipse(u.x, u.y, w * 0.46, w * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    if (u.id === 0) drawEngine(ctx, u.x, u.y + u.bob, w, u.f, state.train.engine);
+    else { const car = state.train.cars[u.id - 1]; drawCar(ctx, u.x, u.y + u.bob, w, car.shape, car.color); }
+  });
+}
+function drawParticles() {
+  const puff = ART.smoke_puff;
+  for (const p of smoke) {
+    ctx.globalAlpha = Math.max(0, p.life) * 0.85;
+    const s = p.r * 2 * cellPx;
+    ctx.drawImage(puff, ox + p.x * cellPx - s / 2, oy + p.y * cellPx - s / 2, s, s * puff.height / puff.width);
+  }
+  ctx.globalAlpha = 1;
+  for (const p of confetti) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p.life);
+    ctx.translate(ox + p.x * cellPx, oy + p.y * cellPx); ctx.rotate(p.rot);
+    drawShapeArt(ctx, p.shape, p.color, 0, 0, cellPx * 0.3);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+function render() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const bg = ART.bg_meadow;
+  if (bg) {
+    const s = Math.max(bw / bg.width, bh / bg.height);
+    ctx.drawImage(bg, (bw - bg.width * s) / 2, (bh - bg.height * s) / 2, bg.width * s, bg.height * s);
+  } else { ctx.fillStyle = '#8cc56a'; ctx.fillRect(0, 0, bw, bh); }
+  if (mode === 'build') {
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      rrPath(ctx, ox + x * cellPx + 3, oy + y * cellPx + 3, cellPx - 6, cellPx - 6, cellPx * 0.15);
+      ctx.fill();
+    }
+  }
+  drawTrack();
+  drawStations();
+  if (mode === 'play') { drawTrain(); drawParticles(); }
+}
+
+// ---------- update loop ----------
+let pushQ = 0, chuffAcc = 0, smokeAcc = 0;
+function spawnSmoke() {
+  const u = T.screen.find(u => u.id === 0);
+  if (!u) return;
+  const w = 0.92;
+  smoke.push({
+    x: (u.x - ox) / cellPx + u.f * w * 0.28, y: (u.y - oy) / cellPx - w * 0.66,
+    r: 0.12, life: 1, vx: -u.f * 0.15 + (Math.random() - 0.5) * 0.1, vy: -0.45,
+  });
+}
+function burst(x, y) {
+  for (let i = 0; i < 36; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 3;
+    confetti.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3, rot: 0, vr: (Math.random() - 0.5) * 10,
+      shape: pick(SHAPES), color: rand(6), life: 1.8 });
+  }
+}
+function checkStations() {
+  const ep = enginePoint();
+  if (!ep) return;
+  for (const st of state.stations) {
+    const nowNear = isNear(st, ep);
+    if (nowNear && !st.near) onStation(st);
+    st.near = nowNear;
+  }
+}
+function onStation(st) {
+  bounce(st);
+  if (find.on && find.target && find.wait <= 0 && matches(st)) {
+    find.wait = 3.2;
+    T.pause = 1.6;
+    sfx.chime();
+    burst(st.x + 0.5, st.y + 0.5);
+    say(`Yay! You found ${targetLabel()}!`);
+  } else {
+    sfx.ding();
+    say(itemName(st) + '!');
+  }
+}
+function update(dt) {
+  time += dt;
+  if (mode === 'play' && T.segs) {
+    let moved = 0;
+    if (T.pause > 0) T.pause -= dt;
+    else if (running) {
+      const ds = SPEEDS[state.settings.speed] * dt;
+      if (advance(ds)) { sfx.bump(); T.pause = 0.5; }
+      moved += ds;
+    }
+    if (pushQ > 0) {
+      const step = Math.min(pushQ, 5 * dt);
+      pushQ -= step;
+      if (advance(step)) { sfx.bump(); pushQ = 0; }
+      moved += step;
+    }
+    if (moved > 0) {
+      T.moving = 0.15;
+      chuffAcc += moved; smokeAcc += moved;
+      if (chuffAcc > 0.5) { chuffAcc = 0; sfx.chuff(); }
+      if (smokeAcc > 0.3) { smokeAcc = 0; spawnSmoke(); }
+      checkStations();
+    }
+    T.moving -= dt;
+  }
+  if (find.on && find.wait > 0) { find.wait -= dt; if (find.wait <= 0) nextTarget(); }
+  for (let i = smoke.length - 1; i >= 0; i--) {
+    const p = smoke[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.r += dt * 0.12; p.life -= dt * 0.9;
+    if (p.life <= 0) smoke.splice(i, 1);
+  }
+  for (let i = confetti.length - 1; i >= 0; i--) {
+    const p = confetti[i]; p.vy += 7 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; p.life -= dt;
+    if (p.life <= 0) confetti.splice(i, 1);
+  }
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+
+// ---------- find-it game ----------
+const find = { on: false, target: null, wait: 0, prev: null };
+const promptEl = document.getElementById('prompt');
+const promptCanvas = document.getElementById('promptCanvas');
+function matches(st) {
+  const t = find.target, ask = state.settings.ask;
+  if (ask === 'color') return st.color === t.color;
+  if (ask === 'shape') return st.shape === t.shape;
+  return st.color === t.color && st.shape === t.shape;
+}
+function targetLabel() {
+  const t = find.target, ask = state.settings.ask;
+  if (ask === 'color') return COLORS[t.color].name;
+  if (ask === 'shape') return 'the ' + t.shape;
+  return 'the ' + itemName(t);
+}
+function announceTarget() {
+  if (!find.target) return;
+  say(`Can you drive the train to ${targetLabel()}?`);
+}
+function nextTarget() {
+  ensureStations(3);
+  const ask = state.settings.ask;
+  const prop = s => ask === 'color' ? s.color : ask === 'shape' ? s.shape : itemName(s);
+  const pool = state.stations.filter(s => prop(s) !== find.prev);
+  const s = pick(pool.length ? pool : state.stations);
+  find.target = { shape: s.shape, color: s.color };
+  find.prev = prop(s);
+  find.wait = 0;
+  drawPrompt();
+  announceTarget();
+}
+function drawPrompt() {
+  promptEl.classList.toggle('show', find.on && mode === 'play');
+  if (!find.on || !find.target) return;
+  promptCanvas.width = promptCanvas.height = Math.round(92 * dpr);
+  const c = promptCanvas.getContext('2d');
+  const W = promptCanvas.width, H = promptCanvas.height;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, H);
+  const t = find.target, ask = state.settings.ask;
+  const img = ask === 'color' ? tint('paint_splat', t.color) : ask === 'shape' ? tint('shape_' + t.shape, null) : shapeImg(t.shape, t.color);
+  const s = W * 0.86 / Math.max(img.width, img.height);
+  c.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
+}
+promptEl.addEventListener('pointerdown', () => announceTarget());
+
+// ---------- board input ----------
+const strokes = new Map();
+function gridAt(e) {
+  const r = board.getBoundingClientRect();
+  const gx = (e.clientX - r.left - ox) / cellPx, gy = (e.clientY - r.top - oy) / cellPx;
+  return { gx, gy, cx: Math.floor(gx), cy: Math.floor(gy), sx: e.clientX, sy: e.clientY };
+}
+function visitBuild(cell, stroke, isStart) {
+  const [x, y] = cell;
+  if (!inBounds(x, y)) { stroke.last = null; return; }
+  if (tool === 'erase') {
+    const st = stationAt(x, y);
+    let changed = false;
+    if (st) { state.stations.splice(state.stations.indexOf(st), 1); changed = true; }
+    if (removeCell(x, y)) changed = true;
+    if (changed) { sfx.erase(); trackChanged(); }
+    return;
+  }
+  const st = stationAt(x, y);
+  if (st) {
+    if (isStart) { bounce(st); say(itemName(st) + '!'); }
+    stroke.last = null;
+    return;
+  }
+  let changed = ensureCell(x, y);
+  if (stroke.last && dirBetween(stroke.last, cell) >= 0) {
+    if (connect(stroke.last, cell)) changed = true;
+  } else if (isStart && changed) {
+    let n = 0;
+    for (let d = 0; d < 4 && n < 2; d++) {
+      const nc = conns(x + DX[d], y + DY[d]);
+      if (nc && connDirs(nc).length <= 1 && connect(cell, [x + DX[d], y + DY[d]])) n++;
+    }
+  }
+  if (changed) { sfx.click(); trackChanged(); }
+  stroke.last = cell;
+}
+function walkTo(stroke, cell) {
+  let [x, y] = stroke.cur;
+  let guard = 0;
+  while ((x !== cell[0] || y !== cell[1]) && guard++ < 40) {
+    const dx = cell[0] - x, dy = cell[1] - y;
+    if (Math.abs(dx) >= Math.abs(dy)) x += Math.sign(dx); else y += Math.sign(dy);
+    visitBuild([x, y], stroke, false);
+  }
+  stroke.cur = cell;
+}
+function hitTrain(g) {
+  for (const u of T.screen) {
+    const w = cellPx * 0.88;
+    const sx = g.gx * cellPx + ox, sy = g.gy * cellPx + oy;
+    if (Math.abs(sx - u.x) < w * 0.55 && sy < u.y + w * 0.1 && sy > u.y - w * 0.95) return true;
+  }
+  return false;
+}
+board.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  audio();
+  try { board.setPointerCapture(e.pointerId); } catch (err) {}
+  const g = gridAt(e);
+  if (mode === 'build') {
+    const stroke = { last: null, cur: [g.cx, g.cy] };
+    strokes.set(e.pointerId, stroke);
+    visitBuild([g.cx, g.cy], stroke, true);
+  } else if (mode === 'play') {
+    if (hitTrain(g)) { sfx.whistle(); say('Choo choo!'); return; }
+    const st = inBounds(g.cx, g.cy) && stationAt(g.cx, g.cy);
+    if (st) { bounce(st); sfx.ding(); say(itemName(st) + '!'); return; }
+    strokes.set(e.pointerId, { px: g.sx, py: g.sy });
+  }
+});
+board.addEventListener('pointermove', e => {
+  const stroke = strokes.get(e.pointerId);
+  if (!stroke) return;
+  const g = gridAt(e);
+  if (mode === 'build') {
+    if (g.cx !== stroke.cur[0] || g.cy !== stroke.cur[1]) walkTo(stroke, [g.cx, g.cy]);
+  } else if (mode === 'play' && T.segs) {
+    const dist = Math.hypot(g.sx - stroke.px, g.sy - stroke.py);
+    stroke.px = g.sx; stroke.py = g.sy;
+    pushQ = Math.min(3, pushQ + dist / cellPx * 0.9);
+  }
+});
+const endStroke = e => strokes.delete(e.pointerId);
+board.addEventListener('pointerup', endStroke);
+board.addEventListener('pointercancel', endStroke);
+
+// ---------- tray buttons ----------
+function makeBtn(parent, { icon, cls = '', onTap, canvas = false }) {
+  const b = document.createElement('button');
+  b.className = 'tbtn ' + cls;
+  if (icon) b.innerHTML = `<img src="art/${icon}.png" alt="">`;
+  let cv = null;
+  if (canvas) { cv = document.createElement('canvas'); b.appendChild(cv); }
+  if (onTap) b.addEventListener('pointerdown', e => { e.preventDefault(); audio(); onTap(b); });
+  parent.appendChild(b);
+  return { b, cv };
+}
+function makeHoldBtn(parent, icon, ms, onDone) {
+  const b = document.createElement('button');
+  b.className = 'tbtn hold';
+  b.innerHTML = `<img src="art/${icon}.png" alt=""><i class="fill"></i>`;
+  b.querySelector('.fill').style.transitionDuration = ms + 'ms';
+  let timer = null;
+  const cancel = () => { clearTimeout(timer); b.classList.remove('holding'); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('holding'); timer = setTimeout(() => { cancel(); onDone(); }, ms); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, cancel));
+  parent.appendChild(b);
+  return b;
+}
+function paintSmall(cv, fn) {
+  const r = cv.getBoundingClientRect();
+  if (!r.width) return;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const c = cv.getContext('2d');
+  c.clearRect(0, 0, cv.width, cv.height);
+  fn(c, cv.width, cv.height);
+}
+
+// Build tray
+const buildTools = document.getElementById('tools-build');
+const toolBtns = {};
+toolBtns.track = makeBtn(buildTools, { icon: 'icon_track', onTap: () => setTool('track') }).b;
+toolBtns.erase = makeBtn(buildTools, { icon: 'icon_sponge', onTap: () => setTool('erase') }).b;
+buildTools.appendChild(Object.assign(document.createElement('div'), { className: 'sep' }));
+const stationSlots = SHAPES.map((shape, i) => ({ shape, color: i }));
+const stationBtns = stationSlots.map(slot => makeBtn(buildTools, {
+  canvas: true,
+  onTap: () => {
+    if (addStation(slot.shape, slot.color)) {
+      slot.color = (slot.color + 1 + rand(5)) % 6;
+      paintStationBtns();
+    }
+  },
+}));
+function paintStationBtns() {
+  stationBtns.forEach((btn, i) => paintSmall(btn.cv, (c, W, H) => {
+    const s = stationSlots[i];
+    drawShapeArt(c, s.shape, s.color, W / 2, H / 2, W * 0.9);
+  }));
+}
+buildTools.appendChild(Object.assign(document.createElement('div'), { className: 'sep' }));
+makeBtn(buildTools, { icon: 'icon_wand', onTap: () => magicTrack() });
+makeHoldBtn(buildTools, 'icon_trash', 1200, () => {
+  state.track = {}; state.stations = []; trackChanged(); sfx.erase(); say('All clean!');
+});
+function setTool(t) {
+  tool = t;
+  toolBtns.track.classList.toggle('selected', t === 'track');
+  toolBtns.erase.classList.toggle('selected', t === 'erase');
+}
+
+// Train tray
+const trainTools = document.getElementById('tools-train');
+const cargoSlots = shuffle(SHAPES).map((shape, i) => ({ shape, color: i }));
+const cargoBtns = cargoSlots.map(slot => makeBtn(trainTools, {
+  canvas: true,
+  onTap: () => {
+    if (state.train.cars.length >= MAX_CARS) { sfx.bump(); say('The train is full!'); return; }
+    state.train.cars.push({ shape: slot.shape, color: slot.color });
+    sfx.pop(); say(itemName(slot) + '!');
+    slot.color = (slot.color + 1 + rand(5)) % 6;
+    paintCargoBtns(); drawYard(); save();
+  },
+}));
+function paintCargoBtns() {
+  cargoBtns.forEach((btn, i) => paintSmall(btn.cv, (c, W, H) => {
+    const s = cargoSlots[i];
+    drawCar(c, W / 2, H * 0.95, W * 0.98, s.shape, s.color);
+  }));
+}
+
+// Play tray
+const playTools = document.getElementById('tools-play');
+const goBtn = makeBtn(playTools, { icon: 'icon_go', cls: 'wide', onTap: () => setRunning(!running) }).b;
+makeBtn(playTools, { icon: 'icon_whistle', onTap: () => { sfx.whistle(); say('Choo choo!'); } });
+const starBtn = makeBtn(playTools, { icon: 'icon_star', cls: 'star', onTap: () => {
+  find.on = !find.on;
+  starBtn.classList.toggle('on', find.on);
+  if (find.on) nextTarget(); else { find.target = null; say('Free play!'); }
+  drawPrompt();
+} }).b;
+function setRunning(r) {
+  running = r;
+  goBtn.querySelector('img').src = r ? 'art/icon_stop.png' : 'art/icon_go.png';
+  if (r) { sfx.whistle(); say("All aboard! Let's go!"); } else { say('Stop!'); }
+}
+
+// ---------- train yard ----------
+const yard = document.getElementById('yard');
+const yardCanvas = document.getElementById('yardCanvas');
+let yardRects = [];
+function drawYard() {
+  if (!yard.classList.contains('show') || !yardCanvas.width) return;
+  const c = yardCanvas.getContext('2d');
+  const W = yardCanvas.width / dpr, H = yardCanvas.height / dpr;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, W, H);
+  const n = unitCount();
+  const w = Math.min((W * 0.94) / n, H * 0.55);
+  const total = w * n, startX = (W - total) / 2, railY = H * 0.66;
+  const bandTop = railY - w * 0.04, band = w * 0.28;
+  c.fillStyle = '#9a6735'; c.fillRect(0, bandTop - 3, W, band + 6);
+  if (ART.wood_texture) {
+    const pat = c.createPattern(ART.wood_texture, 'repeat');
+    try { pat.setTransform(new DOMMatrix().scale(w / 400)); } catch (e) {}
+    c.fillStyle = pat;
+  } else c.fillStyle = '#e7bd85';
+  c.fillRect(0, bandTop, W, band);
+  c.fillStyle = 'rgba(110,65,25,.55)';
+  c.fillRect(0, bandTop + band * 0.22, W, Math.max(3, band * 0.12));
+  c.fillRect(0, bandTop + band * 0.66, W, Math.max(3, band * 0.12));
+  yardRects = [];
+  for (let i = 0; i < n; i++) {
+    const x = startX + total - w * (i + 0.5);
+    yardRects.push({ x0: x - w / 2, x1: x + w / 2, i });
+    if (i === 0) drawEngine(c, x, railY + w * 0.02, w * 0.95, 1, state.train.engine);
+    else { const car = state.train.cars[i - 1]; drawCar(c, x, railY + w * 0.02, w * 0.95, car.shape, car.color); }
+  }
+}
+yardCanvas.addEventListener('pointerdown', e => {
+  e.preventDefault(); audio();
+  const r = yardCanvas.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  if (y < r.height * 0.15) return;
+  const hit = yardRects.find(q => x >= q.x0 && x <= q.x1);
+  if (!hit) return;
+  if (hit.i === 0) {
+    state.train.engine = (state.train.engine + 1) % COLORS.length;
+    sfx.whistle(); say(COLORS[state.train.engine].name + ' engine!');
+    paintModeIcons();
+  } else {
+    const [car] = state.train.cars.splice(hit.i - 1, 1);
+    sfx.erase(); say('Bye bye, ' + itemName(car) + '!');
+  }
+  drawYard(); save();
+});
+
+// ---------- modes ----------
+const modeBtns = [...document.querySelectorAll('.mode')];
+modeBtns.forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); audio(); setMode(b.dataset.mode, true); }));
+function setMode(m, announce) {
+  mode = m;
+  modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  ['build', 'train', 'play'].forEach(k => document.getElementById('tools-' + k).classList.toggle('show', k === m));
+  yard.classList.toggle('show', m === 'train');
+  strokes.clear();
+  if (m !== 'play' && running) { running = false; goBtn.querySelector('img').src = 'art/icon_go.png'; }
+  if (m === 'play') {
+    if (!hasAnyConnection()) magicTrack(false);
+    if (!T.segs || T.version !== trackVersion) placeTrain();
+    else { extendBack(); trim(); initNear(); }
+    pushQ = 0;
+  }
+  requestAnimationFrame(() => {
+    if (m === 'train') { sizeCanvas(yardCanvas); drawYard(); paintCargoBtns(); }
+    if (m === 'build') paintStationBtns();
+    if (m === 'play') { sizeCanvas(promptCanvas); }
+    drawPrompt();
+  });
+  if (announce) say({ build: "Let's build a track!", train: "Let's build a train!", play: "Let's play!" }[m]);
+}
+
+// ---------- grown-up panel ----------
+const gear = document.getElementById('gear');
+const parentEl = document.getElementById('parent');
+let gearTimer = null;
+gear.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  gear.classList.add('holding');
+  gearTimer = setTimeout(() => { gear.classList.remove('holding'); openParent(); }, 800);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => gear.addEventListener(ev, () => { clearTimeout(gearTimer); gear.classList.remove('holding'); }));
+function openParent() { syncSettingsUI(); parentEl.classList.add('show'); }
+function syncSettingsUI() {
+  document.querySelectorAll('.seg[data-setting]').forEach(seg => {
+    const k = seg.dataset.setting;
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(state.settings[k]) === b.dataset.v));
+  });
+}
+document.querySelectorAll('.seg[data-setting]').forEach(seg => {
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const k = seg.dataset.setting, v = b.dataset.v;
+    state.settings[k] = v === 'true' ? true : v === 'false' ? false : /^\d+$/.test(v) ? Number(v) : v;
+    if (k === 'voice' && !state.settings.voice && hasSpeech) speechSynthesis.cancel();
+    if (k === 'ask' && find.on) { find.prev = null; nextTarget(); }
+    syncSettingsUI(); save();
+  });
+});
+document.getElementById('closeParent').addEventListener('click', () => parentEl.classList.remove('show'));
+document.getElementById('fullBtn').addEventListener('click', () => {
+  const el = document.documentElement;
+  (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el);
+  parentEl.classList.remove('show');
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('Clear the track, stations, and train and start fresh?')) return;
+  const settings = state.settings;
+  state = defaults(); state.settings = settings;
+  T.segs = null; trackChanged();
+  parentEl.classList.remove('show');
+  setMode('play');
+});
+
+// ---------- start ----------
+document.getElementById('startBtn').addEventListener('click', () => {
+  audio();
+  document.getElementById('splash').classList.remove('show');
+  sfx.whistle();
+  say("Let's play trains!");
+  setMode('play');
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('gesturestart', e => e.preventDefault());
+window.addEventListener('resize', () => { resize(); paintStationBtns(); paintCargoBtns(); paintModeIcons(); });
+
+function paintModeIcons() {
+  paintSmall(document.getElementById('modeTrainIcon'), (c, W, H) => drawCar(c, W / 2, H * 0.95, W * 0.9, 'star', 2));
+  document.getElementById('modePlayIcon').src = `art/engine_${COLORS[state.train.engine].name}.png`;
+}
+
+loadArt().then(() => {
+  setTool('track');
+  resize();
+  paintModeIcons();
+  setMode('play');
+  document.getElementById('startBtn').disabled = false;
+  requestAnimationFrame(frame);
+});
+})();
+</script>
+</body>
+</html>

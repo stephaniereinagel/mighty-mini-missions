@@ -31,5 +31,11 @@ window.MIGHTY_GAMES = [
     title: "Monster Maker",
     icon: "./monster-maker/icons/icon-192.png",
     href: "./monster-maker/"
+  },
+  {
+    id: "train-set",
+    title: "Train Set",
+    icon: "./train-set/icons/icon-192.png",
+    href: "./train-set/"
   }
 ];
