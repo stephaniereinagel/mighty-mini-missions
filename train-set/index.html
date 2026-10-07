@@ -188,7 +188,7 @@
     <p class="tip">
       <b>How to play:</b> <b>Track:</b> drag a finger to lay track (pieces connect themselves), tap a shape to add a station, tap the magic wand for a ready-made track, use the sponge to erase.
       <b>Train:</b> tap a cargo car to add it, tap a car on the train to send it away, tap the engine to change its color.
-      <b>Play:</b> swipe anywhere to push the train, or press the green button to let it drive. Tap stations, the train, or the star for a "find it" game.<br><br>
+      <b>Play:</b> put a finger on the train and drag it along the track; at a junction it takes the branch your finger heads toward. Holding a finger anywhere near the track calls the train to it. Or press the green button to let it drive. Tap stations, the train, or the star for a "find it" game.<br><br>
       <b>iPad tips:</b> Share, then Add to Home Screen for a full-screen app. Turn on Guided Access (Settings, Accessibility) and triple-click the side button to lock Ethan into the game.
       Hold the gear button to open this panel; hold the trash can to clear the track.
     </p>
@@ -466,6 +466,10 @@ function advance(ds) {
     let to = null;
     if (opts.length === 1) to = opts[0];
     else if (opts.length === 3) to = opp(entry);           // crossings: go straight
+    else if (route) {
+      const c = route.shift();
+      to = opts.includes(c) ? c : opts.reduce((a, b) => dist2(nx, ny, b, route.target) < dist2(nx, ny, a, route.target) ? b : a);
+    }
     else if (opts.length > 1) to = pick(opts);              // junctions: surprise!
     T.d -= L0;
     T.segs.unshift({ x: nx, y: ny, from: entry, to });
@@ -473,6 +477,108 @@ function advance(ds) {
   trim();
   return bumped;
 }
+// While a finger is guiding the train, junctions follow this list of branch choices instead of picking randomly.
+let route = null;
+const dist2 = (x, y, d, t) => (x + DX[d] + 0.5 - t.x) ** 2 + (y + DY[d] + 0.5 - t.y) ** 2;
+const snapshotTrain = () => ({ segs: T.segs.map(s => ({ ...s })), d: T.d, reversed: T.reversed });
+function restoreTrain(s) { T.segs = s.segs.map(x => ({ ...x })); T.d = s.d; T.reversed = s.reversed; }
+
+const LOOK = 4;
+// Search the track ahead of the point h behind the front (trying every branch) for the spot nearest g.
+// A spot past a junction the cars ahead of the finger already went through is allowed too (best.relay):
+// those cars hop over to the finger's branch, so a toddler pushing the train backward can still pick a path.
+function searchAhead(h, g) {
+  const best = { d: Infinity, s: 0, choices: [], relay: null, deadEnd: false };
+  const consider = (p, s, ctx) => {
+    const d = Math.hypot(g.x - p.x, g.y - p.y) + s * 0.02 + (ctx.relay ? 0.3 : 0);
+    if (d < best.d) Object.assign(best, { d, s, choices: ctx.choices, relay: ctx.relay, deadEnd: false });
+  };
+  const sweep = (seg, t0, s0, ctx) => {
+    const L = segLen(seg);
+    let s = s0;
+    for (let u = t0; ; u = Math.min(L, u + 0.1)) {
+      s = s0 + u - t0;
+      consider(segPoint(seg, L ? u / L : 1), s, ctx);
+      if (u >= L || s >= LOOK) break;
+    }
+    return s;
+  };
+  const exitsAt = (x, y, entry) => {
+    const cs = conns(x, y);
+    if (!cs || !cs[entry]) return null;
+    const opts = [0, 1, 2, 3].filter(d => d !== entry && cs[d]);
+    return opts.length === 3 ? [opp(entry)] : opts;
+  };
+  const branch = (seg, s, ctx) => {
+    if (s >= LOOK) return;
+    const opts = seg.to === null ? null : exitsAt(seg.x + DX[seg.to], seg.y + DY[seg.to], opp(seg.to));
+    if (!opts) { if (best.s === s) best.deadEnd = true; return; }
+    for (const to of opts) {
+      const c = opts.length > 1 ? { ...ctx, choices: [...ctx.choices, to] } : ctx;
+      const next = { x: seg.x + DX[seg.to], y: seg.y + DY[seg.to], from: opp(seg.to), to };
+      branch(next, sweep(next, 0, s, c), c);
+    }
+  };
+  const base = { choices: [], relay: null };
+  const { i, dd } = locate(h);
+  const tryRelay = (j, a) => {
+    const seg = T.segs[j];
+    const opts = seg.from === null ? null : exitsAt(seg.x, seg.y, seg.from);
+    if (!opts || opts.length < 2) return;
+    for (const to of opts) {
+      if (to === seg.to) continue;
+      const ctx = { choices: [], relay: { j, a, to } };
+      const alt = { x: seg.x, y: seg.y, from: seg.from, to };
+      if (a < 0) branch(alt, sweep(alt, -a, 0, ctx), ctx);
+      else branch(alt, sweep(alt, 0, a, ctx), ctx);
+    }
+  };
+  tryRelay(i, -dd);
+  let s = sweep(T.segs[i], dd, 0, base);
+  for (let j = i - 1; j >= 0 && s < LOOK; j--) {
+    tryRelay(j, s);
+    s = sweep(T.segs[j], 0, s, base);
+  }
+  branch(T.segs[0], s, base);
+  return best;
+}
+
+// guide.h is how far behind the front of the train the finger is holding it.
+// Each frame, look along the track both ways for the spot nearest the finger and roll toward it.
+function guideStep(dt) {
+  const g = guide.target, L = trainLen(), h = Math.min(guide.h, L);
+  const H = pointAt(h);
+  const here = Math.hypot(g.x - H.x, g.y - H.y);
+  if (here < 0.08) return 0;
+  const start = snapshotTrain();
+  const fwd = searchAhead(h, g);
+  reverseTrain();
+  const back = searchAhead(L - h, g);
+  restoreTrain(start);
+  const useBack = back.d < fwd.d;
+  const best = useBack ? back : fwd;
+  if (best.s < 0.02 || best.d >= here - 0.01) {
+    if (best.deadEnd && time - guide.lastBump > 0.8) { guide.lastBump = time; sfx.bump(); }
+    return 0;
+  }
+  if (useBack) { reverseTrain(); guide.h = L - h; }
+  if (best.relay) {
+    const { j, a, to } = best.relay;
+    T.segs = T.segs.slice(j);
+    T.segs[0] = { ...T.segs[0], to };
+    T.d = 0;
+    route = Object.assign(best.choices.slice(), { target: g });
+    advance((useBack ? L - h : h) - a);
+    route = null;
+    return 0.01;
+  }
+  const step = Math.min(best.s, (4 + best.s * 4) * dt);
+  route = Object.assign(best.choices.slice(), { target: g });
+  advance(step);
+  route = null;
+  return step;
+}
+
 function placeTrain() {
   const cells = Object.keys(state.track).filter(k => state.track[k].some(Boolean));
   if (!cells.length) { T.segs = null; return; }
@@ -839,7 +945,7 @@ function render() {
 }
 
 // ---------- update loop ----------
-let pushQ = 0, chuffAcc = 0, smokeAcc = 0;
+let guide = null, chuffAcc = 0, smokeAcc = 0;
 function spawnSmoke() {
   const u = T.screen.find(u => u.id === 0);
   if (!u) return;
@@ -882,17 +988,13 @@ function update(dt) {
   time += dt;
   if (mode === 'play' && T.segs) {
     let moved = 0;
-    if (T.pause > 0) T.pause -= dt;
+    if (guide && !guide.active && time - guide.t0 > 0.3) guide.active = true;
+    if (guide && guide.active) moved += guideStep(dt);
+    else if (T.pause > 0) T.pause -= dt;
     else if (running) {
       const ds = SPEEDS[state.settings.speed] * dt;
       if (advance(ds)) { sfx.bump(); T.pause = 0.5; }
       moved += ds;
-    }
-    if (pushQ > 0) {
-      const step = Math.min(pushQ, 5 * dt);
-      pushQ -= step;
-      if (advance(step)) { sfx.bump(); pushQ = 0; }
-      moved += step;
     }
     if (moved > 0) {
       T.moving = 0.15;
@@ -1015,13 +1117,18 @@ function walkTo(stroke, cell) {
   }
   stroke.cur = cell;
 }
+// Returns the grabbed car's position in the train, counted from the front, or -1.
 function hitTrain(g) {
-  for (const u of T.screen) {
-    const w = cellPx * 0.88;
-    const sx = g.gx * cellPx + ox, sy = g.gy * cellPx + oy;
-    if (Math.abs(sx - u.x) < w * 0.55 && sy < u.y + w * 0.1 && sy > u.y - w * 0.95) return true;
-  }
-  return false;
+  const w = cellPx * 0.92;
+  const sx = g.gx * cellPx + ox, sy = g.gy * cellPx + oy;
+  let hit = -1, bestD = Infinity;
+  T.screen.forEach((u, j) => {
+    if (Math.abs(sx - u.x) < w * 0.6 && sy < u.y + w * 0.2 && sy > u.y - w * 0.95) {
+      const d = Math.abs(sx - u.x) + Math.abs(sy - (u.y - w * 0.35));
+      if (d < bestD) { bestD = d; hit = j; }
+    }
+  });
+  return hit;
 }
 board.addEventListener('pointerdown', e => {
   e.preventDefault();
@@ -1032,28 +1139,44 @@ board.addEventListener('pointerdown', e => {
     const stroke = { last: null, cur: [g.cx, g.cy] };
     strokes.set(e.pointerId, stroke);
     visitBuild([g.cx, g.cy], stroke, true);
-  } else if (mode === 'play') {
-    if (hitTrain(g)) { sfx.whistle(); say('Choo choo!'); return; }
-    const st = inBounds(g.cx, g.cy) && stationAt(g.cx, g.cy);
-    if (st) { bounce(st); sfx.ding(); say(itemName(st) + '!'); return; }
-    strokes.set(e.pointerId, { px: g.sx, py: g.sy });
+  } else if (mode === 'play' && T.segs) {
+    const unit = hitTrain(g);
+    let h;
+    if (unit >= 0) h = (unit + 0.5) * SPACING;
+    else {
+      const F = pointAt(0), B = pointAt(trainLen());
+      h = Math.hypot(g.gx - F.x, g.gy - F.y) <= Math.hypot(g.gx - B.x, g.gy - B.y) ? 0 : trainLen();
+    }
+    guide = {
+      id: e.pointerId, h, target: { x: g.gx, y: g.gy }, sx: g.sx, sy: g.sy, t0: time, lastBump: -9,
+      active: false, onTrain: unit >= 0, station: inBounds(g.cx, g.cy) ? stationAt(g.cx, g.cy) : null,
+    };
   }
 });
 board.addEventListener('pointermove', e => {
+  if (guide && e.pointerId === guide.id) {
+    const g = gridAt(e);
+    guide.target = { x: g.gx, y: g.gy };
+    if (Math.hypot(g.sx - guide.sx, g.sy - guide.sy) > 10) guide.active = true;
+    return;
+  }
   const stroke = strokes.get(e.pointerId);
   if (!stroke) return;
   const g = gridAt(e);
-  if (mode === 'build') {
-    if (g.cx !== stroke.cur[0] || g.cy !== stroke.cur[1]) walkTo(stroke, [g.cx, g.cy]);
-  } else if (mode === 'play' && T.segs) {
-    const dist = Math.hypot(g.sx - stroke.px, g.sy - stroke.py);
-    stroke.px = g.sx; stroke.py = g.sy;
-    pushQ = Math.min(3, pushQ + dist / cellPx * 0.9);
-  }
+  if (mode === 'build' && (g.cx !== stroke.cur[0] || g.cy !== stroke.cur[1])) walkTo(stroke, [g.cx, g.cy]);
 });
-const endStroke = e => strokes.delete(e.pointerId);
+const endStroke = e => {
+  strokes.delete(e.pointerId);
+  if (!guide || e.pointerId !== guide.id) return;
+  if (!guide.active && e.type === 'pointerup') {
+    if (guide.onTrain) { sfx.whistle(); say('Choo choo!'); }
+    else if (guide.station) { bounce(guide.station); sfx.ding(); say(itemName(guide.station) + '!'); }
+  }
+  guide = null;
+};
 board.addEventListener('pointerup', endStroke);
 board.addEventListener('pointercancel', endStroke);
+board.addEventListener('lostpointercapture', endStroke);
 
 // ---------- tray buttons ----------
 function makeBtn(parent, { icon, cls = '', onTap, canvas = false }) {
@@ -1220,7 +1343,7 @@ function setMode(m, announce) {
     if (!hasAnyConnection()) magicTrack(false);
     if (!T.segs || T.version !== trackVersion) placeTrain();
     else { extendBack(); trim(); initNear(); }
-    pushQ = 0;
+    guide = null;
   }
   requestAnimationFrame(() => {
     if (m === 'train') { sizeCanvas(yardCanvas); drawYard(); paintCargoBtns(); }
